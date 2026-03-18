@@ -8,6 +8,7 @@ import { Seekers } from "./pages/users/Seekers";
 import { SeekerDetail } from "./pages/users/SeekerDetail";
 import { Listings } from "./pages/listings/Listings";
 import { ListingDetail } from "./pages/listings/ListingDetail";
+import { Payments } from "./pages/payments/Payments";
 import { AdminAuthProvider } from "./contexts/AdminAuthContext";
 import { AdminGuard } from "./components/AdminGuard";
 
@@ -38,7 +39,7 @@ function App() {
             <Route path="bookings/retreats" element={<div>Retreat Bookings</div>} />
 
             <Route path="disputes" element={<div>Disputes</div>} />
-            <Route path="finance" element={<div>Finance</div>} />
+            <Route path="finance" element={<Payments />} />
             <Route path="campaigns" element={<div>Campaigns</div>} />
             <Route path="reports" element={<div>Reports</div>} />
             <Route path="modalities" element={<div>Modalities</div>} />

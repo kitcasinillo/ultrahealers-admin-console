@@ -10,6 +10,7 @@ import { Listings } from "./pages/listings/Listings";
 import { ListingDetail } from "./pages/listings/ListingDetail";
 import { AdminAuthProvider } from "./contexts/AdminAuthContext";
 import { AdminGuard } from "./components/AdminGuard";
+import { Sessions } from "./pages/bookings/Sessions";
 
 function App() {
   return (
@@ -34,7 +35,7 @@ function App() {
             <Route path="listings/:id" element={<ListingDetail />} />
             <Route path="retreats" element={<div>Retreats</div>} />
 
-            <Route path="bookings/sessions" element={<div>Session Bookings</div>} />
+            <Route path="bookings/sessions" element={<Sessions />} />
             <Route path="bookings/retreats" element={<div>Retreat Bookings</div>} />
 
             <Route path="disputes" element={<div>Disputes</div>} />

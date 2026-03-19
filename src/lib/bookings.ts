@@ -4,6 +4,7 @@ export interface BookingStatus {
     'booking-confirmed-by-healer': boolean
     'booking-marked-as-complete-by-healer': boolean
     'booking-marked-as-complete-by-seeker': boolean
+    'booking-cancelled-by-admin'?: boolean
 }
 
 export interface Booking {
@@ -19,6 +20,7 @@ export interface Booking {
     sessionTime: any
     status: BookingStatus
     paymentStatus: string
+    modality?: string
     createdAt: any
 }
 

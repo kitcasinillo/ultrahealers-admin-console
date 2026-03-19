@@ -29,5 +29,22 @@ export function useBookings() {
         fetchBookings()
     }, [])
 
-    return { bookings, loading, error, refetch: fetchBookings }
+    const cancelBooking = async (id: string) => {
+        try {
+            const response = await fetch(`${import.meta.env.VITE_API_URL}/api/bookings/${id}`, {
+                method: 'DELETE'
+            })
+            const result = await response.json()
+            if (result.success) {
+                setBookings(prev => prev.filter(b => b.id !== id))
+                return true
+            }
+            return false
+        } catch (err) {
+            console.error("Error cancelling booking:", err)
+            return false
+        }
+    }
+
+    return { bookings, loading, error, refetch: fetchBookings, cancelBooking }
 }

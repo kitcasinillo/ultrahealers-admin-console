@@ -1,21 +1,20 @@
+import { useState } from "react";
 import { StatsCard } from "../../components/StatsCard";
-import { 
-    DollarSign, 
-    CreditCard, 
-    TrendingUp, 
-    AlertCircle, 
-    ArrowUpRight, 
+import {
+    DollarSign,
+    CreditCard,
+    TrendingUp,
+    ArrowUpRight,
     Calendar,
-    ArrowDownRight,
-    Wallet
+    ChevronDown,
 } from "lucide-react";
-import { 
-    AreaChart, 
-    Area, 
-    XAxis, 
-    YAxis, 
-    CartesianGrid, 
-    Tooltip, 
+import {
+    AreaChart,
+    Area,
+    XAxis,
+    YAxis,
+    CartesianGrid,
+    Tooltip,
     ResponsiveContainer,
     BarChart,
     Bar,
@@ -33,17 +32,29 @@ const data = [
 ];
 
 const distributionData = [
-    { name: 'Sessions', value: 45000 },
-    { name: 'Retreats', value: 30000 },
-    { name: 'Bundles', value: 15000 },
-    { name: 'Custom', value: 5400 },
+    { name: 'Session Commissions', value: 45000 },
+    { name: 'Premium Subscriptions', value: 30000 },
+    { name: 'Retreat Platform Fees', value: 15000 },
+    { name: 'Others', value: 5400 },
 ];
 
 const COLORS = ['#4318FF', '#39B2AB', '#6AD2FF', '#EFF4FB'];
 
 export function Payments() {
+    const [timeRange, setTimeRange] = useState('month');
+    const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+
+    const ranges = [
+        { id: 'all-time', label: 'All Time' },
+        { id: 'month', label: 'This Month' },
+        { id: 'week', label: 'This Week' },
+        { id: 'custom', label: 'Custom Range' }
+    ];
+
+    const currentRange = ranges.find(r => r.id === timeRange)?.label || 'Select Range';
+
     return (
-        <div className="space-y-6">
+        <div className="space-y-6" onClick={() => setIsDropdownOpen(false)}>
             {/* Header */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div>
@@ -52,11 +63,39 @@ export function Payments() {
                         Track platform revenue, commissions, and payouts.
                     </p>
                 </div>
-                <div className="flex items-center gap-3">
-                    <div className="flex items-center bg-white dark:bg-[#111C44] rounded-full px-4 py-2 border border-[#E9EDF7] dark:border-white/5 shadow-sm">
-                        <Calendar className="h-4 w-4 text-[#A3AED0] mr-2" />
-                        <span className="text-sm font-bold text-[#1b254b] dark:text-white">This Month</span>
-                    </div>
+                <div className="relative">
+                    <button 
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            setIsDropdownOpen(!isDropdownOpen);
+                        }}
+                        className="flex items-center gap-3 bg-white dark:bg-[#111C44] px-5 py-2.5 rounded-2xl border border-[#E9EDF7] dark:border-white/5 shadow-sm transition-all hover:border-[#4318FF] dark:hover:border-[#01A3B4] group"
+                    >
+                        <Calendar className="h-4 w-4 text-[#A3AED0] group-hover:text-[#4318FF] transition-colors" />
+                        <span className="text-sm font-bold text-[#1b254b] dark:text-white">{currentRange}</span>
+                        <ChevronDown className={`h-4 w-4 text-[#A3AED0] transition-transform duration-200 ${isDropdownOpen ? 'rotate-180' : ''}`} />
+                    </button>
+
+                    {isDropdownOpen && (
+                        <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-[#1b254b] rounded-2xl shadow-[0_10px_30px_0_rgba(11,20,55,0.1)] border border-[#E9EDF7] dark:border-white/5 py-2 z-50 animate-in fade-in slide-in-from-top-2 duration-200">
+                            {ranges.map((range) => (
+                                <button
+                                    key={range.id}
+                                    onClick={() => {
+                                        setTimeRange(range.id);
+                                        setIsDropdownOpen(false);
+                                    }}
+                                    className={`w-full text-left px-4 py-2 text-sm font-bold transition-colors ${
+                                        timeRange === range.id 
+                                            ? "text-[#4318FF] dark:text-[#01A3B4] bg-[#F4F7FE] dark:bg-white/5" 
+                                            : "text-[#A3AED0] hover:text-[#1b254b] dark:hover:text-white hover:bg-[#F4F7FE] dark:hover:bg-white/5"
+                                    }`}
+                                >
+                                    {range.label}
+                                </button>
+                            ))}
+                        </div>
+                    )}
                 </div>
             </div>
 
@@ -64,31 +103,31 @@ export function Payments() {
             <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-4">
                 <StatsCard
                     title="Total Platform Revenue"
-                    value="$124,592.00"
-                    description="+15.2% from last month"
+                    value="$143,280.80"
+                    description="Aggregate earnings"
                     icon={<DollarSign className="h-6 w-6" />}
                     trend="up"
                 />
                 <StatsCard
-                    title="Total Commissions"
-                    value="$18,688.80"
-                    description="+12.4% from last month"
+                    title="Net Platform Revenue"
+                    value="$124,592.00"
+                    description="After Stripe fees"
+                    icon={<TrendingUp className="h-6 w-6" />}
+                    trend="up"
+                />
+                <StatsCard
+                    title="Gross Booking Volume"
+                    value="$845,920.00"
+                    description="Total through Stripe"
                     icon={<CreditCard className="h-6 w-6" />}
                     trend="up"
                 />
                 <StatsCard
-                    title="Pending Payouts"
-                    value="$5,420.50"
-                    description="12 requests pending"
-                    icon={<Wallet className="h-6 w-6" />}
-                    trend="neutral"
-                />
-                <StatsCard
-                    title="Chargebacks/Refunds"
-                    value="$890.00"
-                    description="-2.1% from last month"
-                    icon={<AlertCircle className="h-6 w-6" />}
-                    trend="down"
+                    title="Premium Revenue"
+                    value="$12,360.00"
+                    description="$120/healer/yr"
+                    icon={<ArrowUpRight className="h-6 w-6" />}
+                    trend="up"
                 />
             </div>
 
@@ -111,7 +150,7 @@ export function Payments() {
                             </div>
                         </div>
                     </div>
-                    
+
                     <div className="h-[350px] w-full mt-4">
                         <ResponsiveContainer width="100%" height="100%">
                             <AreaChart
@@ -120,32 +159,32 @@ export function Payments() {
                             >
                                 <defs>
                                     <linearGradient id="colorRev" x1="0" y1="0" x2="0" y2="1">
-                                        <stop offset="5%" stopColor="#4318FF" stopOpacity={0.1}/>
-                                        <stop offset="95%" stopColor="#4318FF" stopOpacity={0}/>
+                                        <stop offset="5%" stopColor="#4318FF" stopOpacity={0.1} />
+                                        <stop offset="95%" stopColor="#4318FF" stopOpacity={0} />
                                     </linearGradient>
                                     <linearGradient id="colorComm" x1="0" y1="0" x2="0" y2="1">
-                                        <stop offset="5%" stopColor="#39B2AB" stopOpacity={0.1}/>
-                                        <stop offset="95%" stopColor="#39B2AB" stopOpacity={0}/>
+                                        <stop offset="5%" stopColor="#39B2AB" stopOpacity={0.1} />
+                                        <stop offset="95%" stopColor="#39B2AB" stopOpacity={0} />
                                     </linearGradient>
                                 </defs>
                                 <CartesianGrid strokeDasharray="5 5" vertical={false} stroke="#E9EDF780" />
-                                <XAxis 
-                                    dataKey="name" 
-                                    axisLine={false} 
-                                    tickLine={false} 
+                                <XAxis
+                                    dataKey="name"
+                                    axisLine={false}
+                                    tickLine={false}
                                     tick={{ fill: '#A3AED0', fontSize: 12, fontWeight: 600 }}
                                     dy={15}
                                 />
-                                <YAxis 
-                                    axisLine={false} 
-                                    tickLine={false} 
+                                <YAxis
+                                    axisLine={false}
+                                    tickLine={false}
                                     tick={{ fill: '#A3AED0', fontSize: 12, fontWeight: 600 }}
                                     tickFormatter={(value) => `$${value}`}
                                 />
-                                <Tooltip 
-                                    contentStyle={{ 
-                                        borderRadius: '20px', 
-                                        border: 'none', 
+                                <Tooltip
+                                    contentStyle={{
+                                        borderRadius: '20px',
+                                        border: 'none',
                                         boxShadow: '0 10px 30px 0 rgba(11,20,55,0.06)',
                                         backgroundColor: 'white',
                                         padding: '12px 16px'
@@ -153,21 +192,21 @@ export function Payments() {
                                     itemStyle={{ fontWeight: 700, fontSize: '12px' }}
                                     labelStyle={{ color: '#1b254b', fontWeight: 800, marginBottom: '4px' }}
                                 />
-                                <Area 
-                                    type="monotone" 
-                                    dataKey="revenue" 
-                                    stroke="#4318FF" 
+                                <Area
+                                    type="monotone"
+                                    dataKey="revenue"
+                                    stroke="#4318FF"
                                     strokeWidth={3}
-                                    fillOpacity={1} 
-                                    fill="url(#colorRev)" 
+                                    fillOpacity={1}
+                                    fill="url(#colorRev)"
                                 />
-                                <Area 
-                                    type="monotone" 
-                                    dataKey="commission" 
-                                    stroke="#39B2AB" 
+                                <Area
+                                    type="monotone"
+                                    dataKey="commission"
+                                    stroke="#39B2AB"
                                     strokeWidth={3}
-                                    fillOpacity={1} 
-                                    fill="url(#colorComm)" 
+                                    fillOpacity={1}
+                                    fill="url(#colorComm)"
                                 />
                             </AreaChart>
                         </ResponsiveContainer>
@@ -186,14 +225,14 @@ export function Payments() {
                     <div className="h-[250px] w-full">
                         <ResponsiveContainer width="100%" height="100%">
                             <BarChart data={distributionData} margin={{ top: 20, right: 30, left: 0, bottom: 0 }}>
-                                <XAxis 
-                                    dataKey="name" 
-                                    axisLine={false} 
-                                    tickLine={false} 
+                                <XAxis
+                                    dataKey="name"
+                                    axisLine={false}
+                                    tickLine={false}
                                     tick={{ fill: '#A3AED0', fontSize: 10, fontWeight: 600 }}
                                 />
-                                <Tooltip 
-                                    cursor={{fill: 'transparent'}}
+                                <Tooltip
+                                    cursor={{ fill: 'transparent' }}
                                     contentStyle={{ borderRadius: '15px', border: 'none', boxShadow: '0 5px 15px rgba(0,0,0,0.05)' }}
                                 />
                                 <Bar dataKey="value" radius={[10, 10, 0, 0]} barSize={35}>
@@ -254,19 +293,21 @@ export function Payments() {
                                         <ArrowUpRight className="h-5 w-5" />
                                     </div>
                                     <div>
-                                        <p className="text-xs font-bold text-[#A3AED0]">PLATFORM CUT</p>
-                                        <span className="text-lg font-bold text-[#1b254b] dark:text-white">15.0%</span>
+                                        <p className="text-xs font-bold text-[#A3AED0]">SESSION COMMISSION</p>
+                                        <span className="text-lg font-bold text-[#1b254b] dark:text-white">15.0% Total Cut</span>
+                                        <p className="text-[10px] font-medium text-[#A3AED0]">10% Healer + 5% Seeker Fee</p>
                                     </div>
                                 </div>
                             </div>
                             <div className="flex items-center justify-between p-4 bg-[#F4F7FE] dark:bg-white/5 rounded-2xl">
                                 <div className="flex items-center gap-3">
-                                    <div className="w-10 h-10 rounded-xl bg-amber-50 dark:bg-amber-500/10 flex items-center justify-center text-amber-500">
-                                        <ArrowDownRight className="h-5 w-5" />
+                                    <div className="w-10 h-10 rounded-xl bg-[#39B2AB]/10 flex items-center justify-center text-[#39B2AB]">
+                                        <CreditCard className="h-5 w-5" />
                                     </div>
                                     <div>
-                                        <p className="text-xs font-bold text-[#A3AED0]">HEALER SHARE</p>
-                                        <span className="text-lg font-bold text-[#1b254b] dark:text-white">85.0%</span>
+                                        <p className="text-xs font-bold text-[#A3AED0]">PREMIUM PLAN</p>
+                                        <span className="text-lg font-bold text-[#1b254b] dark:text-white">$120.00 / YEAR</span>
+                                        <p className="text-[10px] font-medium text-[#A3AED0]">Flat platform fee for healers</p>
                                     </div>
                                 </div>
                             </div>

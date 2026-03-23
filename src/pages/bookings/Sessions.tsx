@@ -1,245 +1,43 @@
 import { useState, useMemo } from "react"
-import { Link } from "react-router-dom"
-import type { ColumnDef } from "@tanstack/react-table"
 import { DataTable } from "../../components/DataTable"
-import { Badge } from "../../components/ui/badge"
-import { MoreHorizontal, Eye, Mail, ChevronDown, Activity, RefreshCcw, Trash2, Calendar, Tag, CircleDollarSign, Filter } from "lucide-react"
+import { ChevronDown, RefreshCcw, CircleDollarSign, Filter, Search } from "lucide-react"
 import { Button } from "../../components/ui/button"
+import { Input } from "../../components/ui/input"
 import {
     DropdownMenu,
     DropdownMenuContent,
     DropdownMenuItem,
-    DropdownMenuLabel,
-    DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from "../../components/ui/dropdown-menu"
 import { useBookings } from "../../hooks/useBookings"
-import type { Booking } from "../../lib/bookings"
-import { formatDateTime, formatCurrency } from "../../lib/bookings"
+import { useDebounce } from "../../hooks/useDebounce"
 import { cn } from "../../lib/utils"
-import {
-    AlertDialog,
-    AlertDialogAction,
-    AlertDialogCancel,
-    AlertDialogContent,
-    AlertDialogDescription,
-    AlertDialogFooter,
-    AlertDialogHeader,
-    AlertDialogTitle,
-} from "../../components/ui/alert-dialog"
-
-const StatusIcon = ({ active, title }: { active: boolean, title: string }) => (
-    <div
-        className={cn(
-            "p-1.5 rounded-full transition-all flex items-center justify-center",
-            active ? "bg-green-50 dark:bg-green-500/10 text-green-500" : "bg-gray-50 dark:bg-white/5 text-gray-300 opacity-40"
-        )}
-        title={title}
-    >
-        <Activity className="h-3.5 w-3.5" />
-    </div>
-)
-
-// Define Columns Generator to pass onCancel handler
-const getColumns = (onCancel: (id: string, name: string) => void): ColumnDef<Booking>[] => [
-    {
-        accessorKey: "id",
-        header: "Booking ID",
-        cell: ({ row }) => (
-            <span className="font-bold text-[#1b254b] dark:text-white text-[13px] font-mono">
-                #{row.original.id.slice(-6).toUpperCase()}
-            </span>
-        ),
-    },
-    {
-        accessorKey: "listingTitle",
-        header: "Listing",
-        cell: ({ row }) => (
-            <div className="flex flex-col">
-                <span className="font-bold text-[#1b254b] dark:text-white text-[14px] leading-tight mb-1">
-                    {row.original.listingTitle}
-                </span>
-                <div className="flex items-center gap-1.5 text-[11px] font-medium text-[#A3AED0]">
-                    <Tag className="h-3 w-3" />
-                    {row.original.modality || "Healing"}
-                </div>
-            </div>
-        ),
-    },
-    {
-        accessorKey: "healerName",
-        header: "Healer",
-        cell: ({ row }) => (
-            <div className="flex items-center gap-2">
-                <div className="h-8 w-8 rounded-full bg-blue-50 dark:bg-blue-500/10 flex items-center justify-center text-blue-600 font-bold text-[11px]">
-                    {row.original.healerName.split(' ').map(n => n[0]).join('')}
-                </div>
-                <span className="font-medium text-[#1b254b] dark:text-white text-[13px]">
-                    {row.original.healerName}
-                </span>
-            </div>
-        ),
-    },
-    {
-        accessorKey: "seekerName",
-        header: "Seeker",
-        cell: ({ row }) => (
-            <div className="flex flex-col">
-                <span className="font-medium text-[#1b254b] dark:text-white text-[13px]">
-                    {row.original.seekerName}
-                </span>
-                <span className="text-[11px] text-[#A3AED0]">{row.original.seekerEmail}</span>
-            </div>
-        ),
-    },
-    {
-        accessorKey: "sessionDate",
-        header: "Session Date",
-        cell: ({ row }) => (
-            <div className="flex items-center gap-2 text-[13px] text-[#1b254b] dark:text-white font-medium">
-                <Calendar className="h-3.5 w-3.5 text-[#A3AED0]" />
-                <div className="flex flex-col">
-                    <span>{row.original.sessionDate}</span>
-                    <span className="text-[11px] text-[#A3AED0] font-normal">{row.original.sessionTime}</span>
-                </div>
-            </div>
-        ),
-    },
-    {
-        accessorKey: "amount",
-        header: "Amount",
-        cell: ({ row }) => (
-            <span className="font-bold text-[#1b254b] dark:text-white text-[14px]">
-                {formatCurrency(row.original.amount, row.original.currency)}
-            </span>
-        ),
-    },
-    {
-        accessorKey: "currency",
-        header: "Currency",
-        cell: ({ row }) => (
-            <Badge variant="outline" className="text-[10px] font-bold border-gray-200 text-[#A3AED0]">
-                {row.original.currency}
-            </Badge>
-        ),
-    },
-    {
-        id: "commission",
-        header: "Commission",
-        cell: ({ row }) => {
-            const platformFee = row.original.amount * 0.15
-            return (
-                <div className="flex flex-col">
-                    <span className="font-bold text-green-600 dark:text-green-400 text-[13px]">
-                        +{formatCurrency(platformFee, row.original.currency)}
-                    </span>
-                    <span className="text-[10px] text-[#A3AED0] font-medium">15% Fee</span>
-                </div>
-            )
-        },
-    },
-    {
-        accessorKey: "status",
-        header: "Status Flags",
-        cell: ({ row }) => {
-            const status = row.original.status || {}
-            return (
-                <div className="flex items-center gap-1.5">
-                    <StatusIcon active={!!status['invite-email-to-seeker']} title="Seeker Email Sent" />
-                    <StatusIcon active={!!status['invite-email-to-healer']} title="Healer Email Sent" />
-                    <StatusIcon active={!!status['booking-confirmed-by-healer']} title="Confirmed" />
-                    <StatusIcon active={!!status['booking-marked-as-complete-by-healer']} title="Completed" />
-                </div>
-            )
-        },
-    },
-    {
-        accessorKey: "paymentStatus",
-        header: "Payment Status",
-        cell: ({ row }) => {
-            const status = (row.original.paymentStatus || "pending").toLowerCase()
-            return (
-                <Badge
-                    className={cn(
-                        "rounded-full px-3 py-1 text-[11px] font-bold capitalize shadow-sm border-none transition-colors",
-                        status === "succeeded"
-                            ? "bg-green-100 text-green-700 hover:bg-green-200 dark:bg-green-500/20 dark:text-green-400"
-                            : "bg-orange-100 text-orange-700 hover:bg-orange-200 dark:bg-orange-500/20 dark:text-orange-400"
-                    )}
-                >
-                    <div className={cn("mr-1.5 h-1.5 w-1.5 rounded-full", status === "succeeded" ? "bg-green-600" : "bg-orange-600")} />
-                    {status}
-                </Badge>
-            )
-        },
-    },
-    {
-        accessorKey: "createdAt",
-        header: "Created",
-        cell: ({ row }) => (
-            <span className="text-[12px] text-[#A3AED0] font-medium">
-                {formatDateTime(row.original.createdAt).split(',')[0]}
-            </span>
-        ),
-    },
-    {
-        id: "actions",
-        header: "Actions",
-        cell: ({ row }) => (
-            <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" className="h-9 w-9 p-0 rounded-xl hover:bg-gray-100 dark:hover:bg-white/5 transition-colors">
-                        <MoreHorizontal className="h-4 w-4 text-[#A3AED0]" />
-                    </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-[180px] p-2 rounded-2xl border-none shadow-2xl dark:bg-[#111C44] backdrop-blur-md bg-white/90">
-                    <DropdownMenuLabel className="px-2 py-1.5 text-[10px] font-bold text-[#A3AED0] uppercase tracking-widest">Management</DropdownMenuLabel>
-                    <Link to={`/bookings/sessions/${row.original.id}`}>
-                        <DropdownMenuItem className="flex items-center gap-2 px-2 py-2.5 text-[13px] font-medium text-[#1b254b] dark:text-white rounded-xl cursor-pointer focus:bg-gray-50 dark:focus:bg-white/5">
-                            <Eye className="h-4 w-4" /> View Details
-                        </DropdownMenuItem>
-                    </Link>
-                    <DropdownMenuItem className="flex items-center gap-2 px-2 py-2.5 text-[13px] font-medium text-[#1b254b] dark:text-white rounded-xl cursor-pointer focus:bg-gray-50 dark:focus:bg-white/5">
-                        <Mail className="h-4 w-4" /> Resend Emails
-                    </DropdownMenuItem>
-                    <DropdownMenuSeparator className="my-1 bg-gray-100/50 dark:bg-white/5" />
-                    <DropdownMenuItem 
-                        onClick={() => onCancel(row.original.id, row.original.listingTitle)}
-                        className="flex items-center gap-2 px-2 py-2.5 text-[13px] font-medium text-red-500 rounded-xl cursor-pointer focus:bg-red-50 dark:focus:bg-red-500/10"
-                    >
-                        <Trash2 className="h-4 w-4" /> Cancel Booking
-                    </DropdownMenuItem>
-                </DropdownMenuContent>
-            </DropdownMenu>
-        ),
-    },
-]
+import { getSessionColumns } from "./components/SessionColumns"
+import { CancelBookingModal } from "./components/CancelBookingModal"
 
 export function Sessions() {
-    // 1. Senior Approach: Destructure with alias to prevent naming collisions
     const { bookings, loading, error, refetch, cancelBooking: initialCancelBooking } = useBookings()
     
-    // 2. Local state for filters and modal
     const [bookingToCancel, setBookingToCancel] = useState<{ id: string, name: string } | null>(null)
     const [isCancelling, setIsCancelling] = useState(false)
+    const [searchQuery, setSearchQuery] = useState("")
+    const debouncedSearchQuery = useDebounce(searchQuery, 300)
     const [paymentFilter, setPaymentFilter] = useState<string>("all")
     const [statusFilter, setStatusFilter] = useState<string>("all")
 
-    // 3. Memoize columns to prevent re-building on every render
-    const columns = useMemo(() => getColumns((id, name) => {
+    const columns = useMemo(() => getSessionColumns((id, name) => {
         setBookingToCancel({ id, name })
     }), [])
 
     const handleConfirmCancel = async () => {
         if (!bookingToCancel) return
-        
+
         setIsCancelling(true)
         const success = await initialCancelBooking(bookingToCancel.id)
         setIsCancelling(false)
         setBookingToCancel(null)
-        
+
         if (!success) {
-            // Error handling (simple console for now)
             console.error("Cancellation failed")
         }
     }
@@ -247,11 +45,18 @@ export function Sessions() {
     const filteredData = useMemo(() => {
         if (!bookings) return []
         return bookings.filter(booking => {
+            const matchesSearch = 
+                booking.listingTitle?.toLowerCase().includes(debouncedSearchQuery.toLowerCase()) ||
+                booking.healerName?.toLowerCase().includes(debouncedSearchQuery.toLowerCase()) ||
+                booking.seekerName?.toLowerCase().includes(debouncedSearchQuery.toLowerCase()) ||
+                booking.id.toLowerCase().includes(debouncedSearchQuery.toLowerCase())
+
             const matchesPayment = paymentFilter === "all" || (booking.paymentStatus || "").toLowerCase() === paymentFilter
             const matchesStatus = statusFilter === "all" || (booking.status && (booking.status as any)[statusFilter])
-            return matchesPayment && matchesStatus
+            
+            return matchesSearch && matchesPayment && matchesStatus
         })
-    }, [bookings, paymentFilter, statusFilter])
+    }, [bookings, debouncedSearchQuery, paymentFilter, statusFilter])
 
     return (
         <div className="flex flex-col gap-6 animate-in fade-in slide-in-from-bottom-2 duration-500">
@@ -280,6 +85,18 @@ export function Sessions() {
 
             {/* Filter Hub */}
             <div className="flex flex-wrap items-center gap-4 bg-white/50 dark:bg-[#111C44]/50 backdrop-blur-md p-2 rounded-[20px] border border-gray-100 dark:border-white/5">
+                <div className="relative w-full md:w-[320px]">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[#A3AED0]" />
+                    <Input
+                        placeholder="Search by ID, Healer, Seeker..."
+                        className="pl-10 h-10 rounded-xl border-none bg-white dark:bg-[#111C44] text-[13px] font-medium focus-visible:ring-1 focus-visible:ring-[#4318FF] shadow-none"
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                    />
+                </div>
+
+                <div className="h-4 w-[1px] bg-gray-200 dark:bg-white/10 hidden sm:block" />
+
                 <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                         <Button variant="ghost" className="h-10 px-4 rounded-xl text-[13px] font-bold text-[#1b254b] dark:text-white hover:bg-white dark:hover:bg-white/5 flex items-center gap-2 transition-all">
@@ -288,10 +105,11 @@ export function Sessions() {
                             <ChevronDown className="h-4 w-4 text-[#A3AED0]" />
                         </Button>
                     </DropdownMenuTrigger>
-                    <DropdownMenuContent className="w-48 p-2 rounded-2xl border-none shadow-2xl dark:bg-[#111C44]">
+                    <DropdownMenuContent className="w-48 p-2 rounded-2xl border-none shadow-2xl dark:bg-[#111C44] bg-white">
                         <DropdownMenuItem onClick={() => setPaymentFilter("all")} className="rounded-xl cursor-pointer">All Payments</DropdownMenuItem>
                         <DropdownMenuItem onClick={() => setPaymentFilter("succeeded")} className="rounded-xl cursor-pointer text-green-600">Succeeded</DropdownMenuItem>
                         <DropdownMenuItem onClick={() => setPaymentFilter("pending")} className="rounded-xl cursor-pointer text-orange-600">Pending</DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => setPaymentFilter("cancelled")} className="rounded-xl cursor-pointer text-red-600">Cancelled</DropdownMenuItem>
                     </DropdownMenuContent>
                 </DropdownMenu>
 
@@ -305,7 +123,7 @@ export function Sessions() {
                             <ChevronDown className="h-4 w-4 text-[#A3AED0]" />
                         </Button>
                     </DropdownMenuTrigger>
-                    <DropdownMenuContent className="w-64 p-2 rounded-2xl border-none shadow-2xl dark:bg-[#111C44]">
+                    <DropdownMenuContent className="w-64 p-2 rounded-2xl border-none shadow-2xl dark:bg-[#111C44] bg-white">
                         <DropdownMenuItem onClick={() => setStatusFilter("all")} className="rounded-xl cursor-pointer">All Statuses</DropdownMenuItem>
                         <DropdownMenuItem onClick={() => setStatusFilter("invite-email-to-seeker")} className="rounded-xl cursor-pointer">Seeker Emailed</DropdownMenuItem>
                         <DropdownMenuItem onClick={() => setStatusFilter("invite-email-to-healer")} className="rounded-xl cursor-pointer">Healer Emailed</DropdownMenuItem>
@@ -324,7 +142,7 @@ export function Sessions() {
                 {error ? (
                     <div className="flex flex-col items-center justify-center p-20 text-center">
                         <div className="h-20 w-20 bg-red-50 dark:bg-red-500/10 rounded-full flex items-center justify-center mb-6">
-                            <Activity className="h-10 w-10 text-red-500" />
+                            <RefreshCcw className="h-10 w-10 text-red-500" />
                         </div>
                         <h3 className="text-xl font-bold text-[#1b254b] dark:text-white">Connection Error</h3>
                         <p className="text-sm text-[#A3AED0] mt-2 max-w-sm">
@@ -336,43 +154,23 @@ export function Sessions() {
                     </div>
                 ) : (
                     <div className="animate-in fade-in duration-700">
-                        <DataTable 
-                            columns={columns} 
-                            data={filteredData} 
+                        <DataTable
+                            columns={columns}
+                            data={filteredData}
                             isLoading={loading}
                         />
                     </div>
                 )}
             </div>
 
-            {/* Senior Approach: Confirmation Modal */}
-            <AlertDialog open={!!bookingToCancel} onOpenChange={(open: boolean) => !open && setBookingToCancel(null)}>
-                <AlertDialogContent className="rounded-[30px] p-8 border-none shadow-3xl bg-white dark:bg-[#111C44]">
-                    <AlertDialogHeader>
-                        <AlertDialogTitle className="text-2xl font-bold text-[#1b254b] dark:text-white">
-                            Cancel this session?
-                        </AlertDialogTitle>
-                        <AlertDialogDescription className="text-[15px] font-medium text-[#A3AED0] pt-2 leading-relaxed">
-                            You are about to cancel the booking for <span className="text-[#1b254b] dark:text-white font-bold">"{bookingToCancel?.name}"</span>. 
-                            This will permanently remove the record from your staging environment.
-                            <br /><br />
-                            <span className="text-red-500 font-bold">Warning: This action cannot be reversed.</span>
-                        </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter className="mt-8 gap-3 sm:gap-0">
-                        <AlertDialogCancel className="rounded-2xl border-none bg-gray-100 hover:bg-gray-200 dark:bg-white/5 dark:hover:bg-white/10 h-12 px-6 font-bold text-[#1b254b] dark:text-white transition-all">
-                            No, keep it
-                        </AlertDialogCancel>
-                        <AlertDialogAction 
-                            onClick={handleConfirmCancel}
-                            disabled={isCancelling}
-                            className="rounded-2xl bg-red-500 hover:bg-red-600 h-12 px-8 font-bold text-white shadow-xl shadow-red-100 dark:shadow-none transition-all"
-                        >
-                            {isCancelling ? "Processing..." : "Yes, Cancel Booking"}
-                        </AlertDialogAction>
-                    </AlertDialogFooter>
-                </AlertDialogContent>
-            </AlertDialog>
+            <CancelBookingModal 
+                isOpen={!!bookingToCancel} 
+                onClose={() => setBookingToCancel(null)}
+                onConfirm={handleConfirmCancel}
+                bookingName={bookingToCancel?.name}
+                isCancelling={isCancelling}
+                type="session"
+            />
         </div>
     )
 }

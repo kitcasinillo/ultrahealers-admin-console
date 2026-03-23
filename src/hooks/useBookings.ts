@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react"
 import type { Booking } from "../lib/bookings"
 
-export function useBookings() {
+export function useBookings(isRetreat: boolean = false) {
     const [bookings, setBookings] = useState<Booking[]>([])
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState<string | null>(null)
@@ -9,7 +9,8 @@ export function useBookings() {
     const fetchBookings = async () => {
         setLoading(true);
         try {
-            const response = await fetch(`${import.meta.env.VITE_API_URL}/api/bookings`)
+            const endpoint = isRetreat ? '/api/retreat-bookings' : '/api/bookings';
+            const response = await fetch(`${import.meta.env.VITE_API_URL}${endpoint}`)
             const result = await response.json()
             if (result.success) {
                 setBookings(result.data)
@@ -27,16 +28,17 @@ export function useBookings() {
 
     useEffect(() => {
         fetchBookings()
-    }, [])
+    }, [isRetreat])
 
     const cancelBooking = async (id: string) => {
         try {
-            const response = await fetch(`${import.meta.env.VITE_API_URL}/api/bookings/${id}`, {
-                method: 'DELETE'
+            const endpoint = isRetreat ? `/api/retreat-bookings/cancel/${id}` : `/api/bookings/cancel/${id}`;
+            const response = await fetch(`${import.meta.env.VITE_API_URL}${endpoint}`, {
+                method: 'POST'
             })
             const result = await response.json()
             if (result.success) {
-                setBookings(prev => prev.filter(b => b.id !== id))
+                setBookings(prev => prev.map(b => b.id === id ? { ...b, paymentStatus: 'cancelled' } : b))
                 return true
             }
             return false

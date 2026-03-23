@@ -24,6 +24,10 @@ export interface Booking {
     createdAt: any
     hasDispute?: boolean
     disputeId?: string
+    // Retreat Specific Fields
+    retreatTitle?: string
+    hostName?: string
+    bookingDate?: string
 }
 
 /**

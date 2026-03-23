@@ -2,6 +2,7 @@ import type { ColumnDef } from "@tanstack/react-table"
 import { Badge } from "../../../components/ui/badge"
 import { MoreHorizontal, Eye, Calendar, Trash2 } from "lucide-react"
 import { Button } from "../../../components/ui/button"
+import { Link } from "react-router-dom"
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -108,9 +109,11 @@ export const getRetreatColumns = (onCancel: (id: string, name: string) => void):
                     </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-[180px] p-2 rounded-2xl border-none shadow-2xl dark:bg-[#111C44] bg-white">
-                    <DropdownMenuItem className="flex items-center gap-2 px-2 py-2.5 text-[13px] font-medium rounded-xl cursor-pointer">
-                        <Eye className="h-4 w-4" /> View Details
-                    </DropdownMenuItem>
+                    <Link to={`/bookings/retreats/${row.original.id}`}>
+                        <DropdownMenuItem className="flex items-center gap-2 px-2 py-2.5 text-[13px] font-medium rounded-xl cursor-pointer">
+                            <Eye className="h-4 w-4" /> View Details
+                        </DropdownMenuItem>
+                    </Link>
                     <DropdownMenuItem 
                         onClick={() => row.original.paymentStatus !== 'cancelled' && onCancel(row.original.id, row.original.retreatTitle)}
                         disabled={row.original.paymentStatus === 'cancelled'}

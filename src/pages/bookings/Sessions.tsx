@@ -12,8 +12,8 @@ import {
 import { useBookings } from "../../hooks/useBookings"
 import { useDebounce } from "../../hooks/useDebounce"
 import { cn } from "../../lib/utils"
-import { getSessionColumns } from "./components/SessionColumns"
-import { CancelBookingModal } from "./components/CancelBookingModal"
+import { getSessionColumns } from "./components/sessions/SessionColumns"
+import { CancelBookingModal } from "./components/shared/CancelBookingModal"
 
 export function Sessions() {
     const { bookings, loading, error, refetch, cancelBooking: initialCancelBooking } = useBookings()

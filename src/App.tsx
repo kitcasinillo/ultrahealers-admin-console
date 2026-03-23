@@ -13,6 +13,7 @@ import { AdminGuard } from "./components/AdminGuard";
 import { Sessions } from "./pages/bookings/Sessions";
 import { SessionDetail } from "./pages/bookings/SessionDetail";
 import { RetreatBookings } from "./pages/bookings/RetreatBookings";
+import { RetreatDetail } from "./pages/bookings/RetreatDetail";
 
 function App() {
   return (
@@ -40,6 +41,7 @@ function App() {
             <Route path="bookings/sessions" element={<Sessions />} />
             <Route path="bookings/sessions/:id" element={<SessionDetail />} />
             <Route path="bookings/retreats" element={<RetreatBookings />} />
+            <Route path="bookings/retreats/:id" element={<RetreatDetail />} />
 
             <Route path="disputes" element={<div>Disputes</div>} />
             <Route path="finance" element={<div>Finance</div>} />

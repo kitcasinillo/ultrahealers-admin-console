@@ -1,8 +1,8 @@
 import { Link } from "react-router-dom"
 import type { ColumnDef } from "@tanstack/react-table"
-import { Badge } from "../../../components/ui/badge"
+import { Badge } from "../../../../components/ui/badge"
 import { MoreHorizontal, Eye, Mail, Calendar, Tag, Trash2, Activity } from "lucide-react"
-import { Button } from "../../../components/ui/button"
+import { Button } from "../../../../components/ui/button"
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -10,10 +10,10 @@ import {
     DropdownMenuLabel,
     DropdownMenuSeparator,
     DropdownMenuTrigger,
-} from "../../../components/ui/dropdown-menu"
-import type { Booking } from "../../../lib/bookings"
-import { formatDateTime, formatCurrency } from "../../../lib/bookings"
-import { cn } from "../../../lib/utils"
+} from "../../../../components/ui/dropdown-menu"
+import type { Booking } from "../../../../lib/bookings"
+import { formatDateTime, formatCurrency } from "../../../../lib/bookings"
+import { cn } from "../../../../lib/utils"
 
 const StatusIcon = ({ active, title }: { active: boolean, title: string }) => (
     <div

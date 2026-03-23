@@ -1,16 +1,16 @@
 import type { ColumnDef } from "@tanstack/react-table"
-import { Badge } from "../../../components/ui/badge"
+import { Badge } from "../../../../components/ui/badge"
 import { MoreHorizontal, Eye, Calendar, Trash2 } from "lucide-react"
-import { Button } from "../../../components/ui/button"
+import { Button } from "../../../../components/ui/button"
 import { Link } from "react-router-dom"
 import {
     DropdownMenu,
     DropdownMenuContent,
     DropdownMenuItem,
     DropdownMenuTrigger,
-} from "../../../components/ui/dropdown-menu"
-import { formatCurrency } from "../../../lib/bookings"
-import { cn } from "../../../lib/utils"
+} from "../../../../components/ui/dropdown-menu"
+import { formatCurrency } from "../../../../lib/bookings"
+import { cn } from "../../../../lib/utils"
 
 export const getRetreatColumns = (onCancel: (id: string, name: string) => void): ColumnDef<any>[] => [
     {

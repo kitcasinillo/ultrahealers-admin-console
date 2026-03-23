@@ -4,7 +4,7 @@ import { Button } from "../../components/ui/button"
 import { Input } from "../../components/ui/input"
 import { FileSpreadsheet, Search, Calendar as CalendarIcon, ChevronDown } from "lucide-react"
 import * as XLSX from "xlsx"
-import { useState, useMemo } from "react"
+import { useState, useMemo, useEffect } from "react"
 
 export type CommissionRecord = {
     id: string
@@ -22,83 +22,7 @@ export type CommissionRecord = {
     status: "Processed" | "Pending" | "Refunded"
 }
 
-const data: CommissionRecord[] = [
-    {
-        id: "1",
-        bookingId: "BK-9041",
-        date: "2024-03-15",
-        healerName: "John Doe",
-        seekerName: "Michael Brown",
-        baseAmount: 150.00,
-        healerCommission: 15.00,
-        seekerFee: 7.50,
-        processingFee: 4.65,
-        healerPayout: 135.00,
-        platformNet: 17.85,
-        stripePiId: "pi_3O9xL...",
-        status: "Processed",
-    },
-    {
-        id: "2",
-        bookingId: "BK-9042",
-        date: "2024-03-16",
-        healerName: "Jane Smith",
-        seekerName: "Sarah Wilson",
-        baseAmount: 85.00,
-        healerCommission: 8.50,
-        seekerFee: 4.25,
-        processingFee: 2.77,
-        healerPayout: 76.50,
-        platformNet: 9.98,
-        stripePiId: "pi_3O9xM...",
-        status: "Processed",
-    },
-    {
-        id: "3",
-        bookingId: "BK-9043",
-        date: "2024-03-17",
-        healerName: "Alice Johnson",
-        seekerName: "David Miller",
-        baseAmount: 300.00,
-        healerCommission: 30.00,
-        seekerFee: 15.00,
-        processingFee: 9.00,
-        healerPayout: 270.00,
-        platformNet: 36.00,
-        stripePiId: "pi_3O9xN...",
-        status: "Pending",
-    },
-    {
-        id: "4",
-        bookingId: "BK-9044",
-        date: "2024-03-17",
-        healerName: "John Doe",
-        seekerName: "Emily Davis",
-        baseAmount: 120.00,
-        healerCommission: 12.00,
-        seekerFee: 6.00,
-        processingFee: 3.78,
-        healerPayout: 108.00,
-        platformNet: 14.22,
-        stripePiId: "pi_3O9xO...",
-        status: "Processed",
-    },
-    {
-        id: "5",
-        bookingId: "BK-9045",
-        date: "2024-03-18",
-        healerName: "Robert Taylor",
-        seekerName: "Jessica Garcia",
-        baseAmount: 200.00,
-        healerCommission: 20.00,
-        seekerFee: 10.00,
-        processingFee: 6.10,
-        healerPayout: 180.00,
-        platformNet: 23.90,
-        stripePiId: "pi_3O9xP...",
-        status: "Refunded",
-    },
-]
+
 
 export const columns: ColumnDef<CommissionRecord>[] = [
     {
@@ -159,6 +83,27 @@ export function CommissionTable() {
     const [searchTerm, setSearchTerm] = useState("")
     const [dateRange, setDateRange] = useState("all-time")
     const [isDateDropdownOpen, setIsDateDropdownOpen] = useState(false)
+    const [data, setData] = useState<CommissionRecord[]>([])
+    const [loading, setLoading] = useState(true)
+
+    useEffect(() => {
+        const fetchRecords = async () => {
+            try {
+                const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5001';
+                const response = await fetch(`${apiUrl}/api/admin/finance/commission-report`);
+                const result = await response.json();
+                if (result.success) {
+                    setData(result.records);
+                }
+            } catch (error) {
+                console.error('Error fetching commission records:', error);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchRecords();
+    }, []);
 
     const dateRanges = [
         { id: 'all-time', label: 'All Time' },
@@ -198,9 +143,8 @@ export function CommissionTable() {
             const matchesSearch = record.healerName.toLowerCase().includes(searchTerm.toLowerCase());
             const matchesStart = startDate ? recordDate >= startDate : true;
             const matchesEnd = endDate ? recordDate <= endDate : true;
-            return matchesSearch && matchesStart && matchesEnd;
         });
-    }, [searchTerm, dateRange]);
+    }, [searchTerm, dateRange, customDates, data]);
 
     const totals = useMemo(() => {
         return filteredData.reduce((acc, curr) => ({
@@ -329,7 +273,14 @@ export function CommissionTable() {
 
             <div className="bg-white dark:bg-[#111C44] rounded-[32px] p-2 shadow-[0_20px_50px_rgba(11,20,55,0.05)] border border-[#E9EDF7] dark:border-white/5 overflow-hidden">
                 <div className="overflow-x-auto">
-                    <DataTable columns={columns} data={filteredData} />
+                    {loading ? (
+                        <div className="flex flex-col items-center justify-center py-20 gap-4">
+                            <div className="w-10 h-10 border-4 border-[#4318FF] border-t-transparent rounded-full animate-spin" />
+                            <p className="text-[#A3AED0] font-bold">Loading records...</p>
+                        </div>
+                    ) : (
+                        <DataTable columns={columns} data={filteredData} />
+                    )}
                 </div>
                 
                 {/* Official Totals Row at Bottom */}

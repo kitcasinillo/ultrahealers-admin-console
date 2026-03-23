@@ -10,8 +10,8 @@ import { SeekerDetail } from "./pages/users/SeekerDetail";
 import { Listings } from "./pages/listings/Listings";
 import { ListingDetail } from "./pages/listings/ListingDetail";
 import { CampaignList } from "./pages/campaigns/CampaignList";
-// import { CampaignEditor } from "./pages/campaigns/CampaignEditor";
-// import { CampaignDetail } from "./pages/campaigns/CampaignDetail";
+import { CampaignEditor } from "./pages/campaigns/CampaignEditor";
+import { CampaignDetail } from "./pages/campaigns/CampaignDetail";
 import { Templates } from "./pages/campaigns/Templates";
 import { AdminAuthProvider } from "./contexts/AdminAuthContext";
 import { AdminGuard } from "./components/AdminGuard";
@@ -58,9 +58,9 @@ function App() {
             <Route path="disputes" element={<div>Disputes</div>} />
             <Route path="finance" element={<div>Finance</div>} />
             <Route path="campaigns" element={<CampaignList />} />
-            {/* <Route path="campaigns/new" element={<CampaignEditor />} />
+            <Route path="campaigns/new" element={<CampaignEditor />} />
             <Route path="campaigns/:id/edit" element={<CampaignEditor />} />
-            <Route path="campaigns/:id" element={<CampaignDetail />} /> */}
+            <Route path="campaigns/:id" element={<CampaignDetail />} />
             <Route path="campaigns/templates" element={<Templates />} />
             <Route path="reports" element={<div>Reports</div>} />
             <Route path="modalities" element={<div>Modalities</div>} />

@@ -1,4 +1,4 @@
-export type CampaignStatus = "Draft" | "Scheduled" | "Sending" | "Sent" | "Paused" | "Failed"
+export type CampaignStatus = "draft" | "scheduled" | "sending" | "sent" | "paused" | "failed"
 export type AudienceType = "Healers" | "Seekers" | "All Users" | "Free Healers" | "Premium Healers" | "Custom"
 
 export type Campaign = {

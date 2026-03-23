@@ -26,7 +26,7 @@ interface StatusBadgeProps {
 
 export function StatusBadge({ status }: StatusBadgeProps) {
     const styles = STATUS_STYLES[status]
-    const isSending = status === "Sending"
+    const isSending = status === "sending"
 
     return (
         <div
@@ -48,7 +48,7 @@ interface ActionMenuProps {
 }
 
 export function ActionMenu({ campaign, onDuplicate, onSendTest, onSendNow, onDelete }: ActionMenuProps) {
-    const canSend = campaign.status === "Draft" || campaign.status === "Scheduled"
+    const canSend = campaign.status === "draft" || campaign.status === "scheduled"
 
     return (
         <DropdownMenu>
@@ -122,14 +122,22 @@ interface FilterChipsProps {
     searchQuery: string
     statusFilter: string
     audienceFilter: string
+    startDate: string
+    endDate: string
+    createdByFilter: string
     onClearSearch: () => void
     onClearStatus: () => void
     onClearAudience: () => void
+    onClearDate: () => void
+    onClearCreatedBy: () => void
     onClearAll: () => void
 }
 
-export function FilterChips({ searchQuery, statusFilter, audienceFilter, onClearSearch, onClearStatus, onClearAudience, onClearAll }: FilterChipsProps) {
-    const hasFilters = searchQuery || statusFilter !== "All" || audienceFilter !== "All"
+export function FilterChips({ 
+    searchQuery, statusFilter, audienceFilter, startDate, endDate, createdByFilter,
+    onClearSearch, onClearStatus, onClearAudience, onClearDate, onClearCreatedBy, onClearAll 
+}: FilterChipsProps) {
+    const hasFilters = searchQuery || statusFilter !== "All" || audienceFilter !== "All" || startDate || endDate || createdByFilter
     if (!hasFilters) return null
 
     return (
@@ -138,6 +146,8 @@ export function FilterChips({ searchQuery, statusFilter, audienceFilter, onClear
             {searchQuery && <FilterChip label={`"${searchQuery}"`} onRemove={onClearSearch} />}
             {statusFilter !== "All" && <FilterChip label={statusFilter} onRemove={onClearStatus} />}
             {audienceFilter !== "All" && <FilterChip label={audienceFilter} onRemove={onClearAudience} />}
+            {(startDate || endDate) && <FilterChip label={`${startDate || '...'} to ${endDate || '...'}`} onRemove={onClearDate} />}
+            {createdByFilter && <FilterChip label={`By: ${createdByFilter}`} onRemove={onClearCreatedBy} />}
             <button onClick={onClearAll} className="text-xs font-bold text-[#A3AED0] hover:text-red-500 px-2">
                 Clear all
             </button>

@@ -23,10 +23,6 @@ import { StatusBadge, ActionMenu, FilterChips, EmptyState } from "./components"
 import { useCampaigns } from "./useCampaigns"
 
 
-// =============================================================================
-// MAIN COMPONENT
-// =============================================================================
-
 export function CampaignList() {
     const {
         campaigns,
@@ -39,6 +35,12 @@ export function CampaignList() {
         setStatusFilter,
         audienceFilter,
         setAudienceFilter,
+        startDate,
+        setStartDate,
+        endDate,
+        setEndDate,
+        createdByFilter,
+        setCreatedByFilter,
         handleRefresh,
         handleDelete,
         handleDuplicate,
@@ -48,10 +50,6 @@ export function CampaignList() {
 
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false)
     const [campaignToDelete, setCampaignToDelete] = useState<Campaign | null>(null)
-
-    // ==========================================================================
-    // ACTIONS
-    // ==========================================================================
 
     const handleDeleteClick = useCallback((campaign: Campaign) => {
         setCampaignToDelete(campaign)
@@ -66,9 +64,6 @@ export function CampaignList() {
         setCampaignToDelete(null)
     }, [campaignToDelete, handleDelete])
 
-    // ==========================================================================
-    // DERIVED STATE
-    // ==========================================================================
 
     const stats = useMemo(() => {
         const sentThisMonth = campaigns.filter(c => {
@@ -89,7 +84,7 @@ export function CampaignList() {
         ]
     }, [campaigns])
 
-    const hasActiveFilters = Boolean(searchQuery || statusFilter !== "All" || audienceFilter !== "All")
+    const hasActiveFilters = Boolean(searchQuery || statusFilter !== "All" || audienceFilter !== "All" || startDate || endDate || createdByFilter)
 
     // Table Columns
     const columns: ColumnDef<Campaign>[] = useMemo(() => [
@@ -183,9 +178,6 @@ export function CampaignList() {
         },
     ], [handleDuplicate, handleSendTest, handleSendNow, handleDeleteClick])
 
-    // ==========================================================================
-    // RENDER
-    // ==========================================================================
 
     return (
         <div className="space-y-6">
@@ -278,6 +270,33 @@ export function CampaignList() {
                                 <option key={audience} value={audience}>{audience === "All" ? "All Audiences" : audience}</option>
                             ))}
                         </select>
+
+                        <div className="flex items-center gap-2 bg-[#F4F7FE] dark:bg-white/5 px-4 py-1.5 rounded-xl border-none">
+                            <span className="text-[10px] font-bold text-[#A3AED0] uppercase">From</span>
+                            <input 
+                                type="date" 
+                                className="bg-transparent text-[#1b254b] dark:text-white text-xs font-bold outline-none"
+                                value={startDate}
+                                onChange={(e) => setStartDate(e.target.value)}
+                            />
+                            <span className="text-[10px] font-bold text-[#A3AED0] uppercase px-1">To</span>
+                            <input 
+                                type="date" 
+                                className="bg-transparent text-[#1b254b] dark:text-white text-xs font-bold outline-none"
+                                value={endDate}
+                                onChange={(e) => setEndDate(e.target.value)}
+                            />
+                        </div>
+
+                        <div className="relative">
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-[#A3AED0]" />
+                            <Input
+                                placeholder="Created by..."
+                                className="pl-9 h-10 w-[180px] rounded-xl border-none bg-[#F4F7FE] dark:bg-white/5 text-sm font-bold focus-visible:ring-[#4318FF]"
+                                value={createdByFilter}
+                                onChange={(e) => setCreatedByFilter(e.target.value)}
+                            />
+                        </div>
                     </div>
 
                     {/* Filter Chips & Count */}
@@ -286,10 +305,22 @@ export function CampaignList() {
                             searchQuery={searchQuery}
                             statusFilter={statusFilter}
                             audienceFilter={audienceFilter}
+                            startDate={startDate}
+                            endDate={endDate}
+                            createdByFilter={createdByFilter}
                             onClearSearch={() => setSearchQuery("")}
                             onClearStatus={() => setStatusFilter("All")}
                             onClearAudience={() => setAudienceFilter("All")}
-                            onClearAll={() => { setSearchQuery(""); setStatusFilter("All"); setAudienceFilter("All"); }}
+                            onClearDate={() => { setStartDate(""); setEndDate(""); }}
+                            onClearCreatedBy={() => setCreatedByFilter("")}
+                            onClearAll={() => { 
+                                setSearchQuery(""); 
+                                setStatusFilter("All"); 
+                                setAudienceFilter("All");
+                                setStartDate("");
+                                setEndDate("");
+                                setCreatedByFilter("");
+                            }}
                         />
                         <span className="text-sm font-medium text-[#A3AED0] ml-2">
                             {campaigns.length === totalCount

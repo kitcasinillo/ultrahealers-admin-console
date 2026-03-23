@@ -7,7 +7,59 @@ export const getCampaigns = (filters?: Record<string, string | undefined>) =>
   fetch(`${API_URL}/campaigns.json`).then(async res => {
     if (!res.ok) throw new Error("Failed to load mock data")
     const data = await res.json()
-    return { data } // Axios compatibility: wrapping in 'data'
+    
+    // Client-side filtering for mock data
+    let campaigns = (data.campaigns || data || []) as any[]
+    
+    if (filters) {
+      if (filters.search) {
+        const query = filters.search.toLowerCase()
+        campaigns = campaigns.filter(c => 
+          (c.name || c.title || "").toLowerCase().includes(query) ||
+          (c.subject || "").toLowerCase().includes(query)
+        )
+      }
+      
+      if (filters.status && filters.status !== "All") {
+        campaigns = campaigns.filter(c => 
+          (c.status || "").toLowerCase() === filters.status?.toLowerCase()
+        )
+      }
+      
+      if (filters.audience && filters.audience !== "All") {
+        campaigns = campaigns.filter(c => 
+          (c.audience || "").toLowerCase() === filters.audience?.toLowerCase()
+        )
+      }
+
+      if (filters.createdBy) {
+        const query = filters.createdBy.toLowerCase()
+        campaigns = campaigns.filter(c => 
+          (c.createdBy || "").toLowerCase().includes(query)
+        )
+      }
+
+      if (filters.startDate) {
+        const start = new Date(filters.startDate).getTime()
+        campaigns = campaigns.filter(c => {
+          if (!c.sentAt) return false
+          const sent = new Date(c.sentAt).getTime()
+          return sent >= start
+        })
+      }
+
+      if (filters.endDate) {
+        const end = new Date(filters.endDate).getTime()
+        campaigns = campaigns.filter(c => {
+          if (!c.sentAt) return false
+          const sent = new Date(c.sentAt).getTime()
+          return sent <= end
+        })
+      }
+    }
+
+    // Axios compatibility wrapping in 'data'
+    return { data: { campaigns, total: campaigns.length, success: true } }
   })
 
 export const getCampaign = (id: string) =>

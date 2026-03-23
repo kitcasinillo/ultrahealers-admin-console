@@ -19,6 +19,9 @@ export function useCampaigns() {
     const [searchQuery, setSearchQuery] = useState("")
     const [statusFilter, setStatusFilter] = useState("All")
     const [audienceFilter, setAudienceFilter] = useState("All")
+    const [startDate, setStartDate] = useState("")
+    const [endDate, setEndDate] = useState("")
+    const [createdByFilter, setCreatedByFilter] = useState("")
     const activeIntervals = useRef<Set<ReturnType<typeof setInterval>>>(new Set())
 
     const buildParams = useCallback(() => {
@@ -26,8 +29,11 @@ export function useCampaigns() {
         if (statusFilter !== "All") params.status = statusFilter
         if (audienceFilter !== "All") params.audience = audienceFilter
         if (searchQuery) params.search = searchQuery
+        if (startDate) params.startDate = startDate
+        if (endDate) params.endDate = endDate
+        if (createdByFilter) params.createdBy = createdByFilter
         return params
-    }, [statusFilter, audienceFilter, searchQuery])
+    }, [statusFilter, audienceFilter, searchQuery, startDate, endDate, createdByFilter])
 
     const fetchAndSetCampaigns = useCallback(async (params: Record<string, string | undefined>) => {
         try {
@@ -153,6 +159,12 @@ export function useCampaigns() {
         setStatusFilter,
         audienceFilter,
         setAudienceFilter,
+        startDate,
+        setStartDate,
+        endDate,
+        setEndDate,
+        createdByFilter,
+        setCreatedByFilter,
         handleRefresh,
         handleDelete,
         handleDuplicate,

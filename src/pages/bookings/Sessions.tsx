@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react"
+import { Link } from "react-router-dom"
 import type { ColumnDef } from "@tanstack/react-table"
 import { DataTable } from "../../components/DataTable"
 import { Badge } from "../../components/ui/badge"
@@ -193,9 +194,11 @@ const getColumns = (onCancel: (id: string, name: string) => void): ColumnDef<Boo
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-[180px] p-2 rounded-2xl border-none shadow-2xl dark:bg-[#111C44] backdrop-blur-md bg-white/90">
                     <DropdownMenuLabel className="px-2 py-1.5 text-[10px] font-bold text-[#A3AED0] uppercase tracking-widest">Management</DropdownMenuLabel>
-                    <DropdownMenuItem className="flex items-center gap-2 px-2 py-2.5 text-[13px] font-medium text-[#1b254b] dark:text-white rounded-xl cursor-pointer focus:bg-gray-50 dark:focus:bg-white/5">
-                        <Eye className="h-4 w-4" /> View Details
-                    </DropdownMenuItem>
+                    <Link to={`/bookings/sessions/${row.original.id}`}>
+                        <DropdownMenuItem className="flex items-center gap-2 px-2 py-2.5 text-[13px] font-medium text-[#1b254b] dark:text-white rounded-xl cursor-pointer focus:bg-gray-50 dark:focus:bg-white/5">
+                            <Eye className="h-4 w-4" /> View Details
+                        </DropdownMenuItem>
+                    </Link>
                     <DropdownMenuItem className="flex items-center gap-2 px-2 py-2.5 text-[13px] font-medium text-[#1b254b] dark:text-white rounded-xl cursor-pointer focus:bg-gray-50 dark:focus:bg-white/5">
                         <Mail className="h-4 w-4" /> Resend Emails
                     </DropdownMenuItem>

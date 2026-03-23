@@ -22,6 +22,8 @@ export interface Booking {
     paymentStatus: string
     modality?: string
     createdAt: any
+    hasDispute?: boolean
+    disputeId?: string
 }
 
 /**

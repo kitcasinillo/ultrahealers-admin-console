@@ -1,4 +1,6 @@
 import { useState, useMemo } from "react"
+import { isWithinInterval, parseISO, startOfDay, endOfDay } from "date-fns"
+import type { DateRange } from "react-day-picker"
 import { DataTable } from "../../components/DataTable"
 import { ChevronDown, RefreshCcw, CircleDollarSign, Filter, Search } from "lucide-react"
 import { Button } from "../../components/ui/button"
@@ -14,6 +16,7 @@ import { useDebounce } from "../../hooks/useDebounce"
 import { cn } from "../../lib/utils"
 import { getSessionColumns } from "./components/sessions/SessionColumns"
 import { CancelBookingModal } from "./components/shared/CancelBookingModal"
+import { DateRangePicker } from "./components/shared/DateRangePicker"
 
 export function Sessions() {
     const { bookings, loading, error, refetch, cancelBooking: initialCancelBooking } = useBookings()
@@ -24,6 +27,7 @@ export function Sessions() {
     const debouncedSearchQuery = useDebounce(searchQuery, 300)
     const [paymentFilter, setPaymentFilter] = useState<string>("all")
     const [statusFilter, setStatusFilter] = useState<string>("all")
+    const [dateRange, setDateRange] = useState<DateRange | undefined>()
 
     const columns = useMemo(() => getSessionColumns((id, name) => {
         setBookingToCancel({ id, name })
@@ -54,9 +58,28 @@ export function Sessions() {
             const matchesPayment = paymentFilter === "all" || (booking.paymentStatus || "").toLowerCase() === paymentFilter
             const matchesStatus = statusFilter === "all" || (booking.status && (booking.status as any)[statusFilter])
             
-            return matchesSearch && matchesPayment && matchesStatus
+            // Date Range Filter Logic
+            let matchesDate = true
+            if (dateRange?.from) {
+                const sessionDateVal = booking.sessionDate
+                let dateToCompare: Date | null = null
+                
+                if (sessionDateVal?.seconds) {
+                    dateToCompare = new Date(sessionDateVal.seconds * 1000)
+                } else if (typeof sessionDateVal === 'string') {
+                    dateToCompare = parseISO(sessionDateVal)
+                }
+                
+                if (dateToCompare && !isNaN(dateToCompare.getTime())) {
+                    const start = startOfDay(dateRange.from)
+                    const end = endOfDay(dateRange.to || dateRange.from)
+                    matchesDate = isWithinInterval(dateToCompare, { start, end })
+                }
+            }
+            
+            return matchesSearch && matchesPayment && matchesStatus && matchesDate
         })
-    }, [bookings, debouncedSearchQuery, paymentFilter, statusFilter])
+    }, [bookings, debouncedSearchQuery, paymentFilter, statusFilter, dateRange])
 
     return (
         <div className="flex flex-col gap-6 animate-in fade-in slide-in-from-bottom-2 duration-500">
@@ -131,6 +154,10 @@ export function Sessions() {
                         <DropdownMenuItem onClick={() => setStatusFilter("booking-marked-as-complete-by-healer")} className="rounded-xl cursor-pointer">Marked Complete</DropdownMenuItem>
                     </DropdownMenuContent>
                 </DropdownMenu>
+
+                <div className="h-4 w-[1px] bg-gray-200 dark:bg-white/10 hidden sm:block" />
+
+                <DateRangePicker date={dateRange} setDate={setDateRange} />
 
                 <div className="ml-auto px-4 text-[12px] font-bold text-[#A3AED0] hidden lg:block">
                     Total: {filteredData.length} records found

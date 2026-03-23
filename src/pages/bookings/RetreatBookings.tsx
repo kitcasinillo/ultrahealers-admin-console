@@ -1,4 +1,6 @@
 import { useMemo, useState } from "react"
+import { isWithinInterval, parseISO, startOfDay, endOfDay } from "date-fns"
+import type { DateRange } from "react-day-picker"
 import { DataTable } from "../../components/DataTable"
 import { RefreshCcw, Search, ChevronDown, CircleDollarSign } from "lucide-react"
 import { Button } from "../../components/ui/button"
@@ -14,12 +16,14 @@ import { useDebounce } from "../../hooks/useDebounce"
 import { cn } from "../../lib/utils"
 import { getRetreatColumns } from "./components/retreats/RetreatColumns"
 import { CancelBookingModal } from "./components/shared/CancelBookingModal"
+import { DateRangePicker } from "./components/shared/DateRangePicker"
 
 export function RetreatBookings() {
     const { bookings, loading, refetch, cancelBooking } = useBookings(true)
     const [searchQuery, setSearchQuery] = useState("")
     const debouncedSearchQuery = useDebounce(searchQuery, 300)
     const [statusFilter, setStatusFilter] = useState("all")
+    const [dateRange, setDateRange] = useState<DateRange | undefined>()
     
     const [bookingToCancel, setBookingToCancel] = useState<{ id: string, name: string } | null>(null)
     const [isCancelling, setIsCancelling] = useState(false)
@@ -51,9 +55,26 @@ export function RetreatBookings() {
             
             const matchesStatus = statusFilter === "all" || b.paymentStatus?.toLowerCase() === statusFilter
             
-            return matchesSearch && matchesStatus
+            // Date Range Filter Logic
+            let matchesDate = true
+            if (dateRange?.from) {
+                const bookingDateVal = b.bookingDate
+                let dateToCompare: Date | null = null
+                
+                if (typeof bookingDateVal === 'string') {
+                    dateToCompare = parseISO(bookingDateVal)
+                }
+                
+                if (dateToCompare && !isNaN(dateToCompare.getTime())) {
+                    const start = startOfDay(dateRange.from)
+                    const end = endOfDay(dateRange.to || dateRange.from)
+                    matchesDate = isWithinInterval(dateToCompare, { start, end })
+                }
+            }
+            
+            return matchesSearch && matchesStatus && matchesDate
         })
-    }, [bookings, debouncedSearchQuery, statusFilter])
+    }, [bookings, debouncedSearchQuery, statusFilter, dateRange])
 
     return (
         <div className="flex flex-col gap-6 animate-in fade-in duration-500">
@@ -103,6 +124,10 @@ export function RetreatBookings() {
                         <DropdownMenuItem onClick={() => setStatusFilter("cancelled")} className="rounded-xl cursor-pointer text-red-600">Cancelled</DropdownMenuItem>
                     </DropdownMenuContent>
                 </DropdownMenu>
+
+                <div className="h-6 w-[1px] bg-gray-200 dark:bg-white/10 hidden md:block" />
+
+                <DateRangePicker date={dateRange} setDate={setDateRange} />
 
                 <div className="ml-auto px-4 text-[12px] font-bold text-[#A3AED0]">
                     {filteredData.length} Enrollments Found

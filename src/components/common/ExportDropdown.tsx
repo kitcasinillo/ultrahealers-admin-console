@@ -17,10 +17,10 @@ export function ExportDropdown({ onExportExcel, onExportPdf }: ExportDropdownPro
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <button className="flex justify-center w-full sm:w-auto items-center gap-2 bg-[#4318FF] hover:bg-[#3311CC] dark:bg-[#4318FF] dark:hover:bg-[#3510e0] text-white font-bold py-3 sm:py-2.5 px-4 sm:px-6 rounded-full shadow-[0_10px_20px_rgba(67,24,255,0.25)] transition-all text-[13px] group shrink-0">
-          <DownloadCloud className="h-4 w-4 text-white/80 group-hover:scale-110 transition-transform" />
-          <span>Export Report</span>
-          <ChevronDown className="h-4 w-4 text-white/60 ml-1" />
+        <button className="flex items-center gap-2.5 bg-[#4318FF] hover:bg-[#3311CC] dark:bg-[#4318FF] dark:hover:bg-[#3510e0] text-white font-bold py-3 px-5 sm:px-6 rounded-full shadow-[0_10px_20px_rgba(67,24,255,0.25)] transition-all text-sm group shrink-0 w-max">
+          <DownloadCloud className="h-4 w-4 text-white/90 group-hover:scale-110 transition-transform" />
+          <span className="whitespace-nowrap">Export</span>
+          <ChevronDown className="h-4 w-4 text-white/80 ml-1" />
         </button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="center" className="min-w-[200px] w-[var(--radix-dropdown-menu-trigger-width)] p-2 rounded-2xl border-none shadow-[0_30px_60px_rgba(0,0,0,0.12)]">

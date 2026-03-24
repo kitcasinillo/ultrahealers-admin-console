@@ -18,7 +18,7 @@ export function GranularityTabs({
           key={item}
           onClick={() => setGranularity(item)}
           className={cn(
-            "flex-1 sm:flex-none px-5 py-2.5 sm:py-1.5 rounded-full text-xs font-bold transition-all text-center",
+            "px-6 py-2 rounded-full text-sm font-bold transition-all whitespace-nowrap",
             granularity === item
               ? "bg-white dark:bg-[#111C44] text-[#4318FF] dark:text-white shadow-sm border border-gray-100/50 dark:border-white/10"
               : "text-[#A3AED0] hover:text-[#4318FF] dark:hover:text-[#01A3B4]"

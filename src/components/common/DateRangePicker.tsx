@@ -40,16 +40,16 @@ export function DateRangePicker({
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <button className="flex justify-between sm:justify-start w-full sm:w-auto items-center gap-2.5 bg-white dark:bg-[#111C44] py-3 sm:py-2 px-4 rounded-full border border-gray-200 dark:border-white/10 hover:bg-gray-50 dark:hover:bg-white/5 transition-all text-[#1b254b] dark:text-white font-semibold text-[13px] shadow-sm">
+        <button className="flex items-center gap-3 bg-white dark:bg-[#111C44] py-3 px-5 rounded-full border border-gray-200 dark:border-white/10 hover:bg-gray-50 dark:hover:bg-white/5 transition-all text-[#1b254b] dark:text-white font-bold text-sm shadow-sm w-max max-w-full">
           <div className="flex items-center gap-2.5 overflow-hidden">
             <Calendar className="h-4 w-4 text-[#A3AED0] shrink-0" />
-            <span className="truncate">
+            <span className="truncate whitespace-nowrap text-ellipsis overflow-hidden">
               {dateRange === 'Custom Range' && customStartDate && customEndDate
                 ? `${formatShortDate(customStartDate)} - ${formatShortDate(customEndDate)}`
                 : dateRange === 'Custom Range' ? 'Custom Range' : dateRange}
             </span>
           </div>
-          <ChevronDown className="h-3.5 w-3.5 text-[#A3AED0] shrink-0 ml-1" />
+          <ChevronDown className="h-4 w-4 text-[#A3AED0] shrink-0 ml-1" />
         </button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="center" className="min-w-[240px] w-[var(--radix-dropdown-menu-trigger-width)] p-2 rounded-2xl border-none shadow-[0_30px_60px_rgba(0,0,0,0.12)]">

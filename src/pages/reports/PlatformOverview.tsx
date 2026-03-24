@@ -1,6 +1,4 @@
 import { useState } from 'react';
-import { jsPDF } from 'jspdf';
-import * as XLSX from 'xlsx';
 
 import {
   UserPlus,
@@ -23,34 +21,87 @@ import { BaseBarChart } from '../../components/Charts/BaseBarChart';
 import { BaseAreaChart } from '../../components/Charts/BaseAreaChart';
 import { BaseGaugeChart } from '../../components/Charts/BaseGaugeChart';
 
-// Sample data for charts
-const userGrowthData = [
-  { name: 'Jan', healers: 400, seekers: 2400 },
-  { name: 'Feb', healers: 600, seekers: 3200 },
-  { name: 'Mar', healers: 800, seekers: 4500 },
-  { name: 'Apr', healers: 1100, seekers: 5800 },
-  { name: 'May', healers: 1400, seekers: 7200 },
-  { name: 'Jun', healers: 1800, seekers: 8900 },
-];
+// Utilities
+import { exportPlatformOverviewPdf, exportPlatformOverviewExcel } from '../../lib/exportUtils';
 
-const bookingVolumeData = [
-  { name: 'Mon', sessions: 120, retreats: 40 },
-  { name: 'Tue', sessions: 150, retreats: 35 },
-  { name: 'Wed', sessions: 180, retreats: 50 },
-  { name: 'Thu', sessions: 140, retreats: 30 },
-  { name: 'Fri', sessions: 220, retreats: 65 },
-  { name: 'Sat', sessions: 280, retreats: 90 },
-  { name: 'Sun', sessions: 250, retreats: 85 },
-];
-
-const revenueCompositionData = [
-  { name: 'Jan', commission: 4000, fees: 2400, premium: 2000 },
-  { name: 'Feb', commission: 5000, fees: 3000, premium: 2500 },
-  { name: 'Mar', commission: 6500, fees: 3800, premium: 3200 },
-  { name: 'Apr', commission: 8000, fees: 4500, premium: 4000 },
-  { name: 'May', commission: 9500, fees: 5500, premium: 4800 },
-  { name: 'Jun', commission: 12000, fees: 7000, premium: 6000 },
-];
+// Mock data segmented by granularity for interactivity
+const MOCK_DATA = {
+  Daily: {
+    userGrowth: [
+      { name: 'Mon', healers: 400, seekers: 2400 },
+      { name: 'Tue', healers: 405, seekers: 2420 },
+      { name: 'Wed', healers: 412, seekers: 2450 },
+      { name: 'Thu', healers: 418, seekers: 2490 },
+      { name: 'Fri', healers: 425, seekers: 2540 },
+      { name: 'Sat', healers: 432, seekers: 2580 },
+      { name: 'Sun', healers: 440, seekers: 2650 },
+    ],
+    bookingVolume: [
+      { name: 'Mon', sessions: 20, retreats: 5 },
+      { name: 'Tue', sessions: 25, retreats: 8 },
+      { name: 'Wed', sessions: 35, retreats: 12 },
+      { name: 'Thu', sessions: 28, retreats: 6 },
+      { name: 'Fri', sessions: 45, retreats: 15 },
+      { name: 'Sat', sessions: 55, retreats: 20 },
+      { name: 'Sun', sessions: 60, retreats: 25 },
+    ],
+    revenue: [
+      { name: 'Mon', commission: 400, fees: 240, premium: 200 },
+      { name: 'Tue', commission: 500, fees: 300, premium: 250 },
+      { name: 'Wed', commission: 700, fees: 420, premium: 350 },
+      { name: 'Thu', commission: 560, fees: 340, premium: 280 },
+      { name: 'Fri', commission: 900, fees: 540, premium: 450 },
+      { name: 'Sat', commission: 1100, fees: 660, premium: 550 },
+      { name: 'Sun', commission: 1200, fees: 720, premium: 600 },
+    ]
+  },
+  Weekly: {
+    userGrowth: [
+      { name: 'Week 1', healers: 400, seekers: 2400 },
+      { name: 'Week 2', healers: 600, seekers: 3200 },
+      { name: 'Week 3', healers: 800, seekers: 4500 },
+      { name: 'Week 4', healers: 1100, seekers: 5800 },
+    ],
+    bookingVolume: [
+      { name: 'Week 1', sessions: 120, retreats: 40 },
+      { name: 'Week 2', sessions: 150, retreats: 35 },
+      { name: 'Week 3', sessions: 180, retreats: 50 },
+      { name: 'Week 4', sessions: 140, retreats: 30 },
+    ],
+    revenue: [
+      { name: 'Week 1', commission: 4000, fees: 2400, premium: 2000 },
+      { name: 'Week 2', commission: 5000, fees: 3000, premium: 2500 },
+      { name: 'Week 3', commission: 6500, fees: 3800, premium: 3200 },
+      { name: 'Week 4', commission: 8000, fees: 4500, premium: 4000 },
+    ]
+  },
+  Monthly: {
+    userGrowth: [
+      { name: 'Jan', healers: 400, seekers: 2400 },
+      { name: 'Feb', healers: 600, seekers: 3200 },
+      { name: 'Mar', healers: 800, seekers: 4500 },
+      { name: 'Apr', healers: 1100, seekers: 5800 },
+      { name: 'May', healers: 1400, seekers: 7200 },
+      { name: 'Jun', healers: 1800, seekers: 8900 },
+    ],
+    bookingVolume: [
+      { name: 'Jan', sessions: 520, retreats: 140 },
+      { name: 'Feb', sessions: 650, retreats: 185 },
+      { name: 'Mar', sessions: 880, retreats: 250 },
+      { name: 'Apr', sessions: 740, retreats: 210 },
+      { name: 'May', sessions: 920, retreats: 280 },
+      { name: 'Jun', sessions: 1050, retreats: 310 },
+    ],
+    revenue: [
+      { name: 'Jan', commission: 16000, fees: 9600, premium: 8000 },
+      { name: 'Feb', commission: 20000, fees: 12000, premium: 10000 },
+      { name: 'Mar', commission: 26000, fees: 15600, premium: 13000 },
+      { name: 'Apr', commission: 32000, fees: 19200, premium: 16000 },
+      { name: 'May', commission: 38000, fees: 22800, premium: 19000 },
+      { name: 'Jun', commission: 48000, fees: 28800, premium: 24000 },
+    ]
+  }
+};
 
 const healthScoreData = [
   { name: 'Score', value: 85 },
@@ -74,114 +125,31 @@ export function PlatformOverview() {
   const [customEndDate, setCustomEndDate] = useState('');
 
   const handleExportPdf = () => {
-    const doc = new jsPDF();
-
-    // Add Report Header
-    doc.setFontSize(22);
-    doc.setTextColor(27, 37, 75); // Dark Blue
-    doc.text("Platform Overview Report", 14, 22);
-
-    doc.setFontSize(10);
-    doc.setTextColor(163, 174, 208); // Gray Text
-    doc.text(`Generated on: ${new Date().toLocaleDateString()}`, 14, 30);
-    doc.text(`Reporting Period: ${dateRange}`, 14, 36);
-
-    // Key Metrics Header
-    doc.setFontSize(14);
-    doc.setTextColor(27, 37, 75);
-    doc.text("1. Key Performance Metrics", 14, 48);
-
-    // Dynamically import autotable to render PDF tables
-    import('jspdf-autotable').then(({ default: autoTable }) => {
-      autoTable(doc, {
-        startY: 53,
-        head: [['Metric', 'Value', 'Details']],
-        body: summaryCardsData.map(card => [card.title, String(card.value), card.description || '-']),
-        theme: 'grid',
-        headStyles: { fillColor: [67, 24, 255] },
-        styles: { fontSize: 9 }
-      });
-
-      const finalYMetrics = (doc as any).lastAutoTable.finalY + 15;
-
-      // User Growth Data
-      doc.setFontSize(14);
-      doc.setTextColor(27, 37, 75);
-      doc.text("2. User Growth Trends", 14, finalYMetrics);
-
-      autoTable(doc, {
-        startY: finalYMetrics + 5,
-        head: [['Month', 'Healers', 'Seekers', 'Total Added']],
-        body: userGrowthData.map(d => [d.name, String(d.healers), String(d.seekers), String(d.healers + d.seekers)]),
-        theme: 'striped',
-        headStyles: { fillColor: [67, 24, 255] },
-        styles: { fontSize: 9 }
-      });
-
-      const finalYGrowth = (doc as any).lastAutoTable.finalY + 15;
-
-      // Booking Volume Data
-      doc.setFontSize(14);
-      doc.text("3. Booking Volumes", 14, finalYGrowth);
-
-      autoTable(doc, {
-        startY: finalYGrowth + 5,
-        head: [['Day', 'Sessions', 'Retreats', 'Total Daily Volume']],
-        body: bookingVolumeData.map(d => [d.name, String(d.sessions), String(d.retreats), String(d.sessions + d.retreats)]),
-        theme: 'striped',
-        headStyles: { fillColor: [67, 24, 255] },
-        styles: { fontSize: 9 }
-      });
-
-      // Next Page for Revenue Composition
-      doc.addPage();
-      doc.setFontSize(14);
-      doc.text("4. Revenue Composition", 14, 22);
-
-      autoTable(doc, {
-        startY: 28,
-        head: [['Month', 'Session Commission', 'Seeker Fees', 'Premium Subscriptions', 'Total Monthly']],
-        body: revenueCompositionData.map(d => [
-          d.name,
-          `$${d.commission.toLocaleString()}`,
-          `$${d.fees.toLocaleString()}`,
-          `$${d.premium.toLocaleString()}`,
-          `$${(d.commission + d.fees + d.premium).toLocaleString()}`
-        ]),
-        theme: 'striped',
-        headStyles: { fillColor: [67, 24, 255] },
-        styles: { fontSize: 9 }
-      });
-
-      doc.save('Platform-Overview-Report.pdf');
-    }).catch(err => {
-      console.error("Failed to generate styled PDF report:", err);
+    const currentData = MOCK_DATA[granularity as keyof typeof MOCK_DATA];
+    exportPlatformOverviewPdf({
+      dateRange,
+      summaryData: summaryCardsData,
+      userGrowthData: currentData.userGrowth,
+      bookingVolumeData: currentData.bookingVolume,
+      revenueData: currentData.revenue
     });
   };
 
   const handleExportExcel = () => {
-    const wb = XLSX.utils.book_new();
-
-    const ws1 = XLSX.utils.json_to_sheet(userGrowthData);
-    XLSX.utils.book_append_sheet(wb, ws1, "User Growth");
-
-    const ws2 = XLSX.utils.json_to_sheet(bookingVolumeData);
-    XLSX.utils.book_append_sheet(wb, ws2, "Booking Volume");
-
-    const ws3 = XLSX.utils.json_to_sheet(revenueCompositionData);
-    XLSX.utils.book_append_sheet(wb, ws3, "Revenue Composition");
-
-    const summaryData = summaryCardsData.map(card => ({ Metric: card.title, Value: card.value }));
-    const ws4 = XLSX.utils.json_to_sheet(summaryData);
-    XLSX.utils.book_append_sheet(wb, ws4, "Summary Metrics");
-
-    XLSX.writeFile(wb, "Platform-Overview-Data.xlsx");
+    const currentData = MOCK_DATA[granularity as keyof typeof MOCK_DATA];
+    exportPlatformOverviewExcel({
+      dateRange,
+      summaryData: summaryCardsData,
+      userGrowthData: currentData.userGrowth,
+      bookingVolumeData: currentData.bookingVolume,
+      revenueData: currentData.revenue
+    });
   };
 
   return (
     <div id="report-content" className="space-y-6 bg-transparent dark:bg-transparent p-1">
       {/* Header Section */}
-      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+      <div className="flex flex-col gap-5 mb-6">
         <div>
           <h2 className="text-3xl font-extrabold tracking-tight text-[#1b254b] dark:text-white">Platform Overview Report</h2>
           <p className="text-[#A3AED0] text-sm mt-1 font-medium">
@@ -189,25 +157,30 @@ export function PlatformOverview() {
           </p>
         </div>
 
-        <div data-html2canvas-ignore="true" className="flex flex-col sm:flex-row flex-wrap items-stretch sm:items-center gap-3 mt-4 lg:mt-0 w-full lg:w-auto lg:justify-end">
-          <DateRangePicker
-            dateRange={dateRange}
-            setDateRange={setDateRange}
-            customStartDate={customStartDate}
-            setCustomStartDate={setCustomStartDate}
-            customEndDate={customEndDate}
-            setCustomEndDate={setCustomEndDate}
-          />
+        {/* Controls Layout */}
+        <div data-html2canvas-ignore="true" className="flex flex-wrap items-center justify-between gap-4">
+          <div className="flex flex-wrap items-center gap-3">
+            <DateRangePicker
+              dateRange={dateRange}
+              setDateRange={setDateRange}
+              customStartDate={customStartDate}
+              setCustomStartDate={setCustomStartDate}
+              customEndDate={customEndDate}
+              setCustomEndDate={setCustomEndDate}
+            />
+            
+            <GranularityTabs
+              granularity={granularity}
+              setGranularity={setGranularity}
+            />
+          </div>
 
-          <GranularityTabs
-            granularity={granularity}
-            setGranularity={setGranularity}
-          />
-
-          <ExportDropdown
-            onExportExcel={handleExportExcel}
-            onExportPdf={handleExportPdf}
-          />
+          <div className="flex items-center shrink-0">
+            <ExportDropdown
+              onExportExcel={handleExportExcel}
+              onExportPdf={handleExportPdf}
+            />
+          </div>
         </div>
       </div>
 
@@ -228,7 +201,7 @@ export function PlatformOverview() {
       <div className="grid gap-5 grid-cols-1 lg:grid-cols-2">
         <BaseLineChart
           title="User Growth"
-          data={userGrowthData}
+          data={MOCK_DATA[granularity as keyof typeof MOCK_DATA].userGrowth}
           lines={[
             { name: "Healers", dataKey: "healers", stroke: "#4318FF" },
             { name: "Seekers", dataKey: "seekers", stroke: "#6AD2FF" }
@@ -237,7 +210,7 @@ export function PlatformOverview() {
 
         <BaseBarChart
           title="Booking Volume"
-          data={bookingVolumeData}
+          data={MOCK_DATA[granularity as keyof typeof MOCK_DATA].bookingVolume}
           bars={[
             { name: "Sessions", dataKey: "sessions", fill: "#4318FF", stackId: "a", radius: [0, 0, 0, 0] },
             { name: "Retreats", dataKey: "retreats", fill: "#6AD2FF", stackId: "a", radius: [6, 6, 0, 0] }
@@ -246,7 +219,7 @@ export function PlatformOverview() {
 
         <BaseAreaChart
           title="Revenue Composition"
-          data={revenueCompositionData}
+          data={MOCK_DATA[granularity as keyof typeof MOCK_DATA].revenue}
           yAxisTickFormatter={(val) => `$${val / 1000}k`}
           areas={[
             { name: "Session Commission", dataKey: "commission", stroke: "#4318FF" },

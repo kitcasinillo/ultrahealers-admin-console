@@ -149,7 +149,7 @@ export function PlatformOverview() {
   return (
     <div id="report-content" className="space-y-6 bg-transparent dark:bg-transparent p-1">
       {/* Header Section */}
-      <div className="flex flex-col gap-5 mb-6">
+      <div className="flex flex-col gap-2 mb-6">
         <div>
           <h2 className="text-3xl font-extrabold tracking-tight text-[#1b254b] dark:text-white">Platform Overview Report</h2>
           <p className="text-[#A3AED0] text-sm mt-1 font-medium">
@@ -158,29 +158,30 @@ export function PlatformOverview() {
         </div>
 
         {/* Controls Layout */}
-        <div data-html2canvas-ignore="true" className="flex flex-wrap items-center justify-between gap-4">
-          <div className="flex flex-wrap items-center gap-3">
-            <DateRangePicker
-              dateRange={dateRange}
-              setDateRange={setDateRange}
-              customStartDate={customStartDate}
-              setCustomStartDate={setCustomStartDate}
-              customEndDate={customEndDate}
-              setCustomEndDate={setCustomEndDate}
-            />
-            
-            <GranularityTabs
-              granularity={granularity}
-              setGranularity={setGranularity}
-            />
-          </div>
+        <div data-html2canvas-ignore="true" className="flex flex-wrap items-center gap-3 mt-4">
+          
+          <DateRangePicker
+            dateRange={dateRange}
+            setDateRange={setDateRange}
+            customStartDate={customStartDate}
+            setCustomStartDate={setCustomStartDate}
+            customEndDate={customEndDate}
+            setCustomEndDate={setCustomEndDate}
+          />
+          
+          <GranularityTabs
+            granularity={granularity}
+            setGranularity={setGranularity}
+          />
 
-          <div className="flex items-center shrink-0">
-            <ExportDropdown
-              onExportExcel={handleExportExcel}
-              onExportPdf={handleExportPdf}
-            />
-          </div>
+          {/* Invisible Spring Spacer for Desktop Right-Alignment */}
+          <div className="hidden lg:block flex-1 min-w-[1rem]" />
+
+          <ExportDropdown
+            onExportExcel={handleExportExcel}
+            onExportPdf={handleExportPdf}
+          />
+          
         </div>
       </div>
 

@@ -1,6 +1,10 @@
+import { useState } from "react";
 import { Code, Zap, CheckCircle2 } from "lucide-react";
 
 export function EventDispatcher() {
+    const [eventType, setEventType] = useState("booking.created");
+    const [customEvent, setCustomEvent] = useState("");
+
     return (
         <div className="bg-white dark:bg-[#111C44] rounded-3xl p-6 shadow-[0_10px_30px_0_rgba(11,20,55,0.06)] dark:shadow-none border border-transparent dark:border-white/5 lg:col-span-2">
             <div className="flex items-center justify-between mb-6 pb-4 border-b border-gray-100 dark:border-white/5">
@@ -18,18 +22,36 @@ export function EventDispatcher() {
 
             <div className="grid md:grid-cols-2 gap-6">
                 <div className="space-y-4">
-                    <div>
-                        <label className="block text-sm font-bold text-[#1b254b] dark:text-white mb-2">Event Type</label>
-                        <select className="w-full px-4 py-2.5 bg-[#F4F7FE] dark:bg-white/5 border-none rounded-xl text-sm font-medium text-[#1b254b] dark:text-white focus:ring-2 focus:ring-[#4318FF]">
-                            <option value="booking.created">booking.created</option>
-                            <option value="dispute.created">dispute.created</option>
-                            <option value="dispute.resolved">dispute.resolved</option>
-                            <option value="dispute.updated">dispute.updated</option>
-                            <option value="healer.premium.activated">healer.premium.activated</option>
-                            <option value="retreat.booking">retreat.booking</option>
-                            <option value="system.ping">system.ping</option>
-                            <option value="custom">Custom...</option>
-                        </select>
+                    <div className="grid grid-cols-2 gap-4">
+                        <div>
+                            <label className="block text-sm font-bold text-[#1b254b] dark:text-white mb-2">Event Type</label>
+                            <select 
+                                value={eventType}
+                                onChange={(e) => setEventType(e.target.value)}
+                                className="w-full px-4 py-2.5 bg-[#F4F7FE] dark:bg-white/5 border-none rounded-xl text-sm font-medium text-[#1b254b] dark:text-white focus:ring-2 focus:ring-[#4318FF]"
+                            >
+                                <option value="booking.created">booking.created</option>
+                                <option value="dispute.created">dispute.created</option>
+                                <option value="dispute.resolved">dispute.resolved</option>
+                                <option value="dispute.updated">dispute.updated</option>
+                                <option value="healer.premium.activated">healer.premium.activated</option>
+                                <option value="retreat.booking">retreat.booking</option>
+                                <option value="system.ping">system.ping</option>
+                                <option value="custom">Custom (free-text)</option>
+                            </select>
+                        </div>
+                        {eventType === "custom" && (
+                            <div>
+                                <label className="block text-sm font-bold text-[#1b254b] dark:text-white mb-2">Custom Name</label>
+                                <input 
+                                    type="text"
+                                    value={customEvent}
+                                    onChange={(e) => setCustomEvent(e.target.value)}
+                                    placeholder="Enter event name..."
+                                    className="w-full px-4 py-2.5 bg-[#F4F7FE] dark:bg-white/5 border-none rounded-xl text-sm font-medium text-[#1b254b] dark:text-white focus:ring-2 focus:ring-[#4318FF]"
+                                />
+                            </div>
+                        )}
                     </div>
                     
                     <div>

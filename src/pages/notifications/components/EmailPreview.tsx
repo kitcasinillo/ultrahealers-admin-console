@@ -22,8 +22,6 @@ export function EmailPreview() {
                         <select className="w-full px-4 py-2.5 bg-[#F4F7FE] dark:bg-white/5 border-none rounded-xl text-sm font-medium text-[#1b254b] dark:text-white focus:ring-2 focus:ring-[#4318FF]">
                             <option value="healerEmail">healerEmail (Unread Messages)</option>
                             <option value="seekerEmail">seekerEmail (Unread Messages)</option>
-                            <option value="welcome">welcome</option>
-                            <option value="bookingConfirmed">bookingConfirmed</option>
                         </select>
                     </div>
                     

@@ -10,7 +10,6 @@ import { Listings } from "./pages/listings/Listings";
 import { ListingDetail } from "./pages/listings/ListingDetail";
 import { Payments } from "./pages/payments/Payments";
 import { AdminAuthProvider } from "./contexts/AdminAuthContext";
-import { AdminGuard } from "./components/AdminGuard";
 
 function App() {
   return (

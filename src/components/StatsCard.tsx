@@ -58,16 +58,16 @@ export function StatsCard({ title, value, description, icon, trend = "neutral", 
             )}
 
             <div className="flex flex-col">
-                <p className="text-sm font-medium text-[#A3AED0] mb-1">
+                <p className="text-xs font-bold text-[#A3AED0] uppercase tracking-wider mb-1.5">
                     {title}
                 </p>
                 <div className="flex flex-col">
-                    <h4 className="text-2xl font-bold text-[#1b254b] dark:text-white leading-none">
+                    <h4 className="text-3xl font-black text-[#1b254b] dark:text-white leading-none">
                         {value}
                     </h4>
                     {description && (
                         <p className={cn(
-                            "text-xs font-bold mt-2 transition-colors",
+                            "text-[11px] font-medium mt-2 opacity-80 transition-colors",
                             getTextClasses()
                         )}>
                             {description}

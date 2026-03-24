@@ -177,30 +177,30 @@ export function Payments() {
                 <StatsCard
                     title="Total Platform Revenue"
                     value="$48.00"
-                    description="Total earnings from all sources"
+                    description="Earnings from all sources"
                     icon={<DollarSign className="h-6 w-6" />}
-                    color="primary"
+                    color="default"
                 />
                 <StatsCard
                     title="Net Platform Revenue"
                     value="$33.64"
-                    description="Net earnings after processing fees"
+                    description="After processing fees"
                     icon={<TrendingUp className="h-6 w-6" />}
-                    color="primary"
+                    color="default"
                 />
                 <StatsCard
                     title="Gross Booking Volume"
                     value="$485.00"
-                    description="Total funds processed via Stripe"
+                    description="Total processed through Stripe"
                     icon={<CreditCard className="h-6 w-6" />}
-                    color="primary"
+                    color="default"
                 />
                 <StatsCard
                     title="Premium Growth"
                     value="$0.00"
-                    description="Revenue from $120 premium upgrades"
+                    description="$120 upgrade performance"
                     icon={<ArrowUpRight className="h-6 w-6" />}
-                    color="primary"
+                    color="default"
                 />
             </div>
 

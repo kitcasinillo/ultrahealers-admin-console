@@ -3,7 +3,7 @@ import { StatsCard } from "../../components/StatsCard";
 import {
     DollarSign,
     CreditCard,
-    TrendingDown,
+    TrendingUp,
     ArrowUpRight,
     Calendar,
     ChevronDown,
@@ -177,30 +177,30 @@ export function Payments() {
                 <StatsCard
                     title="Total Platform Revenue"
                     value="$48.00"
-                    description="Earnings from all sources"
+                    description="Total earnings from all sources"
                     icon={<DollarSign className="h-6 w-6" />}
-                    trend="up"
+                    color="primary"
                 />
                 <StatsCard
                     title="Net Platform Revenue"
-                    value="-$112.00"
-                    description="After processing fees"
-                    icon={<TrendingDown className="h-6 w-6" />}
-                    trend="down"
+                    value="$33.64"
+                    description="Net earnings after processing fees"
+                    icon={<TrendingUp className="h-6 w-6" />}
+                    color="primary"
                 />
                 <StatsCard
                     title="Gross Booking Volume"
                     value="$485.00"
-                    description="Total processed through Stripe"
+                    description="Total funds processed via Stripe"
                     icon={<CreditCard className="h-6 w-6" />}
-                    trend="up"
+                    color="primary"
                 />
                 <StatsCard
                     title="Premium Growth"
                     value="$0.00"
-                    description="$120 upgrade performance"
+                    description="Revenue from $120 premium upgrades"
                     icon={<ArrowUpRight className="h-6 w-6" />}
-                    trend="up"
+                    color="primary"
                 />
             </div>
 

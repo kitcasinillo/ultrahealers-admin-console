@@ -2,7 +2,7 @@ import type { Campaign, CampaignStatus, AudienceType } from "./type"
 import { Clock, CheckCircle2, AlertCircle } from "lucide-react"
 import React from "react"
 
-export const STATUS_OPTIONS = ["All", "draft", "scheduled", "sending", "sent", "paused", "failed"] as const
+export const STATUS_OPTIONS = ["All", "Draft", "Scheduled", "Sending", "Sent", "Paused", "Failed"] as const
 export const AUDIENCE_OPTIONS = ["All", "Healers", "Seekers", "All Users", "Free Healers", "Premium Healers", "Custom"] as const
 
 export const STATUS_STYLES: Record<CampaignStatus, { bg: string; text: string; darkBg: string; darkText: string }> = {

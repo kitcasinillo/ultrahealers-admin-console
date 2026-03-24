@@ -77,7 +77,7 @@ export function CampaignList() {
         const avgClickRate = calculateAverage(campaigns, c => c.metrics?.clicks ?? 0)
 
         return [
-            { title: "Total Campaigns", value: campaigns.length, icon: <Mail className="h-6 w-6" />, trend: "neutral" as const },
+            { title: "Total Campaigns", value: campaigns.length, icon: <Mail className="h-6 w-6" />, trend: "up" as const },
             { title: "Sent This Month", value: sentThisMonth.length, icon: <Send className="h-6 w-6" />, trend: "up" as const },
             { title: "Avg Open Rate", value: `${(avgOpenRate * 100).toFixed(1)}%`, icon: <CheckCircle2 className="h-6 w-6" />, trend: "up" as const },
             { title: "Avg Click Rate", value: `${(avgClickRate * 100).toFixed(1)}%`, icon: <MousePointer2 className="h-6 w-6" />, trend: "up" as const },
@@ -273,15 +273,15 @@ export function CampaignList() {
 
                         <div className="flex items-center gap-2 bg-[#F4F7FE] dark:bg-white/5 px-4 py-1.5 rounded-xl border-none">
                             <span className="text-[10px] font-bold text-[#A3AED0] uppercase">From</span>
-                            <input 
-                                type="date" 
+                            <input
+                                type="date"
                                 className="bg-transparent text-[#1b254b] dark:text-white text-xs font-bold outline-none"
                                 value={startDate}
                                 onChange={(e) => setStartDate(e.target.value)}
                             />
                             <span className="text-[10px] font-bold text-[#A3AED0] uppercase px-1">To</span>
-                            <input 
-                                type="date" 
+                            <input
+                                type="date"
                                 className="bg-transparent text-[#1b254b] dark:text-white text-xs font-bold outline-none"
                                 value={endDate}
                                 onChange={(e) => setEndDate(e.target.value)}
@@ -313,9 +313,9 @@ export function CampaignList() {
                             onClearAudience={() => setAudienceFilter("All")}
                             onClearDate={() => { setStartDate(""); setEndDate(""); }}
                             onClearCreatedBy={() => setCreatedByFilter("")}
-                            onClearAll={() => { 
-                                setSearchQuery(""); 
-                                setStatusFilter("All"); 
+                            onClearAll={() => {
+                                setSearchQuery("");
+                                setStatusFilter("All");
                                 setAudienceFilter("All");
                                 setStartDate("");
                                 setEndDate("");

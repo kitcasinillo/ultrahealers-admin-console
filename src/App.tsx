@@ -10,6 +10,7 @@ import { Listings } from "./pages/listings/Listings";
 import { ListingDetail } from "./pages/listings/ListingDetail";
 import { AdminAuthProvider } from "./contexts/AdminAuthContext";
 import { AdminGuard } from "./components/AdminGuard";
+import { PlatformOverview } from "./pages/reports/PlatformOverview";
 
 function App() {
   return (
@@ -40,7 +41,11 @@ function App() {
             <Route path="disputes" element={<div>Disputes</div>} />
             <Route path="finance" element={<div>Finance</div>} />
             <Route path="campaigns" element={<div>Campaigns</div>} />
-            <Route path="reports" element={<div>Reports</div>} />
+            
+            <Route path="reports">
+              <Route index element={<Navigate to="overview" replace />} />
+              <Route path="overview" element={<PlatformOverview />} />
+            </Route>
             <Route path="modalities" element={<div>Modalities</div>} />
             <Route path="notifications" element={<div>Notifications</div>} />
             <Route path="settings" element={<div>Settings</div>} />

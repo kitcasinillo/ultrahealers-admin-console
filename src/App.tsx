@@ -9,7 +9,7 @@ import { SeekerDetail } from "./pages/users/SeekerDetail";
 import { Listings } from "./pages/listings/Listings";
 import { ListingDetail } from "./pages/listings/ListingDetail";
 import { AdminAuthProvider } from "./contexts/AdminAuthContext";
-import { AdminGuard } from "./components/AdminGuard";
+import { Notifications } from "./pages/notifications/Notifications";
 
 function App() {
   return (
@@ -42,7 +42,7 @@ function App() {
             <Route path="campaigns" element={<div>Campaigns</div>} />
             <Route path="reports" element={<div>Reports</div>} />
             <Route path="modalities" element={<div>Modalities</div>} />
-            <Route path="notifications" element={<div>Notifications</div>} />
+            <Route path="notifications" element={<Notifications />} />
             <Route path="settings" element={<div>Settings</div>} />
           </Route>
           {/* </Route> */}

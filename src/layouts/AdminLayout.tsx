@@ -9,7 +9,7 @@ export function AdminLayout() {
             <div className="flex flex-col flex-1 overflow-hidden relative">
                 <main className="flex-1 overflow-y-auto px-4 sm:px-6 md:px-8 pb-10 pt-4">
                     <TopBar />
-                    <div className="mx-auto w-full max-w-7xl mt-6">
+                    <div className="w-full mt-6">
                         <Outlet />
                     </div>
                 </main>

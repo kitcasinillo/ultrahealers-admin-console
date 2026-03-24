@@ -55,8 +55,8 @@ export function PremiumSubscriptionsTable() {
                 const status = row.getValue("status") as string
                 return (
                     <Badge className={
-                        status === 'Active' ? 'bg-emerald-500/10 text-emerald-500 border-none px-3 py-1 rounded-full' : 
-                        'bg-red-500/10 text-red-500 border-none px-3 py-1 rounded-full'
+                        status === 'Active' ? 'bg-emerald-500/10 hover:bg-emerald-500/10 text-emerald-500 border-none w-[84px] h-[24px] rounded-full inline-flex items-center justify-center p-0 font-bold shadow-none' : 
+                        'bg-red-500/10 hover:bg-red-500/10 text-red-500 border-none w-[84px] h-[24px] rounded-full inline-flex items-center justify-center p-0 font-bold shadow-none'
                     }>
                         {status}
                     </Badge>
@@ -75,9 +75,9 @@ export function PremiumSubscriptionsTable() {
                     setData(result.subscriptions);
                 } else {
                     setData([
-                        { id: '1', healerName: 'Dr. Sarah Smith', email: 'sarah@example.com', activatedAt: '2026-03-01', amountPaid: 120.00, stripeId: 'pi_3PjKsd...', status: 'Active' },
-                        { id: '2', healerName: 'Healer John', email: 'john@healer.com', activatedAt: '2026-02-15', amountPaid: 120.00, stripeId: 'pi_2AkLkd...', status: 'Revoked' },
-                        { id: '3', healerName: 'Aura Miller', email: 'aura@aura.com', activatedAt: '2026-03-10', amountPaid: 120.00, stripeId: 'pi_1Mn9ad...', status: 'Active' },
+                        { id: '1', healerName: 'Dr. Sarah Smith', email: 'sarah@example.com', activatedAt: '2026-03-01', amountPaid: 120.00, stripeId: 'pi_3PjKsd9vM2xL1', status: 'Active' },
+                        { id: '2', healerName: 'Healer John', email: 'john@healer.com', activatedAt: '2026-02-15', amountPaid: 120.00, stripeId: 'pi_2AkLkd8dN5qP4', status: 'Revoked' },
+                        { id: '3', healerName: 'Aura Miller', email: 'aura@aura.com', activatedAt: '2026-03-10', amountPaid: 120.00, stripeId: 'pi_1Mn9ad7bC3zA2', status: 'Active' },
                     ]);
                 }
             } catch (error) {
@@ -91,7 +91,7 @@ export function PremiumSubscriptionsTable() {
     }, []);
 
     const dateRanges = [
-        { id: 'all-time', label: 'All Time' },
+        { id: 'all-time', label: 'All' },
         { id: 'month', label: 'This Month' },
         { id: 'week', label: 'This Week' },
         { id: 'custom', label: 'Custom Range' },
@@ -225,7 +225,7 @@ export function PremiumSubscriptionsTable() {
                             className="flex items-center gap-3 bg-white dark:bg-[#111C44] px-5 py-3 rounded-2xl border border-[#E9EDF7] dark:border-white/5 shadow-sm transition-all hover:border-[#4318FF] h-12"
                         >
                             <Filter className="h-4 w-4 text-[#A3AED0]" />
-                            <span className="text-sm font-bold text-[#1b254b] dark:text-white uppercase tracking-tight">STATUS: {statusFilter}</span>
+                            <span className="text-sm font-bold text-[#1b254b] dark:text-white uppercase tracking-tight">{statusFilter}</span>
                             <ChevronDown className={`h-4 w-4 text-[#A3AED0] transition-transform ${isStatusDropdownOpen ? 'rotate-180' : ''}`} />
                         </button>
 

@@ -39,7 +39,7 @@ function App() {
             <Route path="bookings/retreats" element={<div>Retreat Bookings</div>} />
 
             <Route path="disputes" element={<div>Disputes</div>} />
-            <Route path="finance" element={<Payments />} />
+            <Route path="finance/*" element={<Payments />} />
             <Route path="campaigns" element={<div>Campaigns</div>} />
             <Route path="reports" element={<div>Reports</div>} />
             <Route path="modalities" element={<div>Modalities</div>} />

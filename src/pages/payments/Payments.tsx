@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import { StatsCard } from "../../components/StatsCard";
 import {
     DollarSign,
@@ -26,6 +27,7 @@ import * as Tabs from "@radix-ui/react-tabs";
 import { Button } from "../../components/ui/button";
 import { CommissionTable } from "./CommissionTable";
 import { PremiumSubscriptionsTable } from "./PremiumSubscriptionsTable";
+import { PayoutsTable } from "./PayoutsTable";
 
 const COLORS = ['#4318FF', '#6AD2FF', '#EFF4FB'];
 const FALLBACK_CHART_DATA = [
@@ -35,10 +37,32 @@ const FALLBACK_CHART_DATA = [
 export function Payments() {
     const [timeRange, setTimeRange] = useState('month');
     const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-    const [activeTab, setActiveTab] = useState('overview');
+    const location = useLocation();
+    const navigate = useNavigate();
+
+    // Sync tab with URL
+    const getTabFromPath = () => {
+        const path = location.pathname;
+        if (path.includes('/finance/commission')) return 'commission';
+        if (path.includes('/finance/premium')) return 'premium';
+        if (path.includes('/finance/payouts')) return 'payouts';
+        return 'overview';
+    };
+
+    const [activeTab, setActiveTab] = useState(getTabFromPath());
     const [stats, setStats] = useState<any>(null);
     const [loading, setLoading] = useState(true);
     const [customDates, setCustomDates] = useState({ start: "", end: "" });
+
+    useEffect(() => {
+        setActiveTab(getTabFromPath());
+    }, [location.pathname]);
+
+    const handleTabChange = (val: string) => {
+        setActiveTab(val);
+        if (val === 'overview') navigate('/finance');
+        else navigate(`/finance/${val}`);
+    };
 
     useEffect(() => {
         const fetchStats = async () => {
@@ -86,8 +110,18 @@ export function Payments() {
 
     const currentRange = ranges.find(r => r.id === timeRange)?.label || 'Select Range';
 
+    const getTabLabel = (tab: string) => {
+        switch (tab) {
+            case 'overview': return 'Revenue Overview';
+            case 'commission': return 'Commission Reports';
+            case 'premium': return 'Premium Subscriptions';
+            case 'payouts': return 'Payout Management';
+            default: return tab;
+        }
+    };
+
     return (
-        <Tabs.Root value={activeTab} onValueChange={setActiveTab} className="space-y-8 block" onClick={() => setIsDropdownOpen(false)}>
+        <Tabs.Root value={activeTab} onValueChange={handleTabChange} className="space-y-8 block" onClick={() => setIsDropdownOpen(false)}>
             {/* Standard Global Header */}
             <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
                 <div className="space-y-2">
@@ -98,18 +132,18 @@ export function Payments() {
                     <h2 className="text-4xl sm:text-5xl font-black tracking-tight text-[#1b254b] dark:text-white uppercase leading-none">Payments Center</h2>
                 </div>
 
-                <div className="flex bg-white/50 dark:bg-[#111C44]/50 p-2 rounded-[24px] border border-[#E9EDF7] dark:border-white/5 backdrop-blur-xl shadow-sm">
+                <div className="flex bg-white/50 dark:bg-[#111C44]/50 p-2 rounded-[24px] border border-[#E9EDF7] dark:border-white/5 backdrop-blur-xl shadow-sm overflow-x-auto scrollbar-hide">
                     <Tabs.List className="flex gap-1">
-                        {['overview', 'commission', 'premium'].map((tab) => (
+                        {['overview', 'commission', 'premium', 'payouts'].map((tab) => (
                             <Tabs.Trigger
                                 key={tab}
                                 value={tab}
-                                className={`px-6 py-3 rounded-2xl text-[10px] font-black uppercase tracking-wider transition-all ${activeTab === tab
+                                className={`px-6 py-3 rounded-2xl text-[10px] font-black uppercase tracking-wider transition-all whitespace-nowrap ${activeTab === tab
                                         ? "bg-white dark:bg-[#1b254b] text-[#4318FF] dark:text-white shadow-sm"
                                         : "text-[#A3AED0] hover:text-[#1b254b] dark:hover:text-white"
                                     }`}
                             >
-                                {tab === 'overview' ? 'Revenue Overview' : tab === 'commission' ? 'Commission Reports' : 'Premium Subscriptions'}
+                                {getTabLabel(tab)}
                             </Tabs.Trigger>
                         ))}
                     </Tabs.List>
@@ -258,6 +292,10 @@ export function Payments() {
 
             <Tabs.Content value="premium" className="animate-in fade-in slide-in-from-bottom-4 duration-500">
                 <PremiumSubscriptionsTable />
+            </Tabs.Content>
+
+            <Tabs.Content value="payouts" className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+                <PayoutsTable />
             </Tabs.Content>
         </Tabs.Root>
     );

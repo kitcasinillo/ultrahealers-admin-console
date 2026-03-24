@@ -5,13 +5,13 @@ import { cn } from "@/lib/utils";
 
 export function ActionBadge({ action }: { action: ActionType }) {
   const styles: Record<ActionType, string> = {
-    created: "bg-emerald-50 text-emerald-600 border-emerald-100 dark:bg-emerald-900/20 dark:text-emerald-400 dark:border-emerald-800",
-    updated: "bg-blue-50 text-blue-600 border-blue-100 dark:bg-blue-900/20 dark:text-blue-400 dark:border-blue-800",
-    deleted: "bg-red-50 text-red-600 border-red-100 dark:bg-red-900/20 dark:text-red-400 dark:border-red-800",
-    campaign_sent: "bg-purple-50 text-purple-600 border-purple-100 dark:bg-purple-900/20 dark:text-purple-400 dark:border-purple-800",
-    dispute_decided: "bg-amber-50 text-amber-600 border-amber-100 dark:bg-amber-900/20 dark:text-amber-400 dark:border-amber-800",
-    login: "bg-slate-50 text-slate-600 border-slate-100 dark:bg-slate-800/50 dark:text-slate-400 dark:border-slate-700",
-    settings_changed: "bg-indigo-50 text-indigo-600 border-indigo-100 dark:bg-indigo-900/20 dark:text-indigo-400 dark:border-indigo-800",
+    Created: "bg-emerald-50 text-emerald-600 border-emerald-100 dark:bg-emerald-900/20 dark:text-emerald-400 dark:border-emerald-800",
+    Updated: "bg-blue-50 text-blue-600 border-blue-100 dark:bg-blue-900/20 dark:text-blue-400 dark:border-blue-800",
+    Deleted: "bg-red-50 text-red-600 border-red-100 dark:bg-red-900/20 dark:text-red-400 dark:border-red-800",
+    Campaign_sent: "bg-purple-50 text-purple-600 border-purple-100 dark:bg-purple-900/20 dark:text-purple-400 dark:border-purple-800",
+    Dispute_decided: "bg-amber-50 text-amber-600 border-amber-100 dark:bg-amber-900/20 dark:text-amber-400 dark:border-amber-800",
+    Login: "bg-slate-50 text-slate-600 border-slate-100 dark:bg-slate-800/50 dark:text-slate-400 dark:border-slate-700",
+    Settings_changed: "bg-indigo-50 text-indigo-600 border-indigo-100 dark:bg-indigo-900/20 dark:text-indigo-400 dark:border-indigo-800",
   };
 
   return (
@@ -32,8 +32,10 @@ export function ResourceBadge({ resource }: { resource: ResourceType }) {
 export function ChangesView({ changes }: { changes: any }) {
   if (!changes) return <span className="text-[#A3AED0] italic text-xs">No detail</span>;
 
+  const capitalize = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
+
   if (typeof changes === 'string') {
-    return <span className="text-xs text-[#1b254b] dark:text-white font-medium line-clamp-2">{changes}</span>;
+    return <span className="text-xs text-[#1b254b] dark:text-white font-medium line-clamp-2">{capitalize(changes)}</span>;
   }
 
   // Handle common "from/to" pattern
@@ -57,10 +59,11 @@ export function ChangesView({ changes }: { changes: any }) {
       
       // Handle { "title": "Bali Retreat" }
       if (typeof val === 'string' || typeof val === 'number') {
+        const displayVal = typeof val === 'string' ? capitalize(val) : String(val);
         return (
           <div className="flex items-center gap-1.5 text-xs">
             <span className="text-[#A3AED0] font-bold uppercase text-[9px]">{field}:</span>
-            <span className="text-[#1b254b] dark:text-white font-medium">{String(val)}</span>
+            <span className="text-[#1b254b] dark:text-white font-medium">{displayVal}</span>
           </div>
         );
       }

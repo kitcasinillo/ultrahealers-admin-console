@@ -7,7 +7,7 @@ import { RefreshCw, Search, History, FilterX, Download } from "lucide-react";
 import { useAuditLogs } from "./useAuditLogs";
 import type { AuditLogEntry } from "./types";
 import { ActionBadge, ResourceBadge, ChangesView } from "./components";
-import { ACTION_OPTIONS, RESOURCE_OPTIONS } from "./utils";
+import { ACTION_OPTIONS, RESOURCE_OPTIONS, formatChanges } from "./utils";
 import { toast } from "react-hot-toast";
 
 export function AuditLog() {
@@ -38,7 +38,7 @@ export function AuditLog() {
       log.action,
       log.resourceType,
       log.resourceId,
-      typeof log.changes === 'object' ? JSON.stringify(log.changes).replace(/"/g, '""') : log.changes,
+      formatChanges(log.changes),
       log.ipAddress
     ].map(val => `"${val}"`).join(","));
 
@@ -136,7 +136,7 @@ export function AuditLog() {
               size="sm"
               onClick={handleRefresh}
               disabled={isRefreshing || loading}
-              className="text-[#A3AED0] hover:text-[#4318FF] dark:hover:text-[#01A3B4] p-2"
+              className="text-[#A3AED0] hover:text-[#4318FF] dark:hover:text-[#01A3B4] p-2 cursor-pointer"
             >
               <RefreshCw className={`h-5 w-5 ${isRefreshing ? "animate-spin" : ""}`} />
             </Button>
@@ -145,7 +145,7 @@ export function AuditLog() {
               size="sm"
               onClick={handleExportCSV}
               disabled={loading || logs.length === 0}
-              className="ml-2 rounded-xl border-[#e0e7ff] dark:border-white/10 text-[#4318FF] dark:text-white font-bold h-10 px-4 gap-2 shadow-sm hover:bg-[#F4F7FE] dark:hover:bg-white/5"
+              className="ml-2 rounded-xl border-[#e0e7ff] dark:border-white/10 text-[#4318FF] dark:text-white font-bold h-10 px-4 gap-2 shadow-sm hover:bg-[#F4F7FE] dark:hover:bg-white/5 cursor-pointer"
             >
               <Download className="h-4 w-4" />
               <span>Export CSV</span>
@@ -175,7 +175,7 @@ export function AuditLog() {
           </div>
 
           <select
-            className="bg-[#F4F7FE] dark:bg-white/5 text-[#1b254b] dark:text-white text-sm font-bold rounded-xl border-none px-4 py-2.5 outline-none min-w-[140px]"
+            className="bg-[#F4F7FE] dark:bg-white/5 text-[#1b254b] dark:text-white text-sm font-bold rounded-xl border-none px-4 py-2.5 outline-none min-w-[140px] cursor-pointer"
             value={adminFilter}
             onChange={(e) => setAdminFilter(e.target.value)}
           >
@@ -185,7 +185,7 @@ export function AuditLog() {
           </select>
 
           <select
-            className="bg-[#F4F7FE] dark:bg-white/5 text-[#1b254b] dark:text-white text-sm font-bold rounded-xl border-none px-4 py-2.5 outline-none min-w-[140px]"
+            className="bg-[#F4F7FE] dark:bg-white/5 text-[#1b254b] dark:text-white text-sm font-bold rounded-xl border-none px-4 py-2.5 outline-none min-w-[140px] cursor-pointer"
             value={actionFilter}
             onChange={(e) => setActionFilter(e.target.value)}
           >
@@ -195,7 +195,7 @@ export function AuditLog() {
           </select>
 
           <select
-            className="bg-[#F4F7FE] dark:bg-white/5 text-[#1b254b] dark:text-white text-sm font-bold rounded-xl border-none px-4 py-2.5 outline-none min-w-[140px]"
+            className="bg-[#F4F7FE] dark:bg-white/5 text-[#1b254b] dark:text-white text-sm font-bold rounded-xl border-none px-4 py-2.5 outline-none min-w-[140px] cursor-pointer"
             value={resourceFilter}
             onChange={(e) => setResourceFilter(e.target.value)}
           >
@@ -208,14 +208,14 @@ export function AuditLog() {
             <span className="text-[10px] font-bold text-[#A3AED0] uppercase">From</span>
             <input 
               type="date" 
-              className="bg-transparent text-[#1b254b] dark:text-white text-xs font-bold outline-none"
+              className="bg-transparent text-[#1b254b] dark:text-white text-xs font-bold outline-none cursor-pointer"
               value={startDate}
               onChange={(e) => setStartDate(e.target.value)}
             />
             <span className="text-[10px] font-bold text-[#A3AED0] uppercase px-1">To</span>
             <input 
               type="date" 
-              className="bg-transparent text-[#1b254b] dark:text-white text-xs font-bold outline-none"
+              className="bg-transparent text-[#1b254b] dark:text-white text-xs font-bold outline-none cursor-pointer"
               value={endDate}
               onChange={(e) => setEndDate(e.target.value)}
             />
@@ -225,7 +225,7 @@ export function AuditLog() {
             <Button 
                 variant="ghost" 
                 onClick={clearFilters}
-                className="text-[#A3AED0] hover:text-red-500 font-bold gap-2"
+                className="text-[#A3AED0] hover:text-red-500 font-bold gap-2 cursor-pointer"
             >
                 <FilterX className="h-4 w-4" />
                 Clear

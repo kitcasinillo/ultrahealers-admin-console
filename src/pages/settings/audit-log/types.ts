@@ -1,20 +1,20 @@
-export type ActionType = 
-  | "created" 
-  | "updated" 
-  | "deleted" 
-  | "campaign_sent" 
-  | "dispute_decided" 
-  | "login" 
-  | "settings_changed";
+export type ActionType =
+  | "Created"
+  | "Updated"
+  | "Deleted"
+  | "Campaign_sent"
+  | "Dispute_decided"
+  | "Login"
+  | "Settings_changed";
 
-export type ResourceType = 
-  | "user" 
-  | "listing" 
-  | "retreat" 
-  | "booking" 
-  | "dispute" 
-  | "campaign" 
-  | "settings";
+export type ResourceType =
+  | "User"
+  | "Listing"
+  | "Retreat"
+  | "Booking"
+  | "Dispute"
+  | "Campaign"
+  | "Settings";
 
 export interface AuditLogEntry {
   id: string;

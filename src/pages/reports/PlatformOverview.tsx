@@ -23,6 +23,7 @@ import { BaseGaugeChart } from '../../components/Charts/BaseGaugeChart';
 
 // Utilities
 import { exportPlatformOverviewPdf, exportPlatformOverviewExcel } from '../../lib/exportUtils';
+import { useMemo } from 'react';
 
 // Mock data segmented by granularity for interactivity
 const MOCK_DATA = {
@@ -108,21 +109,84 @@ const healthScoreData = [
   { name: 'Remaining', value: 15 },
 ];
 
-const summaryCardsData = [
-  { title: "New Healers", value: "145", description: "Registered this period", icon: <UserPlus className="h-6 w-6" /> },
-  { title: "New Seekers", value: "892", description: "Registered this period", icon: <UserPlus className="h-6 w-6" /> },
-  { title: "Total Bookings", value: "2,450", description: "1,980 sessions · 470 retreats", icon: <CalendarCheck className="h-6 w-6" /> },
-  { title: "Gross Volume", value: "$124,500", description: "Total GBV", icon: <DollarSign className="h-6 w-6" /> },
-  { title: "Platform Revenue", value: "$18,675", description: "$12.4k comm · $6.2k subs", icon: <TrendingUp className="h-6 w-6" /> },
-  { title: "Platform Disputes", value: "12 / 10", description: "Opened / Resolved", icon: <AlertTriangle className="h-6 w-6" /> },
-  { title: "Premium Upgrades", value: "56", description: "New subscribers", icon: <Zap className="h-6 w-6" /> }
-];
-
 export function PlatformOverview() {
   const [granularity, setGranularity] = useState('Weekly');
   const [dateRange, setDateRange] = useState('Last 7 Days');
   const [customStartDate, setCustomStartDate] = useState('');
   const [customEndDate, setCustomEndDate] = useState('');
+
+  const summaryCardsData = useMemo(() => {
+    const currentData = MOCK_DATA[granularity as keyof typeof MOCK_DATA];
+
+    // Calculate totals for the selected granularity
+    const healersStart = currentData.userGrowth[0]?.healers || 0;
+    const healersEnd = currentData.userGrowth[currentData.userGrowth.length - 1]?.healers || 0;
+    const totalNewHealers = healersEnd - healersStart;
+
+    const seekersStart = currentData.userGrowth[0]?.seekers || 0;
+    const seekersEnd = currentData.userGrowth[currentData.userGrowth.length - 1]?.seekers || 0;
+    const totalNewSeekers = seekersEnd - seekersStart;
+
+    const totalSessions = currentData.bookingVolume.reduce((acc, d) => acc + d.sessions, 0);
+    const totalRetreats = currentData.bookingVolume.reduce((acc, d) => acc + d.retreats, 0);
+    const totalBookings = totalSessions + totalRetreats;
+
+    const totalCommission = currentData.revenue.reduce((acc, d) => acc + d.commission, 0);
+    const totalFees = currentData.revenue.reduce((acc, d) => acc + d.fees, 0);
+    const totalPremium = currentData.revenue.reduce((acc, d) => acc + d.premium, 0);
+    const totalRevenue = totalCommission + totalFees + totalPremium;
+
+    // Derived metrics
+    const totalGBV = totalRevenue / 0.15;
+    const totalDisputes = Math.round(totalBookings * 0.005);
+    const resolvedDisputes = Math.max(0, totalDisputes - 2);
+    const premiumUpgrades = Math.round(totalPremium / 150);
+
+    return [
+      { 
+        title: "New Healers", 
+        value: totalNewHealers.toLocaleString(), 
+        description: `Registered this period`, 
+        icon: <UserPlus className="h-6 w-6" /> 
+      },
+      { 
+        title: "New Seekers", 
+        value: totalNewSeekers.toLocaleString(), 
+        description: `Registered this period`, 
+        icon: <UserPlus className="h-6 w-6" /> 
+      },
+      { 
+        title: "Total Bookings", 
+        value: totalBookings.toLocaleString(), 
+        description: `${totalSessions.toLocaleString()} sessions · ${totalRetreats.toLocaleString()} retreats`, 
+        icon: <CalendarCheck className="h-6 w-6" /> 
+      },
+      { 
+        title: "Gross Volume", 
+        value: `$${Math.round(totalGBV).toLocaleString()}`, 
+        description: "Total GBV this period", 
+        icon: <DollarSign className="h-6 w-6" /> 
+      },
+      { 
+        title: "Platform Revenue", 
+        value: `$${totalRevenue.toLocaleString()}`, 
+        description: `$${(totalCommission/1000).toFixed(1)}k comm · $${((totalFees+totalPremium)/1000).toFixed(1)}k fees`, 
+        icon: <TrendingUp className="h-6 w-6" /> 
+      },
+      { 
+        title: "Platform Disputes", 
+        value: `${totalDisputes} / ${resolvedDisputes}`, 
+        description: "Opened / Resolved", 
+        icon: <AlertTriangle className="h-6 w-6" /> 
+      },
+      { 
+        title: "Premium Upgrades", 
+        value: premiumUpgrades.toLocaleString(), 
+        description: "New subscribers", 
+        icon: <Zap className="h-6 w-6" /> 
+      }
+    ];
+  }, [granularity]);
 
   const handleExportPdf = () => {
     const currentData = MOCK_DATA[granularity as keyof typeof MOCK_DATA];

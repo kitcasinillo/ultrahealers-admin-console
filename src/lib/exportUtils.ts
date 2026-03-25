@@ -83,7 +83,7 @@ export const exportPlatformOverviewPdf = (data: ReportDataPayload) => {
       styles: { fontSize: 9 }
     });
 
-    doc.save('Platform-Overview-Report.pdf');
+    doc.save(`Platform-Overview-Report-${data.dateRange.replace(/\s+/g, '-')}.pdf`);
   }).catch(err => {
     console.error("Failed to generate styled PDF report:", err);
   });
@@ -92,49 +92,65 @@ export const exportPlatformOverviewPdf = (data: ReportDataPayload) => {
 export const exportPlatformOverviewExcel = (data: ReportDataPayload) => {
   const wb = XLSX.utils.book_new();
 
-  // 1. Summary Metrics Sheet
-  const summaryFormatted = data.summaryData.map(card => ({
-    Metric: card.title,
-    Value: card.value,
-    Details: card.description || '-'
-  }));
-  const ws1 = XLSX.utils.json_to_sheet(summaryFormatted);
-  ws1['!cols'] = [{ wch: 25 }, { wch: 15 }, { wch: 40 }];
+  // 1. Summary Metrics Sheet (including Report Info)
+  // Combine header and data
+  const ws1Data = [
+    ["PLATFORM OVERVIEW REPORT", "", ""],
+    ["Reporting Period:", data.dateRange, ""],
+    ["Generated On:", new Date().toLocaleDateString(), ""],
+    [],
+    ["METRIC", "VALUE", "DETAILS"],
+    ...data.summaryData.map(card => [card.title, card.value, card.description || '-'])
+  ];
+
+  const ws1 = XLSX.utils.aoa_to_sheet(ws1Data);
+  
+  // Style column widths
+  ws1['!cols'] = [{ wch: 25 }, { wch: 20 }, { wch: 45 }];
+  
   XLSX.utils.book_append_sheet(wb, ws1, "Summary Metrics");
 
   // 2. User Growth Sheet
-  const growthFormatted = data.userGrowthData.map(d => ({
-    Period: d.name,
-    Healers: d.healers,
-    Seekers: d.seekers,
-    'Total Added': d.healers + d.seekers
-  }));
-  const ws2 = XLSX.utils.json_to_sheet(growthFormatted);
+  const growthData = [
+    ["USER GROWTH TRENDS", "", "", ""],
+    ["Reporting Period:", data.dateRange, "", ""],
+    [],
+    ["PERIOD", "HEALERS", "SEEKERS", "TOTAL ADDED"],
+    ...data.userGrowthData.map(d => [d.name, d.healers, d.seekers, d.healers + d.seekers])
+  ];
+  const ws2 = XLSX.utils.aoa_to_sheet(growthData);
   ws2['!cols'] = [{ wch: 15 }, { wch: 15 }, { wch: 15 }, { wch: 15 }];
   XLSX.utils.book_append_sheet(wb, ws2, "User Growth");
 
   // 3. Booking Volume Sheet
-  const bookingsFormatted = data.bookingVolumeData.map(d => ({
-    Period: d.name,
-    Sessions: d.sessions,
-    Retreats: d.retreats,
-    'Total Volume': d.sessions + d.retreats
-  }));
-  const ws3 = XLSX.utils.json_to_sheet(bookingsFormatted);
+  const bookingsData = [
+    ["BOOKING VOLUME TRENDS", "", "", ""],
+    ["Reporting Period:", data.dateRange, "", ""],
+    [],
+    ["PERIOD", "SESSIONS", "RETREATS", "TOTAL VOLUME"],
+    ...data.bookingVolumeData.map(d => [d.name, d.sessions, d.retreats, d.sessions + d.retreats])
+  ];
+  const ws3 = XLSX.utils.aoa_to_sheet(bookingsData);
   ws3['!cols'] = [{ wch: 15 }, { wch: 15 }, { wch: 15 }, { wch: 15 }];
   XLSX.utils.book_append_sheet(wb, ws3, "Booking Volume");
 
   // 4. Revenue Composition Sheet
-  const revenueFormatted = data.revenueData.map(d => ({
-    Period: d.name,
-    'Session Commission': `$${d.commission.toLocaleString()}`,
-    'Seeker Fees': `$${d.fees.toLocaleString()}`,
-    'Premium Subscriptions': `$${d.premium.toLocaleString()}`,
-    'Total Context Revenue': `$${(d.commission + d.fees + d.premium).toLocaleString()}`
-  }));
-  const ws4 = XLSX.utils.json_to_sheet(revenueFormatted);
-  ws4['!cols'] = [{ wch: 15 }, { wch: 20 }, { wch: 15 }, { wch: 25 }, { wch: 25 }];
+  const revenueData = [
+    ["REVENUE COMPOSITION", "", "", "", ""],
+    ["Reporting Period:", data.dateRange, "", "", ""],
+    [],
+    ["PERIOD", "SESSION COMMISSION", "SEEKER FEES", "PREMIUM SUBSCRIPTIONS", "TOTAL REVENUE"],
+    ...data.revenueData.map(d => [
+      d.name,
+      `$${d.commission.toLocaleString()}`,
+      `$${d.fees.toLocaleString()}`,
+      `$${d.premium.toLocaleString()}`,
+      `$${(d.commission + d.fees + d.premium).toLocaleString()}`
+    ])
+  ];
+  const ws4 = XLSX.utils.aoa_to_sheet(revenueData);
+  ws4['!cols'] = [{ wch: 15 }, { wch: 25 }, { wch: 20 }, { wch: 25 }, { wch: 25 }];
   XLSX.utils.book_append_sheet(wb, ws4, "Revenue Composition");
 
-  XLSX.writeFile(wb, "Platform-Overview-Data.xlsx");
+  XLSX.writeFile(wb, `Platform-Overview-Report-${data.dateRange.replace(/\s+/g, '-')}.xlsx`);
 };

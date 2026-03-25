@@ -3,7 +3,7 @@ import { useForm, type Resolver, type Control, type UseFormWatch } from "react-h
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "react-hot-toast";
 import { doc, getDoc, setDoc, addDoc, collection, serverTimestamp } from "firebase/firestore";
-import { Save, RefreshCcw } from "lucide-react";
+import { Save, RefreshCcw, Mail, Link as LinkIcon, Shield } from "lucide-react";
 
 import { db } from "../../lib/firebase";
 import { useAdminAuth } from "../../contexts/AdminAuthContext";
@@ -15,11 +15,13 @@ import { formSchema, defaultValues, type SettingsFormValues } from "./schema";
 import { GeneralSettings } from "./components/GeneralSettings";
 import { CommissionSettings } from "./components/CommissionSettings";
 import { FeatureFlagSettings } from "./components/FeatureFlagSettings";
+import { EmailSettings } from "./components/EmailSettings";
+import { SystemSettings } from "./components/SystemSettings";
+import { AuditLogSettings } from "./components/AuditLogSettings";
 
 /**
  * SettingsPage Component
- * Refactored for better maintainability and concern separation.
- * Handles Firestore sync and form state management.
+ * Orchestrates platform configuration across multiple domains.
  */
 export function SettingsPage() {
     const { user } = useAdminAuth();
@@ -102,7 +104,7 @@ export function SettingsPage() {
                         Platform Settings
                     </h2>
                     <p className="text-[#A3AED0] text-sm mt-1 font-medium">
-                        Manage global configuration, limits, and fees for UltraHealers.
+                        Manage global configuration, limits, fees, and system connectivity.
                     </p>
                 </div>
                 <div className="flex items-center gap-3">
@@ -135,20 +137,35 @@ export function SettingsPage() {
             <Form {...form}>
                 <form className="space-y-8" onSubmit={(e) => e.preventDefault()}>
                     <Tabs defaultValue="general" className="w-full">
-                        <div className="bg-white dark:bg-[#111C44] rounded-lg p-1.5 mb-6 shadow-sm border border-gray-100 dark:border-white/5 w-fit hidden sm:block">
+                        <div className="bg-white dark:bg-[#111C44] rounded-lg p-1.5 mb-6 shadow-sm border border-gray-100 dark:border-white/5 w-fit hidden lg:block">
                             <TabsList className="bg-transparent space-x-1">
-                                <TabsTrigger value="general" className="rounded-md px-6 py-2 data-[state=active]:bg-[#F4F7FE] data-[state=active]:dark:bg-white/5 data-[state=active]:text-[#4318FF] data-[state=active]:dark:text-white font-bold text-[#A3AED0]">General Platform</TabsTrigger>
-                                <TabsTrigger value="commission" className="rounded-md px-6 py-2 data-[state=active]:bg-[#F4F7FE] data-[state=active]:dark:bg-white/5 data-[state=active]:text-[#4318FF] data-[state=active]:dark:text-white font-bold text-[#A3AED0]">Commission & Fees</TabsTrigger>
-                                <TabsTrigger value="feature_flags" className="rounded-md px-6 py-2 data-[state=active]:bg-[#F4F7FE] data-[state=active]:dark:bg-white/5 data-[state=active]:text-[#4318FF] data-[state=active]:dark:text-white font-bold text-[#A3AED0]">Feature Flags</TabsTrigger>
+                                <TabsTrigger value="general" className="rounded-md px-4 py-2 data-[state=active]:bg-[#F4F7FE] data-[state=active]:dark:bg-white/5 data-[state=active]:text-[#4318FF] data-[state=active]:dark:text-white font-bold text-[#A3AED0]">General</TabsTrigger>
+                                <TabsTrigger value="commission" className="rounded-md px-4 py-2 data-[state=active]:bg-[#F4F7FE] data-[state=active]:dark:bg-white/5 data-[state=active]:text-[#4318FF] data-[state=active]:dark:text-white font-bold text-[#A3AED0]">Fees</TabsTrigger>
+                                <TabsTrigger value="feature_flags" className="rounded-md px-4 py-2 data-[state=active]:bg-[#F4F7FE] data-[state=active]:dark:bg-white/5 data-[state=active]:text-[#4318FF] data-[state=active]:dark:text-white font-bold text-[#A3AED0]">Flags</TabsTrigger>
+                                <TabsTrigger value="email" className="rounded-md px-4 py-2 data-[state=active]:bg-[#F4F7FE] data-[state=active]:dark:bg-white/5 data-[state=active]:text-[#4318FF] data-[state=active]:dark:text-white font-bold text-[#A3AED0]">
+                                    <Mail className="w-4 h-4 mr-2" />
+                                    Email
+                                </TabsTrigger>
+                                <TabsTrigger value="system" className="rounded-md px-4 py-2 data-[state=active]:bg-[#F4F7FE] data-[state=active]:dark:bg-white/5 data-[state=active]:text-[#4318FF] data-[state=active]:dark:text-white font-bold text-[#A3AED0]">
+                                    <LinkIcon className="w-4 h-4 mr-2" />
+                                    System
+                                </TabsTrigger>
+                                <TabsTrigger value="audit_log" className="rounded-md px-4 py-2 data-[state=active]:bg-[#F4F7FE] data-[state=active]:dark:bg-white/5 data-[state=active]:text-[#4318FF] data-[state=active]:dark:text-white font-bold text-[#A3AED0]">
+                                    <Shield className="w-4 h-4 mr-2" />
+                                    Audit Log
+                                </TabsTrigger>
                             </TabsList>
                         </div>
 
-                        {/* Mobile tabs fallback */}
-                        <div className="mb-6 sm:hidden">
-                            <TabsList className="grid grid-cols-3 bg-white dark:bg-[#111C44] p-1 h-auto rounded-xl">
-                                <TabsTrigger value="general" className="text-xs">General</TabsTrigger>
-                                <TabsTrigger value="commission" className="text-xs">Fees</TabsTrigger>
-                                <TabsTrigger value="feature_flags" className="text-xs">Flags</TabsTrigger>
+                        {/* Mobile and Tablet tabs fallback */}
+                        <div className="mb-6 lg:hidden overflow-x-auto pb-2 scrollbar-hide">
+                            <TabsList className="flex bg-white dark:bg-[#111C44] p-1 h-auto rounded-xl w-max min-w-full">
+                                <TabsTrigger value="general" className="text-xs px-4">General</TabsTrigger>
+                                <TabsTrigger value="commission" className="text-xs px-4">Fees</TabsTrigger>
+                                <TabsTrigger value="feature_flags" className="text-xs px-4">Flags</TabsTrigger>
+                                <TabsTrigger value="email" className="text-xs px-4">Email</TabsTrigger>
+                                <TabsTrigger value="system" className="text-xs px-4">System</TabsTrigger>
+                                <TabsTrigger value="audit_log" className="text-xs px-4">Audit</TabsTrigger>
                             </TabsList>
                         </div>
 
@@ -165,6 +182,18 @@ export function SettingsPage() {
 
                         <TabsContent value="feature_flags" className="mt-0 space-y-6 outline-none">
                             <FeatureFlagSettings control={form.control as unknown as Control<SettingsFormValues>} />
+                        </TabsContent>
+
+                        <TabsContent value="email" className="mt-0 space-y-6 outline-none">
+                            <EmailSettings />
+                        </TabsContent>
+
+                        <TabsContent value="system" className="mt-0 space-y-6 outline-none">
+                            <SystemSettings />
+                        </TabsContent>
+
+                        <TabsContent value="audit_log" className="mt-0 space-y-6 outline-none">
+                            <AuditLogSettings />
                         </TabsContent>
                     </Tabs>
                 </form>

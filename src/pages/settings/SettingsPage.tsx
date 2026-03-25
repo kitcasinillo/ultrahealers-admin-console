@@ -40,7 +40,11 @@ export function SettingsPage() {
                 const docRef = doc(db, "settings", "app_config");
                 const docSnap = await getDoc(docRef);
                 if (docSnap.exists()) {
-                    form.reset({ ...defaultValues, ...docSnap.data() });
+                    const data = docSnap.data();
+                    if (data.featureFlags && !Array.isArray(data.featureFlags)) {
+                        data.featureFlags = defaultValues.featureFlags;
+                    }
+                    form.reset({ ...defaultValues, ...data });
                 } else {
                     form.reset(defaultValues);
                 }

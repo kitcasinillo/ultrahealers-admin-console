@@ -2,7 +2,7 @@ import { useState } from "react";
 import type { ColumnDef } from "@tanstack/react-table";
 import { DataTable } from "@/components/DataTable";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { 
+import {
   Database,
   PieChart as PieIcon,
   TrendingUp,
@@ -194,25 +194,21 @@ export function FinancialReport() {
 
   return (
     <div className="p-4 sm:p-6 lg:p-8 space-y-12 animate-in fade-in duration-700 max-w-[1700px] mx-auto overflow-hidden">
-      
+
       {/* 1. Dashboard Header (Reverted to Normal standard) */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div className="space-y-1">
-          <div className="flex items-center gap-2 text-[#4318FF] text-[10px] font-black uppercase tracking-[0.3em]">
-            <Activity className="w-3 h-3" />
-            <span>REPORTING PLATFORM</span>
-          </div>
-          <h1 className="text-4xl font-extrabold text-[#1b254b] dark:text-white tracking-tighter">Finance Dashboard</h1>
+          <h1 className="text-4xl font-extrabold text-[#1b254b] dark:text-white tracking-tighter">Financial Overview</h1>
         </div>
 
         <div className="flex flex-col sm:flex-row items-center gap-4">
           <GranularityTabs granularity={granularity} setGranularity={setGranularity} />
-          <DateRangePicker 
+          <DateRangePicker
             dateRange={dateRange} setDateRange={setDateRange}
             customStartDate={customStartDate} setCustomStartDate={setCustomStartDate}
             customEndDate={customEndDate} setCustomEndDate={setCustomEndDate}
           />
-          <ExportDropdown 
+          <ExportDropdown
             onExportExcel={() => exportFinancialExcel(bookingsData, premiumRevenueData)}
             onExportPdf={() => exportFinancialPdf(bookingsData, premiumRevenueData, "Booking Financial Report Audit")}
           />
@@ -221,59 +217,59 @@ export function FinancialReport() {
 
       {/* 2. Visual Insights (STANDARD DASHBOARD FLOW) */}
       <div className="space-y-12">
-        
+
         {/* REQUIREMENT: Revenue by source (session vs retreat vs subscription) — Pie + trend */}
         <div className="space-y-6">
-           <SectionHeader title="Revenue by Source" icon={PieIcon} description="Income distribution (Pie) and historical lifecycle trends (Area Chart)." />
-           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-              <BasePieChart title="Revenue Mix Overview" data={revenueBySourceData} />
-              <BaseAreaChart title="Revenue Trend Analytics" data={trendData} areas={areaConfigs} yAxisTickFormatter={(v) => `$${v / 1000}k`} />
-           </div>
+          <SectionHeader title="Revenue by Source" icon={PieIcon} description="Income distribution (Pie) and historical lifecycle trends (Area Chart)." />
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <BasePieChart title="Revenue Mix Overview" data={revenueBySourceData} />
+            <BaseAreaChart title="Revenue Trend Analytics" data={trendData} areas={areaConfigs} yAxisTickFormatter={(v) => `$${v / 1000}k`} />
+          </div>
         </div>
 
         {/* Level 2: Performance & Fees */}
         <div className="space-y-6">
-           <SectionHeader title="Growth & Efficiency" icon={TrendingUp} description="Reporting vs. prior periods and Stripe processing fee impact." />
-           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-              <Card className="rounded-[40px] border-none shadow-[0_10px_30px_0_rgba(11,20,55,0.06)] dark:bg-[#111C44]">
-                <CardHeader className="flex flex-row items-center justify-between px-8 pt-8 pb-4">
-                  <CardTitle className="text-sm font-bold text-[#1b254b] dark:text-white uppercase tracking-wider">Revenue Growth Performance</CardTitle>
-                  <div className="flex items-center gap-1 bg-green-100 text-green-700 text-[10px] font-black px-2 py-0.5 rounded-full">
-                     <ArrowUpRight className="w-2 h-2" />
-                     +12.5%
-                  </div>
-                </CardHeader>
-                <CardContent className="px-8 pb-8">
-                   <BaseBarChart 
-                    title="" 
-                    data={monthlyRevenueComparison} 
-                    bars={[{ name: "Current Monthly", dataKey: "revenue", fill: "#4318FF", radius: [8, 8, 0, 0] }, { name: "Prior Period", dataKey: "prior", fill: "#6AD2FF", radius: [8, 8, 0, 0] }]} 
-                    yAxisTickFormatter={(v) => `$${v / 1000}k`} 
-                  />
-                </CardContent>
-              </Card>
+          <SectionHeader title="Growth & Efficiency" icon={TrendingUp} description="Reporting vs. prior periods and Stripe processing fee impact." />
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <Card className="rounded-[40px] border-none shadow-[0_10px_30px_0_rgba(11,20,55,0.06)] dark:bg-[#111C44]">
+              <CardHeader className="flex flex-row items-center justify-between px-8 pt-8 pb-4">
+                <CardTitle className="text-sm font-bold text-[#1b254b] dark:text-white uppercase tracking-wider">Revenue Growth Performance</CardTitle>
+                <div className="flex items-center gap-1 bg-green-100 text-green-700 text-[10px] font-black px-2 py-0.5 rounded-full">
+                  <ArrowUpRight className="w-2 h-2" />
+                  +12.5%
+                </div>
+              </CardHeader>
+              <CardContent className="px-8 pb-8">
+                <BaseBarChart
+                  title=""
+                  data={monthlyRevenueComparison}
+                  bars={[{ name: "Current Monthly", dataKey: "revenue", fill: "#4318FF", radius: [8, 8, 0, 0] }, { name: "Prior Period", dataKey: "prior", fill: "#6AD2FF", radius: [8, 8, 0, 0] }]}
+                  yAxisTickFormatter={(v) => `$${v / 1000}k`}
+                />
+              </CardContent>
+            </Card>
 
-              <BaseLineChart title="Stripe Processing Fee Impact" data={stripeFeeImpactData} lines={[
-                 { name: "Gross Value ($)", dataKey: "gross", stroke: "#4318FF" },
-                 { name: "Stripe Fees ($)", dataKey: "fees", stroke: "#6AD2FF" }
-              ]} />
-           </div>
+            <BaseLineChart title="Stripe Processing Fee Impact" data={stripeFeeImpactData} lines={[
+              { name: "Gross Value ($)", dataKey: "gross", stroke: "#4318FF" },
+              { name: "Stripe Fees ($)", dataKey: "fees", stroke: "#6AD2FF" }
+            ]} />
+          </div>
         </div>
 
         {/* Level 3: Rankings */}
         <div className="space-y-6">
-           <SectionHeader title="Platform Activity Standings" icon={Award} description="Leadership rankings for healers and retreat events." />
-           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-              <BaseHorizontalBarChart title="Top 10 High-Revenue Healers" data={topHealersData} dataKey="revenue" nameKey="name" fill="#4318FF" />
-              <BaseHorizontalBarChart title="Top 10 High-Growth Retreat Events" data={topRetreatsData} dataKey="revenue" nameKey="name" fill="#6AD2FF" />
-           </div>
+          <SectionHeader title="Platform Activity Standings" icon={Award} description="Leadership rankings for healers and retreat events." />
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <BaseHorizontalBarChart title="Top 10 High-Revenue Healers" data={topHealersData} dataKey="revenue" nameKey="name" fill="#4318FF" />
+            <BaseHorizontalBarChart title="Top 10 High-Growth Retreat Events" data={topRetreatsData} dataKey="revenue" nameKey="name" fill="#6AD2FF" />
+          </div>
         </div>
       </div>
 
       {/* 3. Transaction Audit (Evidence Rows) */}
       <div className="space-y-8 pt-12 border-t border-gray-100 dark:border-white/5">
         <SectionHeader title="Financial Evidence Logs" icon={Database} description="Transactional audit registry for bookings and premiums." />
-        
+
         <Card className="rounded-[40px] border-none shadow-[0_20px_50px_rgba(11,20,55,0.06)] dark:bg-[#111C44]">
           <CardHeader className="p-10 border-b border-gray-50 dark:border-white/5 bg-white dark:bg-white/5 rounded-t-[40px]">
             <div className="flex items-center justify-between">

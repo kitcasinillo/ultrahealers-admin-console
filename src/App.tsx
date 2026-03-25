@@ -8,8 +8,8 @@ import { Seekers } from "./pages/users/Seekers";
 import { SeekerDetail } from "./pages/users/SeekerDetail";
 import { Listings } from "./pages/listings/Listings";
 import { ListingDetail } from "./pages/listings/ListingDetail";
+import { AuditLog } from "./pages/settings/audit-log/AuditLog";
 import { AdminAuthProvider } from "./contexts/AdminAuthContext";
-import { AdminGuard } from "./components/AdminGuard";
 
 function App() {
   return (
@@ -44,6 +44,7 @@ function App() {
             <Route path="modalities" element={<div>Modalities</div>} />
             <Route path="notifications" element={<div>Notifications</div>} />
             <Route path="settings" element={<div>Settings</div>} />
+            <Route path="settings/audit-log" element={<AuditLog />} />
           </Route>
           {/* </Route> */}
 

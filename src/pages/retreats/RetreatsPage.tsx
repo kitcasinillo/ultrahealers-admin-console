@@ -10,7 +10,7 @@ import {
     exportRetreats
 } from "../../lib/retreats"
 import { ConfirmModal } from "../../components/ConfirmModal"
-import { DownloadCloud, Info } from "lucide-react"
+import { Info } from "lucide-react"
 import { Skeleton } from "../../components/ui/skeleton"
 
 
@@ -131,10 +131,9 @@ export default function RetreatsPage() {
                 <div className="flex items-center gap-2">
                     <button
                         onClick={handleExport}
-                        className="flex items-center bg-[#F4F7FE] dark:bg-white/5 hover:bg-[#E2E8F0] dark:hover:bg-white/10 text-[#4318FF] dark:text-white font-semibold py-2.5 px-6 rounded-full transition-all text-sm shadow-sm"
+                        className="flex items-center bg-[#F4F7FE] dark:bg-white/5 hover:bg-[#E2E8F0] dark:hover:bg-white/10 text-[#4318FF] dark:text-white font-semibold py-2.5 px-5 rounded-full transition-all text-sm"
                     >
-                        <DownloadCloud className="mr-2 h-4 w-4" />
-                        Export to CSV
+                        Export CSV
                     </button>
                 </div>
             </div>

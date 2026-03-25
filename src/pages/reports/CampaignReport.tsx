@@ -146,30 +146,26 @@ export function CampaignReport() {
       </div>
 
       {/* Charts Main Grid */}
-      <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-7">
-        <div className="col-span-full lg:col-span-4">
-          <BaseAreaChart
-            title="Reach & Deliverability Trend"
-            data={reachData}
-            areas={[
-              { name: "Sent", dataKey: "sent", stroke: "#4318FF" },
-              { name: "Delivered", dataKey: "delivered", stroke: "#01A3B4" }
-            ]}
-          />
-        </div>
-        <div className="col-span-full lg:col-span-3">
-          <BaseGaugeChart
-            title="Deliverability Health"
-            score={98.2}
-            data={[
-              { name: "Pass", value: 98.2 },
-              { name: "Fail", value: 1.8 }
-            ]}
-            colors={["#01A3B4", "#E2E8F0"]}
-            subtitle="Your current SPF/DKIM/DMARC health is excellent."
-            statusBadge={{ text: "HEALTHY", className: "bg-emerald-50 text-emerald-600 px-3 py-1 rounded-full text-[10px] font-bold" }}
-          />
-        </div>
+      <div className="grid gap-5 md:grid-cols-1 lg:grid-cols-2">
+        <BaseAreaChart
+          title="Reach & Deliverability Trend"
+          data={reachData}
+          areas={[
+            { name: "Sent", dataKey: "sent", stroke: "#4318FF" },
+            { name: "Delivered", dataKey: "delivered", stroke: "#01A3B4" }
+          ]}
+        />
+        <BaseGaugeChart
+          title="Deliverability Health"
+          score={98.2}
+          data={[
+            { name: "Pass", value: 98.2 },
+            { name: "Fail", value: 1.8 }
+          ]}
+          colors={["#01A3B4", "#E2E8F0"]}
+          subtitle="Your current SPF/DKIM/DMARC health is excellent."
+          statusBadge={{ text: "HEALTHY", className: "bg-emerald-50 text-emerald-600 px-3 py-1 rounded-full text-[10px] font-bold" }}
+        />
       </div>
 
       {/* Secondary Charts Grid */}

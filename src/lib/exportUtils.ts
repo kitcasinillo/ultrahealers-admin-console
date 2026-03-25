@@ -342,3 +342,209 @@ export const exportCampaignExcel = (payload: CampaignExportPayload) => {
   XLSX.writeFile(wb, `Campaign_Report_${new Date().getTime()}.xlsx`);
 };
 
+
+/**
+ * Dispute Report Exports
+ */
+
+export interface DisputeExportPayload {
+  summaryData: any[];
+  disputeRateTrend: any[];
+  disputesByType: any[];
+  disputesBySeverity: any[];
+  resolutionTimeTrend: any[];
+  outcomeBreakdown: any[];
+  modalityDisputeRate: any[];
+  healerRepeatDisputes: any[];
+}
+
+export const exportDisputePdf = (payload: DisputeExportPayload) => {
+  const { 
+    disputeRateTrend, 
+    disputesByType, 
+    disputesBySeverity, 
+    resolutionTimeTrend, 
+    outcomeBreakdown, 
+    modalityDisputeRate, 
+    healerRepeatDisputes 
+  } = payload;
+  const doc = new jsPDF('l', 'mm', 'a4');
+
+  doc.setFontSize(22);
+  doc.setTextColor(27, 37, 75);
+  doc.text("Dispute Analysis Report", 14, 20);
+
+  doc.setFontSize(10);
+  doc.setTextColor(163, 174, 208);
+  doc.text(`Generated on: ${new Date().toLocaleString()}`, 14, 28);
+
+  import('jspdf-autotable').then(({ default: autoTable }) => {
+    // 1. Dispute Rate Trend
+    doc.setFontSize(14);
+    doc.setTextColor(27, 37, 75);
+    doc.text("1. Dispute Rate Trend", 14, 40);
+
+    autoTable(doc, {
+      startY: 45,
+      head: [['Period', 'Dispute Rate (%)']],
+      body: disputeRateTrend.map(d => [d.name, `${d.rate}%`]),
+      theme: 'striped',
+      headStyles: { fillColor: [67, 24, 255] },
+      styles: { fontSize: 9 }
+    });
+
+    let currentY = (doc as any).lastAutoTable.finalY + 15;
+
+    // 2. Disputes by Type
+    doc.text("2. Disputes by Type", 14, currentY);
+    autoTable(doc, {
+      startY: currentY + 5,
+      head: [['Type', 'Count']],
+      body: disputesByType.map(d => [d.name, String(d.value)]),
+      theme: 'striped',
+      headStyles: { fillColor: [67, 24, 255] },
+      styles: { fontSize: 9 }
+    });
+
+    currentY = (doc as any).lastAutoTable.finalY + 15;
+    if (currentY > 160) { doc.addPage(); currentY = 20; }
+
+    // 3. Resolution Outcomes
+    doc.text("3. Resolution Outcomes", 14, currentY);
+    autoTable(doc, {
+      startY: currentY + 5,
+      head: [['Period', 'Refund', 'Partial', 'Credit', 'Denied']],
+      body: outcomeBreakdown.map(o => [o.name, String(o.refund), String(o.partial), String(o.credit), String(o.deny)]),
+      theme: 'striped',
+      headStyles: { fillColor: [67, 24, 255] },
+      styles: { fontSize: 9 }
+    });
+
+    currentY = (doc as any).lastAutoTable.finalY + 15;
+    if (currentY > 160) { doc.addPage(); currentY = 20; }
+
+    // 4. Disputes by Severity
+    doc.text("4. Disputes by Severity", 14, currentY);
+    autoTable(doc, {
+      startY: currentY + 5,
+      head: [['Period', 'Normal', 'Safety']],
+      body: disputesBySeverity.map(d => [d.name, String(d.normal), String(d.safety)]),
+      theme: 'striped',
+      headStyles: { fillColor: [67, 24, 255] },
+      styles: { fontSize: 9 }
+    });
+
+    currentY = (doc as any).lastAutoTable.finalY + 15;
+    if (currentY > 160) { doc.addPage(); currentY = 20; }
+
+    // 5. Avg. Resolution Time
+    doc.text("5. Avg. Resolution Time Trend", 14, currentY);
+    autoTable(doc, {
+      startY: currentY + 5,
+      head: [['Period', 'Hours']],
+      body: resolutionTimeTrend.map(r => [r.name, String(r.hours)]),
+      theme: 'striped',
+      headStyles: { fillColor: [67, 24, 255] },
+      styles: { fontSize: 9 }
+    });
+
+    currentY = (doc as any).lastAutoTable.finalY + 15;
+    if (currentY > 160) { doc.addPage(); currentY = 20; }
+
+    // 6. Dispute Rate by Modality
+    doc.text("6. Dispute Rate by Modality", 14, currentY);
+    autoTable(doc, {
+      startY: currentY + 5,
+      head: [['Modality', 'Dispute Rate (%)']],
+      body: modalityDisputeRate.map(m => [m.name, `${m.value}%`]),
+      theme: 'striped',
+      headStyles: { fillColor: [124, 58, 237] },
+      styles: { fontSize: 9 }
+    });
+
+    currentY = (doc as any).lastAutoTable.finalY + 15;
+    if (currentY > 160) { doc.addPage(); currentY = 20; }
+
+    // 7. Healer Repeat Disputes
+    doc.text("7. Healer Repeat Disputes (Flagged)", 14, currentY);
+    autoTable(doc, {
+      startY: currentY + 5,
+      head: [['Healer Name', 'Disputes', 'Status']],
+      body: healerRepeatDisputes.map(h => [h.name, String(h.disputes), h.status]),
+      theme: 'striped',
+      headStyles: { fillColor: [239, 68, 68] },
+      styles: { fontSize: 9 }
+    });
+
+    doc.save(`Dispute_Report_${new Date().getTime()}.pdf`);
+  });
+};
+
+export const exportDisputeExcel = (payload: DisputeExportPayload) => {
+  const { 
+    disputeRateTrend, 
+    disputesByType, 
+    disputesBySeverity, 
+    resolutionTimeTrend, 
+    outcomeBreakdown, 
+    modalityDisputeRate, 
+    healerRepeatDisputes 
+  } = payload;
+  const wb = XLSX.utils.book_new();
+
+  // 1. Dispute Rate Trend
+  const formattedRate = disputeRateTrend.map(d => ({
+    'Period': d.name,
+    'Dispute Rate (%)': d.rate
+  }));
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(formattedRate), "Dispute Rate Trend");
+
+  // 2. Disputes by Type
+  const formattedType = disputesByType.map(d => ({
+    'Type': d.name,
+    'Count': d.value
+  }));
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(formattedType), "Disputes by Type");
+
+  // 3. Disputes by Severity
+  const formattedSeverity = disputesBySeverity.map(d => ({
+    'Period': d.name,
+    'Normal Disputes': d.normal,
+    'Safety Disputes': d.safety
+  }));
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(formattedSeverity), "Disputes by Severity");
+
+  // 4. Resolution Time Trend
+  const formattedTime = resolutionTimeTrend.map(d => ({
+    'Period': d.name,
+    'Avg. Resolution Time (Hours)': d.hours
+  }));
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(formattedTime), "Resolution Time Trend");
+
+  // 5. Outcome Breakdown
+  const formattedOutcomes = outcomeBreakdown.map(o => ({
+    'Period': o.name,
+    'Refund': o.refund,
+    'Partial Refund': o.partial,
+    'Credit': o.credit,
+    'Denied': o.deny
+  }));
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(formattedOutcomes), "Outcome Breakdown");
+
+  // 6. Dispute Rate by Modality
+  const formattedModality = modalityDisputeRate.map(m => ({
+    'Modality': m.name,
+    'Dispute Rate (%)': m.value
+  }));
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(formattedModality), "Dispute Rate by Modality");
+
+  // 7. Healer Repeat Disputes
+  const formattedHealers = healerRepeatDisputes.map(h => ({
+    'Healer Name': h.name,
+    'Dispute Count': h.disputes,
+    'Risk Status': h.status
+  }));
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(formattedHealers), "Healer Repeat Disputes");
+
+  XLSX.writeFile(wb, `Dispute_Report_${new Date().getTime()}.xlsx`);
+};

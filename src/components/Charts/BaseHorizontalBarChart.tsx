@@ -5,7 +5,8 @@ import {
   YAxis, 
   CartesianGrid, 
   Tooltip, 
-  ResponsiveContainer 
+  ResponsiveContainer,
+  LabelList
 } from 'recharts';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 
@@ -39,7 +40,7 @@ export function BaseHorizontalBarChart({
             <BarChart 
               data={data} 
               layout="vertical" 
-              margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
+              margin={{ top: 5, right: 30, left: 10, bottom: 5 }}
             >
               <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} stroke="#E2E8F0" opacity={0.5} />
               <XAxis type="number" hide />
@@ -49,7 +50,7 @@ export function BaseHorizontalBarChart({
                 axisLine={false} 
                 tickLine={false} 
                 width={yAxisWidth} 
-                style={{ fontSize: '12px', fill: '#A3AED0' }} 
+                tick={{ fill: '#4b5563', fontSize: 12, fontWeight: 500 }} 
               />
               <Tooltip 
                 contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)' }}
@@ -60,7 +61,9 @@ export function BaseHorizontalBarChart({
                 fill={fill} 
                 radius={[0, 4, 4, 0]} 
                 barSize={15} 
-              />
+              >
+                <LabelList dataKey={dataKey} position="right" fill="#4b5563" fontSize={12} fontWeight={700} />
+              </Bar>
             </BarChart>
           </ResponsiveContainer>
         </div>

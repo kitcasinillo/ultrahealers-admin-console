@@ -195,3 +195,150 @@ export const exportFinancialExcel = (bookings: any[], premium: any[]) => {
 
   XLSX.writeFile(wb, `Financial_Report_${new Date().getTime()}.xlsx`);
 };
+
+/**
+ * Campaign Report Exports
+ */
+
+export interface CampaignExportPayload {
+  summaryData: any[];
+  reachData: any[];
+  unsubscribeTrend: any[];
+  segmentPerformance: any[];
+}
+
+export const exportCampaignPdf = (payload: CampaignExportPayload) => {
+  const { summaryData, reachData, unsubscribeTrend, segmentPerformance } = payload;
+  const doc = new jsPDF('l', 'mm', 'a4');
+
+  doc.setFontSize(22);
+  doc.setTextColor(27, 37, 75);
+  doc.text("Campaign Performance Report", 14, 20);
+
+  doc.setFontSize(10);
+  doc.setTextColor(163, 174, 208);
+  doc.text(`Generated on: ${new Date().toLocaleString()}`, 14, 28);
+
+  doc.setFontSize(14);
+  doc.setTextColor(27, 37, 75);
+  doc.text("1. Campaign Summary", 14, 40);
+
+  import('jspdf-autotable').then(({ default: autoTable }) => {
+    autoTable(doc, {
+      startY: 45,
+      head: [['Campaign Name', 'Sent', 'Open Rate', 'CTR', 'Bounce Rate', 'Status']],
+      body: summaryData.map(c => [
+        c.name, c.sent.toLocaleString(), `${c.openRate}%`, `${c.ctr}%`, `${c.bounceRate}%`, c.status
+      ]),
+      theme: 'striped',
+      headStyles: { fillColor: [67, 24, 255] },
+      styles: { fontSize: 9 }
+    });
+
+    let currentY = (doc as any).lastAutoTable.finalY + 15;
+
+    // 2. Reach & Deliverability
+    doc.setFontSize(14);
+    doc.setTextColor(27, 37, 75);
+    doc.text("2. Reach & Deliverability", 14, currentY);
+
+    autoTable(doc, {
+      startY: currentY + 5,
+      head: [['Period', 'Sent', 'Delivered', 'Delivery Rate']],
+      body: reachData.map(r => [
+        r.name, r.sent.toLocaleString(), r.delivered.toLocaleString(), `${((r.delivered / r.sent) * 100).toFixed(1)}%`
+      ]),
+      theme: 'striped',
+      headStyles: { fillColor: [67, 24, 255] },
+      styles: { fontSize: 9 }
+    });
+
+    currentY = (doc as any).lastAutoTable.finalY + 15;
+
+    // 3. Unsubscribe Rate Trend
+    doc.setFontSize(14);
+    doc.text("3. Unsubscribe Rate Trend", 14, currentY);
+
+    autoTable(doc, {
+      startY: currentY + 5,
+      head: [['Period', 'Unsubscribe Rate (%)']],
+      body: unsubscribeTrend.map(u => [
+        u.name, `${u.rate}%`
+      ]),
+      theme: 'striped',
+      headStyles: { fillColor: [255, 91, 91] },
+      styles: { fontSize: 9 }
+    });
+
+    currentY = (doc as any).lastAutoTable.finalY + 15;
+
+    // Check if we need a new page
+    if (currentY > 160) {
+      doc.addPage();
+      currentY = 22;
+    }
+
+    // 4. Audience Segment Performance
+    doc.setFontSize(14);
+    doc.text("4. Audience Segment Performance", 14, currentY);
+
+    autoTable(doc, {
+      startY: currentY + 5,
+      head: [['Segment', 'Engagement (%)']],
+      body: segmentPerformance.map(s => [
+        s.name, `${s.value}%`
+      ]),
+      theme: 'striped',
+      headStyles: { fillColor: [67, 24, 255] },
+      styles: { fontSize: 9 }
+    });
+
+    doc.save(`Campaign_Report_${new Date().getTime()}.pdf`);
+  });
+};
+
+export const exportCampaignExcel = (payload: CampaignExportPayload) => {
+  const { summaryData, reachData, unsubscribeTrend, segmentPerformance } = payload;
+  const wb = XLSX.utils.book_new();
+
+  // Sheet 1: Campaign Summary
+  const formattedSummary = summaryData.map(c => ({
+    'Campaign Name': c.name,
+    'Sent': c.sent,
+    'Open Rate (%)': c.openRate,
+    'CTR (%)': c.ctr,
+    'Bounce Rate (%)': c.bounceRate,
+    'Status': c.status
+  }));
+  const ws1 = XLSX.utils.json_to_sheet(formattedSummary);
+  XLSX.utils.book_append_sheet(wb, ws1, "Campaign Summary");
+
+  // Sheet 2: Reach & Deliverability
+  const formattedReach = reachData.map(r => ({
+    'Period': r.name,
+    'Sent': r.sent,
+    'Delivered': r.delivered,
+    'Delivery Rate (%)': Number(((r.delivered / r.sent) * 100).toFixed(1))
+  }));
+  const ws2 = XLSX.utils.json_to_sheet(formattedReach);
+  XLSX.utils.book_append_sheet(wb, ws2, "Reach & Deliverability");
+
+  // Sheet 3: Unsubscribe Rate Trend
+  const formattedUnsub = unsubscribeTrend.map(u => ({
+    'Period': u.name,
+    'Unsubscribe Rate (%)': u.rate
+  }));
+  const ws3 = XLSX.utils.json_to_sheet(formattedUnsub);
+  XLSX.utils.book_append_sheet(wb, ws3, "Unsubscribe Trend");
+
+  // Sheet 4: Audience Segment Performance
+  const formattedSegments = segmentPerformance.map(s => ({
+    'Segment': s.name,
+    'Engagement (%)': s.value
+  }));
+  const ws4 = XLSX.utils.json_to_sheet(formattedSegments);
+  XLSX.utils.book_append_sheet(wb, ws4, "Segment Performance");
+
+  XLSX.writeFile(wb, `Campaign_Report_${new Date().getTime()}.xlsx`);
+};
+

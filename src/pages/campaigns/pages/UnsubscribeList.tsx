@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button"
 import { Download, MailOpen } from "lucide-react"
 import toast from "react-hot-toast"
 import { SubNav } from "../components/SubNav"
+import { ConfirmModal } from "@/components/ui/ConfirmModal"
 
 export type UnsubscribedUser = {
     id: string
@@ -40,11 +41,20 @@ const mockUnsubscribes: UnsubscribedUser[] = [
 
 export function UnsubscribeList() {
     const [data, setData] = useState<UnsubscribedUser[]>(mockUnsubscribes)
+    const [isResubscribeModalOpen, setIsResubscribeModalOpen] = useState(false)
+    const [selectedUser, setSelectedUser] = useState<UnsubscribedUser | null>(null)
 
-    const handleResubscribe = (user: UnsubscribedUser) => {
-        if (window.confirm(`Are you sure you want to re-subscribe ${user.email}?`)) {
-            setData((prev) => prev.filter((u) => u.id !== user.id))
-            toast.success(`${user.email} has been re-subscribed`)
+    const handleResubscribeClick = (user: UnsubscribedUser) => {
+        setSelectedUser(user)
+        setIsResubscribeModalOpen(true)
+    }
+
+    const handleResubscribeConfirm = () => {
+        if (selectedUser) {
+            setData((prev) => prev.filter((u) => u.id !== selectedUser.id))
+            toast.success(`${selectedUser.email} has been re-subscribed`)
+            setIsResubscribeModalOpen(false)
+            setSelectedUser(null)
         }
     }
 
@@ -100,7 +110,7 @@ export function UnsubscribeList() {
                     <Button 
                         variant="ghost" 
                         size="sm"
-                        onClick={() => handleResubscribe(row.original)}
+                        onClick={() => handleResubscribeClick(row.original)}
                         className="text-[#4318FF] hover:text-[#3311CC] hover:bg-[#F4F7FE] dark:hover:bg-white/5 disabled:opacity-50"
                     >
                         <MailOpen className="w-4 h-4 mr-2" />
@@ -135,6 +145,16 @@ export function UnsubscribeList() {
             <div className="bg-white dark:bg-[#111C44] rounded-[24px] shadow-[0_10px_30px_0_rgba(11,20,55,0.06)] dark:shadow-none border border-transparent dark:border-white/5 p-6">
                 <DataTable columns={columns} data={data} />
             </div>
+
+            <ConfirmModal 
+                isOpen={isResubscribeModalOpen}
+                onClose={() => setIsResubscribeModalOpen(false)}
+                onConfirm={handleResubscribeConfirm}
+                title="Confirm Re-subscription"
+                description={`Are you sure you want to re-subscribe ${selectedUser?.email}? They will start receiving marketing emails again.`}
+                confirmText="Re-subscribe"
+                variant="primary"
+            />
         </div>
     )
 }

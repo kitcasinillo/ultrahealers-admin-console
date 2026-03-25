@@ -2,7 +2,8 @@ import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Plus, Mail, Pencil, Copy, Trash2, Eye } from "lucide-react"
 import toast from "react-hot-toast"
-import { SubNav } from "../components/SubNav"
+import { SubNav, TemplateModal, TemplatePreviewModal } from "../components"
+import { ConfirmModal } from "@/components/ui/ConfirmModal"
 
 type Template = {
     id: number
@@ -45,28 +46,62 @@ const initialTemplates: Template[] = [
 
 export function Templates() {
     const [templates, setTemplates] = useState<Template[]>(initialTemplates)
+    const [isModalOpen, setIsModalOpen] = useState(false)
+    const [isPreviewModalOpen, setIsPreviewModalOpen] = useState(false)
+    const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false)
+    const [selectedTemplate, setSelectedTemplate] = useState<Template | null>(null)
+    const [modalMode, setModalMode] = useState<'create' | 'edit'>('create')
 
-    const handleCreate = () => {
-        const name = window.prompt("Enter new template name:")
-        if (name) {
+    const handleCreateClick = () => {
+        setModalMode('create')
+        setSelectedTemplate(null)
+        setIsModalOpen(true)
+    }
+
+    const handleEditClick = (template: Template) => {
+        setModalMode('edit')
+        setSelectedTemplate(template)
+        setIsModalOpen(true)
+    }
+
+    const handleDeleteClick = (template: Template) => {
+        setSelectedTemplate(template)
+        setIsDeleteModalOpen(true)
+    }
+
+    const handlePreviewClick = (template: Template) => {
+        setSelectedTemplate(template)
+        setIsPreviewModalOpen(true)
+    }
+
+    const handleSaveTemplate = (data: Partial<Template>) => {
+        if (modalMode === 'create') {
             const newTemplate: Template = {
                 id: Date.now(),
-                name,
-                category: 'Custom',
+                name: data.name || "Untitled Template",
+                category: data.category || "Other",
                 lastEdited: 'Just now'
             }
             setTemplates([newTemplate, ...templates])
             toast.success("Template created successfully")
+        } else if (selectedTemplate) {
+            setTemplates(templates.map(t => 
+                t.id === selectedTemplate.id 
+                    ? { ...t, name: data.name || t.name, category: data.category || t.category, lastEdited: 'Just now' } 
+                    : t
+            ))
+            toast.success("Template updated")
         }
+        setIsModalOpen(false)
+        setSelectedTemplate(null)
     }
 
-    const handleEdit = (template: Template) => {
-        const newName = window.prompt("Update template name:", template.name)
-        if (newName && newName !== template.name) {
-            setTemplates(templates.map(t => t.id === template.id ? { ...t, name: newName, lastEdited: 'Just now' } : t))
-            toast.success("Template updated")
-        } else if (newName === template.name) {
-            toast.success(`Opening editor for ${template.name}...`)
+    const handleConfirmDelete = () => {
+        if (selectedTemplate) {
+            setTemplates(templates.filter(t => t.id !== selectedTemplate.id))
+            toast.success("Template deleted")
+            setIsDeleteModalOpen(false)
+            setSelectedTemplate(null)
         }
     }
 
@@ -81,17 +116,6 @@ export function Templates() {
         toast.success("Template duplicated")
     }
 
-    const handleDelete = (id: number) => {
-        if (window.confirm("Are you sure you want to delete this template?")) {
-            setTemplates(templates.filter(t => t.id !== id))
-            toast.success("Template deleted")
-        }
-    }
-
-    const handlePreview = (template: Template) => {
-        toast.success(`Previewing: ${template.name}`)
-    }
-
     return (
         <div className="space-y-6">
             <SubNav />
@@ -103,7 +127,7 @@ export function Templates() {
                     </p>
                 </div>
                 <Button 
-                    onClick={handleCreate}
+                    onClick={handleCreateClick}
                     className="bg-[#4318FF] hover:bg-[#3311CC] text-white rounded-full px-6 py-5 font-bold shadow-[0_10px_20px_0_rgba(67,24,255,0.15)] transition-all"
                 >
                     <Plus className="mr-2 h-5 w-5" />
@@ -146,7 +170,7 @@ export function Templates() {
                                     variant="secondary" 
                                     size="sm" 
                                     className="bg-white text-[#4318FF] hover:bg-white/90 border-none shadow-2xl font-black rounded-full px-8 py-5 h-auto text-xs uppercase tracking-widest"
-                                    onClick={() => handlePreview(template)}
+                                    onClick={() => handlePreviewClick(template)}
                                 >
                                     <Eye className="w-4 h-4 mr-2" />
                                     Preview
@@ -168,7 +192,7 @@ export function Templates() {
                                 <Button 
                                     variant="ghost" 
                                     className="flex-1 rounded-2xl bg-[#4318FF]/5 text-[#4318FF] hover:bg-[#4318FF]/10 font-bold text-xs h-11 transition-colors"
-                                    onClick={() => handleEdit(template)}
+                                    onClick={() => handleEditClick(template)}
                                 >
                                     <Pencil className="h-3.5 w-3.5 mr-2" />
                                     Edit Template
@@ -187,7 +211,7 @@ export function Templates() {
                                         variant="ghost" 
                                         size="icon" 
                                         className="h-11 w-11 rounded-2xl bg-red-50 dark:bg-red-500/5 text-red-300 hover:text-red-500 transition-colors"
-                                        onClick={() => handleDelete(template.id)}
+                                        onClick={() => handleDeleteClick(template)}
                                         title="Delete"
                                     >
                                         <Trash2 className="h-4 w-4" />
@@ -198,6 +222,29 @@ export function Templates() {
                     </div>
                 ))}
             </div>
+
+            <TemplateModal 
+                isOpen={isModalOpen}
+                onClose={() => setIsModalOpen(false)}
+                onSave={handleSaveTemplate}
+                template={selectedTemplate}
+                title={modalMode === 'create' ? "Create Template" : "Edit Template"}
+            />
+
+            <TemplatePreviewModal 
+                isOpen={isPreviewModalOpen}
+                onClose={() => setIsPreviewModalOpen(false)}
+                template={selectedTemplate}
+            />
+
+            <ConfirmModal 
+                isOpen={isDeleteModalOpen}
+                onClose={() => setIsDeleteModalOpen(false)}
+                onConfirm={handleConfirmDelete}
+                title="Delete Template"
+                description={`Are you sure you want to delete "${selectedTemplate?.name}"? This action cannot be undone.`}
+                confirmText="Delete"
+            />
         </div>
     )
 }

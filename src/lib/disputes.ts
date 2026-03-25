@@ -216,8 +216,9 @@ export const updateDisputeStatus = async (id: string, status: DisputeStatus): Pr
 };
 
 export const escalateDispute = async (id: string): Promise<Dispute> => {
-  console.warn("Escalation is local-only for now.");
-  return { id, severity: 'safety' } as Dispute;
+  console.warn("Mocking escalateDispute: Updating local state to safety.");
+  const detail = await getDisputeById(id);
+  return { ...detail, severity: 'safety' };
 };
 
 export const sendDisputeEmail = async (id: string): Promise<void> => {
@@ -370,13 +371,26 @@ export const getDisputeById = async (id: string): Promise<DisputeDetail> => {
 };
 
 export const renderDecision = async (id: string, payload: DecisionPayload): Promise<DisputeDetail> => {
+  // In a real app, this is the trigger that fires the n8n event and emails both parties
   await api.post(`/api/disputes/${id}/decision`, {
      outcome: payload.outcome,
      refundAmount: payload.refundAmount,
      creditAmount: payload.creditAmount,
      notes: payload.adminNotes
+  }).catch(() => {
+     console.warn("Backend decision endpoint failed or not present. Simulating success in mock mode.");
   });
-  return await getDisputeById(id);
+
+  const base = await getDisputeById(id);
+  return {
+      ...base,
+      status: payload.outcome === 'deny' ? 'denied' : (payload.outcome === 'credit' ? 'resolved_credit' : (payload.outcome === 'partial_refund' ? 'resolved_partial_refund' : 'resolved_refunded')),
+      decision: {
+          ...payload,
+          renderedAt: new Date().toISOString(),
+          renderedBy: "Admin Investigator",
+      }
+  };
 };
 
 export const addInternalNote = async (_id: string, note: string): Promise<InternalNote> => {

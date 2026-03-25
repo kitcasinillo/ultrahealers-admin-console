@@ -10,12 +10,12 @@ import { format } from "date-fns";
 
 const decisionSchema = z.object({
   outcome: z.enum(['full_refund', 'partial_refund', 'credit', 'deny']),
-  refundAmount: z.number().optional(),
-  creditAmount: z.number().optional(),
+  refundAmount: z.union([z.number(), z.nan()]).optional(),
+  creditAmount: z.union([z.number(), z.nan()]).optional(),
   adminNotes: z.string().optional(),
 }).refine(data => {
-  if (data.outcome === 'partial_refund') return data.refundAmount !== undefined && data.refundAmount > 0;
-  if (data.outcome === 'credit') return data.creditAmount !== undefined && data.creditAmount > 0;
+  if (data.outcome === 'partial_refund') return typeof data.refundAmount === 'number' && !isNaN(data.refundAmount) && data.refundAmount > 0;
+  if (data.outcome === 'credit') return typeof data.creditAmount === 'number' && !isNaN(data.creditAmount) && data.creditAmount > 0;
   return true;
 }, { message: "Valid amount constraint violated for outcome.", path: ["refundAmount"] }); 
 
@@ -25,6 +25,8 @@ export default function DecisionForm({ dispute, onUpdate }: { dispute: DisputeDe
 
   const form = useForm<z.infer<typeof decisionSchema>>({
     resolver: zodResolver(decisionSchema),
+    mode: "onChange",
+    shouldUnregister: true,
     defaultValues: {
       outcome: 'full_refund',
       adminNotes: ''
@@ -98,39 +100,77 @@ export default function DecisionForm({ dispute, onUpdate }: { dispute: DisputeDe
 
         <form onSubmit={form.handleSubmit(() => setIsConfirmOpen(true))} className="p-5 space-y-6">
            
-           <div className="space-y-3">
-             <label className="text-[11.5px] uppercase tracking-widest font-bold text-slate-600">Resolution Outcome <span className="text-red-500">*</span></label>
-             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                {['full_refund', 'partial_refund', 'credit', 'deny'].map(opt => (
-                  <label key={opt} className={`flex items-center gap-3 p-3.5 border hover:border-orange-400 rounded-xl cursor-pointer transition-all shadow-sm ${selectedOutcome === opt ? 'bg-orange-50/80 border-orange-400 ring-2 ring-orange-400/20' : 'border-slate-200 bg-white'}`}>
-                    <input type="radio" value={opt} {...form.register("outcome")} className="w-4 h-4 text-orange-600 focus:ring-orange-500 border-slate-300" />
-                    <span className="text-sm font-bold text-slate-800 capitalize select-none tracking-tight">{opt.replace('_', ' ')}</span>
-                  </label>
-                ))}
-             </div>
-           </div>
+            <div className="space-y-3">
+              <label className="text-[11.5px] uppercase tracking-widest font-bold text-slate-600">Resolution Outcome <span className="text-red-500">*</span></label>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                 {[
+                   { id: 'full_refund', label: 'Full Refund' },
+                   { id: 'partial_refund', label: 'Partial' },
+                   { id: 'credit', label: 'Platform Credit' },
+                   { id: 'deny', label: 'Deny Claim' }
+                 ].map(opt => (
+                   <label key={opt.id} className={`flex items-center gap-3 p-3.5 border hover:border-orange-400 rounded-xl cursor-pointer transition-all shadow-sm ${selectedOutcome === opt.id ? 'bg-orange-50/80 border-orange-400 ring-4 ring-orange-400/5' : 'border-slate-200 bg-white'}`}>
+                     <input type="radio" value={opt.id} {...form.register("outcome")} className="w-4 h-4 text-orange-600 focus:ring-orange-500 border-slate-300" />
+                     <span className="text-[13.5px] font-bold text-slate-800 select-none tracking-tight leading-none">{opt.label}</span>
+                   </label>
+                 ))}
+              </div>
+            </div>
 
-           {selectedOutcome === 'partial_refund' && (
-             <div className="space-y-2 animate-in fade-in slide-in-from-top-2 duration-300">
-               <label className="text-[11.5px] uppercase tracking-widest font-bold text-slate-600">Refund Amount <span className="text-red-500">*</span></label>
-               <div className="relative">
-                 <span className="absolute left-3.5 top-3.5 text-slate-400 font-bold">$</span>
-                 <input type="number" step="0.01" min="0" max={dispute.requestedAmount || 9999} {...form.register("refundAmount", { valueAsNumber: true })} className="w-full pl-8 text-sm font-bold text-slate-900 border border-slate-300 rounded-xl p-3.5 focus:ring-2 focus:ring-orange-500 focus:border-orange-500 outline-none transition-all shadow-sm" placeholder="0.00" />
-               </div>
-               {form.formState.errors.refundAmount && <p className="text-xs text-red-500 font-bold mt-1.5">{form.formState.errors.refundAmount.message}</p>}
-             </div>
-           )}
+            {selectedOutcome === 'full_refund' && (
+              <div className="bg-orange-100/40 border border-orange-200/50 p-4 rounded-xl flex items-center justify-between animate-in fade-in slide-in-from-top-2 duration-300">
+                <div>
+                   <span className="text-[10.5px] font-bold uppercase tracking-widest text-orange-700/70 block mb-0.5">Automated Refund Amount</span>
+                   <span className="text-xl font-black text-orange-950">${(dispute.requestedAmount || 0).toFixed(2)}</span>
+                </div>
+                <div className="bg-orange-200/50 px-3 py-1.5 rounded-lg border border-orange-300/30">
+                   <span className="text-[11px] font-black text-orange-800 tracking-tight">100% REVERSAL</span>
+                </div>
+              </div>
+            )}
 
-           {selectedOutcome === 'credit' && (
-             <div className="space-y-2 animate-in fade-in slide-in-from-top-2 duration-300">
-               <label className="text-[11.5px] uppercase tracking-widest font-bold text-slate-600">Credit Amount <span className="text-red-500">*</span></label>
-               <div className="relative">
-                 <span className="absolute left-3.5 top-3.5 text-slate-400 font-bold">$</span>
-                 <input type="number" step="0.01" min="0" {...form.register("creditAmount", { valueAsNumber: true })} className="w-full pl-8 text-sm font-bold text-slate-900 border border-slate-300 rounded-xl p-3.5 focus:ring-2 focus:ring-orange-500 focus:border-orange-500 outline-none transition-all shadow-sm" placeholder="0.00" />
-               </div>
-               {form.formState.errors.creditAmount && <p className="text-xs text-red-500 font-bold mt-1.5">{form.formState.errors.creditAmount.message}</p>}
-             </div>
-           )}
+            {selectedOutcome === 'partial_refund' && (
+              <div className="space-y-2.5 animate-in fade-in slide-in-from-top-2 duration-300">
+                <label className="text-[11.5px] uppercase tracking-widest font-bold text-slate-600 flex justify-between">
+                  Partial Refund Amount <span className="text-red-500">*</span>
+                </label>
+                <div className="relative">
+                  <span className="absolute left-4 top-[14px] text-slate-400 font-bold">$</span>
+                  <input 
+                    type="number" 
+                    step="0.01" 
+                    min="0" 
+                    max={dispute.requestedAmount || 9999} 
+                    {...form.register("refundAmount", { valueAsNumber: true })} 
+                    className="w-full pl-8.5 pr-28 text-[14.5px] font-bold text-slate-900 border border-slate-300 rounded-xl p-3.5 focus:ring-2 focus:ring-orange-500 focus:border-orange-500 outline-none transition-all shadow-sm [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" 
+                    placeholder="0.00" 
+                  />
+                  {dispute.requestedAmount && (
+                    <div className="absolute right-4 top-[17px] text-[10px] font-bold text-slate-400 uppercase tracking-widest leading-none pointer-events-none">limit: ${dispute.requestedAmount.toFixed(2)}</div>
+                  )}
+                </div>
+                {form.formState.errors.refundAmount && <p className="text-xs text-red-500 font-bold mt-1.5">{form.formState.errors.refundAmount.message}</p>}
+              </div>
+            )}
+
+            {selectedOutcome === 'credit' && (
+              <div className="space-y-2.5 animate-in fade-in slide-in-from-top-2 duration-300">
+                <label className="text-[11.5px] uppercase tracking-widest font-bold text-slate-600">Credit Issue Amount <span className="text-red-500">*</span></label>
+                <div className="relative">
+                  <span className="absolute left-4 top-[14px] text-slate-400 font-bold">$</span>
+                  <input 
+                    type="number" 
+                    step="0.01" 
+                    min="0" 
+                    {...form.register("creditAmount", { valueAsNumber: true })} 
+                    className="w-full pl-8.5 pr-28 text-[14.5px] font-bold text-slate-900 border border-slate-300 rounded-xl p-3.5 focus:ring-2 focus:ring-orange-500 focus:border-orange-500 outline-none transition-all shadow-sm [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" 
+                    placeholder="0.00" 
+                  />
+                  <div className="absolute right-4 top-[17px] text-[10px] font-bold text-slate-400 uppercase tracking-widest leading-none pointer-events-none">Non-Expiring</div>
+                </div>
+                {form.formState.errors.creditAmount && <p className="text-xs text-red-500 font-bold mt-1.5">{form.formState.errors.creditAmount.message}</p>}
+              </div>
+            )}
 
            <div className="space-y-2">
              <label className="text-[11.5px] uppercase tracking-widest font-bold text-slate-600 flex justify-between">

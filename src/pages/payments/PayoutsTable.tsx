@@ -104,7 +104,7 @@ export function PayoutsTable() {
     const [isHealerListOpen, setIsHealerListOpen] = useState(false);
 
     const dateRanges = [
-        { id: 'all-time', label: 'All Time' },
+        { id: 'all-time', label: 'All' },
         { id: 'month', label: 'This Month' },
         { id: 'week', label: 'This Week' },
         { id: 'custom', label: 'Custom Range' },
@@ -343,7 +343,7 @@ export function PayoutsTable() {
                             className="flex items-center gap-2.5 bg-white dark:bg-[#111C44] px-4 py-2.5 rounded-xl border border-[#E9EDF7] dark:border-white/5 shadow-sm transition-all hover:border-[#4318FF] h-11"
                         >
                             <Filter className="h-4 w-4 text-[#A3AED0]" />
-                            <span className="text-sm font-semibold text-[#1b254b] dark:text-white uppercase tracking-tight">{statusFilter === 'all' ? 'All Status' : statusFilter.replace('_', ' ')}</span>
+                            <span className="text-sm font-semibold text-[#1b254b] dark:text-white uppercase tracking-tight">{statusFilter === 'all' ? 'All' : statusFilter.replace('_', ' ')}</span>
                             <ChevronDown className={`h-4 w-4 text-[#A3AED0] transition-transform ${isStatusDropdownOpen ? 'rotate-180' : ''}`} />
                         </button>
 
@@ -358,7 +358,7 @@ export function PayoutsTable() {
                                         }}
                                         className="w-full text-left px-4 py-2 text-sm font-semibold text-[#A3AED0] hover:text-[#4318FF] hover:bg-[#F4F7FE] dark:hover:bg-white/5 transition-colors rounded-lg"
                                     >
-                                        {status === 'all' ? 'All Status' : status.replace('_', ' ').charAt(0).toUpperCase() + status.replace('_', ' ').slice(1)}
+                                        {status === 'all' ? 'All' : status.replace('_', ' ').charAt(0).toUpperCase() + status.replace('_', ' ').slice(1)}
                                     </button>
                                 ))}
                             </div>
@@ -369,7 +369,7 @@ export function PayoutsTable() {
                         onClick={() => setIsManualPayoutModalOpen(true)}
                         className="bg-[#4318FF] hover:bg-[#3311CC] text-white px-6 h-11 rounded-xl font-bold uppercase tracking-wider text-[11px] transition-all"
                     >
-                        Trigger Payout
+                        Create Payout
                     </Button>
                 </div>
             </div>
@@ -383,7 +383,7 @@ export function PayoutsTable() {
             <Modal
                 isOpen={isManualPayoutModalOpen}
                 onClose={handleCloseModal}
-                title="Trigger Manual Payout"
+                title="Create Manual Payout"
                 maxWidth="md"
                 footer={
                     <div className="flex gap-3 w-full">
@@ -399,7 +399,7 @@ export function PayoutsTable() {
                             onClick={handleTriggerPayout}
                             className="flex-1 bg-[#4318FF] hover:bg-[#3311CC] text-white rounded-xl h-12 font-bold text-sm disabled:opacity-50 shadow-lg shadow-[#4318FF]/20 transition-all"
                         >
-                            Confirm Trigger
+                            Confirm
                         </Button>
                     </div>
                 }

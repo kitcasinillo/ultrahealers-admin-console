@@ -125,10 +125,6 @@ export function Payments() {
             {/* Standard Global Header */}
             <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
                 <div className="space-y-2">
-                    <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#4318FF]/10 text-[#4318FF] text-[10px] font-black uppercase tracking-widest">
-                        <Activity className="h-3 w-3" />
-                        Platform Finance
-                    </div>
                     <h2 className="text-4xl sm:text-5xl font-black tracking-tight text-[#1b254b] dark:text-white uppercase leading-none">Payments Center</h2>
                 </div>
 
@@ -139,8 +135,8 @@ export function Payments() {
                                 key={tab}
                                 value={tab}
                                 className={`px-6 py-3 rounded-2xl text-[10px] font-black uppercase tracking-wider transition-all whitespace-nowrap ${activeTab === tab
-                                        ? "bg-white dark:bg-[#1b254b] text-[#4318FF] dark:text-white shadow-sm"
-                                        : "text-[#A3AED0] hover:text-[#1b254b] dark:hover:text-white"
+                                    ? "bg-white dark:bg-[#1b254b] text-[#4318FF] dark:text-white shadow-sm"
+                                    : "text-[#A3AED0] hover:text-[#1b254b] dark:hover:text-white"
                                     }`}
                             >
                                 {getTabLabel(tab)}
@@ -155,10 +151,10 @@ export function Payments() {
                 {/* Metrics & Filter moved INSIDE Overview Content */}
                 <div className="flex flex-col gap-8">
                     <div className="flex items-center justify-between">
-                         <h3 className="text-[10px] font-black text-[#A3AED0] uppercase tracking-[0.3em]">Performance Architecture</h3>
-                         
-                         {/* Integrated Date Picker for Overview Only */}
-                         <div className="relative">
+                        <h3 className="text-[10px] font-black text-[#A3AED0] uppercase tracking-[0.3em]">Performance Architecture</h3>
+
+                        {/* Integrated Date Picker for Overview Only */}
+                        <div className="relative">
                             <button
                                 onClick={(e) => {
                                     e.stopPropagation();
@@ -172,7 +168,7 @@ export function Payments() {
                             </button>
 
                             {isDropdownOpen && (
-                                <div 
+                                <div
                                     onClick={(e) => e.stopPropagation()}
                                     className="absolute right-0 mt-2 w-64 bg-white dark:bg-[#1b254b] rounded-[24px] shadow-2xl border border-[#E9EDF7] dark:border-white/5 py-3 z-50"
                                 >

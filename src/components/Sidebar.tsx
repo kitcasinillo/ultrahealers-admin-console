@@ -164,7 +164,7 @@ export function Sidebar() {
                             {({ isActive }) => (
                                 <>
                                     <Activity className={cn("h-5 w-5 transition-colors", isActive ? "text-[#4318FF] dark:text-white" : "text-[#A3AED0] group-hover:text-[#4318FF] dark:group-hover:text-white")} />
-                                    <span>Reports</span>
+                                    <span>Platform Overview</span>
                                     {isActive && <div className="absolute right-0 top-1/2 -translate-y-1/2 w-1.5 h-9 bg-[#4318FF] dark:bg-[#01A3B4] rounded-l-full" />}
                                 </>
                             )}

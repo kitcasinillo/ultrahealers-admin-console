@@ -92,18 +92,49 @@ export const exportPlatformOverviewPdf = (data: ReportDataPayload) => {
 export const exportPlatformOverviewExcel = (data: ReportDataPayload) => {
   const wb = XLSX.utils.book_new();
 
-  const ws1 = XLSX.utils.json_to_sheet(data.userGrowthData);
-  XLSX.utils.book_append_sheet(wb, ws1, "User Growth");
+  // 1. Summary Metrics Sheet
+  const summaryFormatted = data.summaryData.map(card => ({
+    Metric: card.title,
+    Value: card.value,
+    Details: card.description || '-'
+  }));
+  const ws1 = XLSX.utils.json_to_sheet(summaryFormatted);
+  ws1['!cols'] = [{ wch: 25 }, { wch: 15 }, { wch: 40 }];
+  XLSX.utils.book_append_sheet(wb, ws1, "Summary Metrics");
 
-  const ws2 = XLSX.utils.json_to_sheet(data.bookingVolumeData);
-  XLSX.utils.book_append_sheet(wb, ws2, "Booking Volume");
+  // 2. User Growth Sheet
+  const growthFormatted = data.userGrowthData.map(d => ({
+    Period: d.name,
+    Healers: d.healers,
+    Seekers: d.seekers,
+    'Total Added': d.healers + d.seekers
+  }));
+  const ws2 = XLSX.utils.json_to_sheet(growthFormatted);
+  ws2['!cols'] = [{ wch: 15 }, { wch: 15 }, { wch: 15 }, { wch: 15 }];
+  XLSX.utils.book_append_sheet(wb, ws2, "User Growth");
 
-  const ws3 = XLSX.utils.json_to_sheet(data.revenueData);
-  XLSX.utils.book_append_sheet(wb, ws3, "Revenue Composition");
+  // 3. Booking Volume Sheet
+  const bookingsFormatted = data.bookingVolumeData.map(d => ({
+    Period: d.name,
+    Sessions: d.sessions,
+    Retreats: d.retreats,
+    'Total Volume': d.sessions + d.retreats
+  }));
+  const ws3 = XLSX.utils.json_to_sheet(bookingsFormatted);
+  ws3['!cols'] = [{ wch: 15 }, { wch: 15 }, { wch: 15 }, { wch: 15 }];
+  XLSX.utils.book_append_sheet(wb, ws3, "Booking Volume");
 
-  const summaryDataFormatted = data.summaryData.map(card => ({ Metric: card.title, Value: card.value, Details: card.description || '-' }));
-  const ws4 = XLSX.utils.json_to_sheet(summaryDataFormatted);
-  XLSX.utils.book_append_sheet(wb, ws4, "Summary Metrics");
+  // 4. Revenue Composition Sheet
+  const revenueFormatted = data.revenueData.map(d => ({
+    Period: d.name,
+    'Session Commission': `$${d.commission.toLocaleString()}`,
+    'Seeker Fees': `$${d.fees.toLocaleString()}`,
+    'Premium Subscriptions': `$${d.premium.toLocaleString()}`,
+    'Total Context Revenue': `$${(d.commission + d.fees + d.premium).toLocaleString()}`
+  }));
+  const ws4 = XLSX.utils.json_to_sheet(revenueFormatted);
+  ws4['!cols'] = [{ wch: 15 }, { wch: 20 }, { wch: 15 }, { wch: 25 }, { wch: 25 }];
+  XLSX.utils.book_append_sheet(wb, ws4, "Revenue Composition");
 
   XLSX.writeFile(wb, "Platform-Overview-Data.xlsx");
 };

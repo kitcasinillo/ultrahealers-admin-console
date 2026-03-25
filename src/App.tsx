@@ -15,12 +15,12 @@ import DisputesPage from "./pages/disputes/DisputesPage";
 import DisputeDetailPage from './pages/disputes/DisputeDetailPage';
 // import ModalitiesPage from './pages/modalities';
 // import PayoutsPage from './pages/payouts/index';
-import { CampaignList } from "./pages/campaigns/CampaignList";
-import { CampaignEditor } from "./pages/campaigns/CampaignEditor";
-import { CampaignDetail } from "./pages/campaigns/CampaignDetail";
-import { Templates } from "./pages/campaigns/Templates";
-import { Unsubscribes } from "./pages/campaigns/Unsubscribes";
-import { UnsubscribePage } from "./pages/campaigns/UnsubscribePage";
+import { CampaignList } from "./pages/campaigns/pages/CampaignList";
+import { CampaignEditor } from "./pages/campaigns/pages/CampaignEditor";
+import { CampaignDetail } from "./pages/campaigns/pages/CampaignDetail";
+import { Templates } from "./pages/campaigns/pages/Templates";
+import { UnsubscribeList } from "./pages/campaigns/pages/UnsubscribeList";
+import { UnsubscribePage } from "./pages/campaigns/pages/UnsubscribePage";
 import { AdminAuthProvider } from "./contexts/AdminAuthContext";
 // import { AdminGuard } from "./components/AdminGuard";
 
@@ -75,7 +75,7 @@ function App() {
             <Route path="campaigns/:id/edit" element={<CampaignEditor />} />
             <Route path="campaigns/:id" element={<CampaignDetail />} />
             <Route path="campaigns/templates" element={<Templates />} />
-            <Route path="campaigns/unsubscribes" element={<Unsubscribes />} />
+            <Route path="campaigns/unsubscribes" element={<UnsubscribeList />} />
             <Route path="reports" element={<div>Reports</div>} />
             <Route path="modalities" element={<div>Modalities</div>} />
             <Route path="notifications" element={<div>Notifications</div>} />

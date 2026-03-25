@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react"
+import { useState } from "react"
 import { useParams, Link } from "react-router-dom"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -19,13 +19,8 @@ import {
     Copy,
     Trash2,
     Clock,
-    Smartphone,
-    Monitor,
-    Tablet,
 } from "lucide-react"
 import {
-    LineChart,
-    Line,
     XAxis,
     YAxis,
     CartesianGrid,

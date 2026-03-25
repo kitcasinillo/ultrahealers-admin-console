@@ -8,8 +8,8 @@ import {
     sendTestEmail,
     getCampaign,
 } from "@/api/campaigns"
-import type { Campaign } from "./type"
-import { extractCampaignData, normalizeCampaign } from "./utils"
+import type { Campaign } from "../utils/type"
+import { extractCampaignData, normalizeCampaign } from "../utils"
 
 export function useCampaigns() {
     const [campaigns, setCampaigns] = useState<Campaign[]>([])

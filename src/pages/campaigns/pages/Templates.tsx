@@ -2,7 +2,7 @@ import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Plus, Mail, Pencil, Copy, Trash2, Eye } from "lucide-react"
 import toast from "react-hot-toast"
-import { SubNav } from "./SubNav"
+import { SubNav } from "../components/SubNav"
 
 type Template = {
     id: number

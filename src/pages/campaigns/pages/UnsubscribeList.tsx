@@ -4,7 +4,7 @@ import { type ColumnDef } from "@tanstack/react-table"
 import { Button } from "@/components/ui/button"
 import { Download, MailOpen } from "lucide-react"
 import toast from "react-hot-toast"
-import { SubNav } from "./SubNav"
+import { SubNav } from "../components/SubNav"
 
 export type UnsubscribedUser = {
     id: string
@@ -38,7 +38,7 @@ const mockUnsubscribes: UnsubscribedUser[] = [
     },
 ]
 
-export function Unsubscribes() {
+export function UnsubscribeList() {
     const [data, setData] = useState<UnsubscribedUser[]>(mockUnsubscribes)
 
     const handleResubscribe = (user: UnsubscribedUser) => {

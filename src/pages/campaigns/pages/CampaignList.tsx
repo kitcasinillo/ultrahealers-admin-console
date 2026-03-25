@@ -17,11 +17,10 @@ import {
     RefreshCw,
 } from "lucide-react"
 
-import type { Campaign } from "./type"
-import { STATUS_OPTIONS, AUDIENCE_OPTIONS, calculateAverage } from "./utils"
-import { StatusBadge, ActionMenu, FilterChips, EmptyState } from "./components"
-import { useCampaigns } from "./useCampaigns"
-import { SubNav } from "./SubNav"
+import type { Campaign } from "../utils/type"
+import { STATUS_OPTIONS, AUDIENCE_OPTIONS, calculateAverage } from "../utils"
+import { StatusBadge, ActionMenu, FilterChips, EmptyState, SubNav } from "../components/index"
+import { useCampaigns } from "../hooks/useCampaigns"
 
 
 export function CampaignList() {

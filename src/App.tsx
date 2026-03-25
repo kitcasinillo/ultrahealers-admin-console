@@ -12,6 +12,7 @@ import { AdminAuthProvider } from "./contexts/AdminAuthContext";
 // import { AdminGuard } from "./components/AdminGuard";
 import { CampaignReport } from "./pages/reports/CampaignReport";
 import { DisputeReport } from "./pages/reports/DisputeReport";
+import { UserReport } from "./pages/reports/UserReport";
 
 function App() {
   return (
@@ -42,12 +43,13 @@ function App() {
             <Route path="disputes" element={<div>Disputes</div>} />
             <Route path="finance" element={<div>Finance</div>} />
             <Route path="campaigns" element={<div>Campaigns</div>} />
-            
+
             {/* Reports */}
             <Route path="reports" element={<div>Reports</div>} />
             <Route path="reports/campaigns" element={<CampaignReport />} />
             <Route path="reports/disputes" element={<DisputeReport />} />
-            
+            <Route path="reports/users" element={<UserReport />} />
+
             <Route path="modalities" element={<div>Modalities</div>} />
             <Route path="notifications" element={<div>Notifications</div>} />
             <Route path="settings" element={<div>Settings</div>} />

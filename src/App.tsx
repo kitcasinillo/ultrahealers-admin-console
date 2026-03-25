@@ -1,4 +1,5 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { Toaster } from "react-hot-toast";
 import { AdminLayout } from "./layouts/AdminLayout";
 import { Dashboard } from "./pages/Dashboard";
 import { Login } from "./pages/Login";
@@ -14,12 +15,29 @@ import DisputesPage from "./pages/disputes/DisputesPage";
 import DisputeDetailPage from './pages/disputes/DisputeDetailPage';
 // import ModalitiesPage from './pages/modalities';
 // import PayoutsPage from './pages/payouts/index';
+import { CampaignList } from "./pages/campaigns/CampaignList";
+import { CampaignEditor } from "./pages/campaigns/CampaignEditor";
+import { CampaignDetail } from "./pages/campaigns/CampaignDetail";
+import { Templates } from "./pages/campaigns/Templates";
 import { AdminAuthProvider } from "./contexts/AdminAuthContext";
 // import { AdminGuard } from "./components/AdminGuard";
 
 function App() {
   return (
     <AdminAuthProvider>
+      <Toaster
+        position="top-right"
+        toastOptions={{
+          duration: 4000,
+          style: {
+            borderRadius: '16px',
+            background: '#111C44',
+            color: '#fff',
+            fontWeight: 600,
+            fontSize: '14px',
+          },
+        }}
+      />
       <BrowserRouter>
         <Routes>
           <Route path="/login" element={<Login />} />
@@ -50,7 +68,11 @@ function App() {
             <Route path="disputes/:id" element={<DisputeDetailPage />} />
 
             <Route path="finance" element={<div>Finance</div>} />
-            <Route path="campaigns" element={<div>Campaigns</div>} />
+            <Route path="campaigns" element={<CampaignList />} />
+            <Route path="campaigns/new" element={<CampaignEditor />} />
+            <Route path="campaigns/:id/edit" element={<CampaignEditor />} />
+            <Route path="campaigns/:id" element={<CampaignDetail />} />
+            <Route path="campaigns/templates" element={<Templates />} />
             <Route path="reports" element={<div>Reports</div>} />
             <Route path="modalities" element={<div>Modalities</div>} />
             <Route path="notifications" element={<div>Notifications</div>} />

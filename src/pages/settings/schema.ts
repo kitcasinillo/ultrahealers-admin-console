@@ -19,6 +19,12 @@ export const formSchema = z.object({
     }),
     featureFlags: z.object({
         basic_listings: z.boolean(),
+        messaging: z.boolean(),
+        basic_analytics: z.boolean(),
+        unlimited_listings: z.boolean(),
+        advanced_analytics: z.boolean(),
+        priority_support: z.boolean(),
+        custom_branding: z.boolean(),
     }),
 });
 
@@ -43,5 +49,11 @@ export const defaultValues: SettingsFormValues = {
     },
     featureFlags: {
         basic_listings: true,
+        messaging: true,
+        basic_analytics: true,
+        unlimited_listings: false,
+        advanced_analytics: false,
+        priority_support: false,
+        custom_branding: false,
     },
 };

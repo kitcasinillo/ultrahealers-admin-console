@@ -225,32 +225,57 @@ export const sendDisputeEmail = async (id: string): Promise<void> => {
   await api.post(`/api/disputes/${id}/notify-email`);
 };
 
+const typeLabels: Record<string, string> = {
+  no_show: "No Show",
+  quality: "Quality",
+  safety: "Safety",
+  refund_request: "Refund Request",
+  other: "Other"
+};
+
+const statusLabels: Record<string, string> = {
+  open: "Open",
+  in_review: "In Review",
+  resolved_refunded: "Resolved (Refunded)",
+  resolved_partial_refund: "Resolved (Partial)",
+  resolved_credit: "Resolved (Credit)",
+  denied: "Denied",
+};
+
 export const exportDisputes = async (filters: GetDisputesFilters): Promise<Blob> => {
   const res = await getDisputes({ ...filters, limit: 10000, page: 1 });
   const disputes = res.data;
   const headers = [
-    'Dispute ID', 'Type', 'Severity', 'Booking ID', 'Seeker Name', 'Seeker ID', 
-    'Healer Name', 'Healer ID', 'Amount', 'Currency', 'Status', 'Submitted At', 'Response Due', 'Is Overdue'
+    'Dispute ID', 'Type', 'Severity', 'Booking', 'Seeker', 'Healer', 'Amount', 'Status', 'Submitted At', 'Response Due'
   ];
   
   const csvRows = [headers.join(',')];
   
   disputes.forEach(d => {
+    // Format amount
+    const formattedAmount = new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency: d.currency || "USD",
+    }).format(d.requestedAmount || 0);
+
+    // Format dates
+    const formatDate = (isoStr: string) => {
+      if (!isoStr) return '';
+      const date = new Date(isoStr);
+      return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    };
+
     const row = [
       d.id,
-      d.type,
-      d.severity,
+      typeLabels[d.type] || d.type,
+      d.severity === 'safety' ? 'Safety' : 'Normal',
       d.bookingId,
       `"${d.seekerName || ''}"`,
-      d.seekerId,
       `"${d.healerName || ''}"`,
-      d.healerId,
-      d.requestedAmount?.toString() || '0',
-      d.currency || 'USD',
-      d.status,
-      d.submittedAt,
-      d.responseDueAt || '',
-      String(d.isOverdue)
+      `"${formattedAmount}"`,
+      statusLabels[d.status] || d.status,
+      `"${formatDate(d.submittedAt)}"`,
+      `"${formatDate(d.responseDueAt)}"`
     ];
     csvRows.push(row.join(','));
   });
@@ -354,7 +379,7 @@ export const renderDecision = async (id: string, payload: DecisionPayload): Prom
   return await getDisputeById(id);
 };
 
-export const addInternalNote = async (id: string, note: string): Promise<InternalNote> => {
+export const addInternalNote = async (_id: string, note: string): Promise<InternalNote> => {
   console.warn("Mocking addInternalNote: Route does not exist to adhere to user constraints.");
   await new Promise(r => setTimeout(r, 600));
   return {

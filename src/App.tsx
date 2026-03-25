@@ -8,8 +8,9 @@ import { Seekers } from "./pages/users/Seekers";
 import { SeekerDetail } from "./pages/users/SeekerDetail";
 import { Listings } from "./pages/listings/Listings";
 import { ListingDetail } from "./pages/listings/ListingDetail";
+import Modalities from "./pages/modalities/Modalities";
 import { AdminAuthProvider } from "./contexts/AdminAuthContext";
-import { AdminGuard } from "./components/AdminGuard";
+// import { AdminGuard } from "./components/AdminGuard";
 
 function App() {
   return (
@@ -41,7 +42,7 @@ function App() {
             <Route path="finance" element={<div>Finance</div>} />
             <Route path="campaigns" element={<div>Campaigns</div>} />
             <Route path="reports" element={<div>Reports</div>} />
-            <Route path="modalities" element={<div>Modalities</div>} />
+            <Route path="modalities" element={<Modalities />} />
             <Route path="notifications" element={<div>Notifications</div>} />
             <Route path="settings" element={<div>Settings</div>} />
           </Route>

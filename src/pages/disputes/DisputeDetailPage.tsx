@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { getDisputeById, escalateDispute, sendDisputeEmail, type DisputeDetail } from "@/lib/disputes";
-import { ArrowLeft, Loader2, AlertTriangle, CheckCircle2, ShieldAlert, Mail, ExternalLink } from "lucide-react";
+import { ArrowLeft, Loader2, CheckCircle2, ShieldAlert, Mail, ExternalLink } from "lucide-react";
 import { ConfirmModal } from "@/components/ConfirmModal";
 import DisputeSummaryCard from "./components/DisputeSummaryCard";
 import DisputeTimeline from "./components/DisputeTimeline";
@@ -26,9 +26,9 @@ export default function DisputeDetailPage() {
     getDisputeById(id)
       .then(data => setDispute(data))
       .catch(err => {
-         console.error(err);
-         alert("Failed to locate dispute details.");
-         navigate("/disputes");
+        console.error(err);
+        alert("Failed to locate dispute details.");
+        navigate("/disputes");
       })
       .finally(() => setLoading(false));
   }, [id, navigate]);
@@ -40,7 +40,7 @@ export default function DisputeDetailPage() {
     try {
       const updated = await escalateDispute(dispute.id);
       setDispute(prev => prev ? { ...prev, severity: updated.severity } : null);
-      alert("Dispute escalated to safety."); 
+      alert("Dispute escalated to safety.");
     } catch (err) {
       console.error(err);
       alert("Failed to escalate dispute.");
@@ -82,7 +82,7 @@ export default function DisputeDetailPage() {
 
   return (
     <div className="min-h-[calc(100vh-64px)] bg-slate-50 pb-20">
-       
+
       {/* Alert Banners */}
       {isResolved && (
         <div className="bg-emerald-600 text-white px-6 py-3.5 flex items-center justify-center shadow-inner">
@@ -95,8 +95,8 @@ export default function DisputeDetailPage() {
       {!isResolved && isSafety && (
         <div className="bg-red-600 text-white px-6 py-3.5 flex items-center justify-center shadow-inner">
           <div className="flex items-center gap-2.5 font-bold text-sm tracking-wide">
-            <AlertTriangle className="w-5 h-5 opacity-90" />
-            ⚠️ This is a Safety dispute. Handle with priority.
+            <ShieldAlert className="w-5 h-5 opacity-90" />
+            This is a Safety dispute. Handle with priority.
           </div>
         </div>
       )}
@@ -120,82 +120,82 @@ export default function DisputeDetailPage() {
 
         {/* Layout Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-[1fr_390px] xl:grid-cols-[1fr_420px] gap-8 items-start">
-          
+
           {/* Left Column - Flow Information */}
           <div className="min-w-0 flex flex-col gap-1 w-full">
-             <DisputeSummaryCard dispute={dispute} />
-             <DisputeTimeline dispute={dispute} />
-             
-             <StatementCard 
-               party="seeker"
-               name={dispute.seekerName}
-               userId={dispute.seekerId}
-               statement={dispute.seekerStatement}
-               evidence={dispute.seekerEvidence}
-               submittedAt={dispute.submittedAt}
-             />
+            <DisputeSummaryCard dispute={dispute} />
+            <DisputeTimeline dispute={dispute} />
 
-             <StatementCard 
-               party="healer"
-               name={dispute.healerName}
-               userId={dispute.healerId}
-               statement={dispute.healerStatement}
-               evidence={dispute.healerEvidence}
-               responseDueAt={dispute.responseDueAt}
-             />
+            <StatementCard
+              party="seeker"
+              name={dispute.seekerName}
+              userId={dispute.seekerId}
+              statement={dispute.seekerStatement}
+              evidence={dispute.seekerEvidence}
+              submittedAt={dispute.submittedAt}
+            />
 
-             <EvidenceGallery dispute={dispute} />
-             <ChatTranscript bookingId={dispute.bookingId} />
-             <BookingDetailsCard dispute={dispute} />
+            <StatementCard
+              party="healer"
+              name={dispute.healerName}
+              userId={dispute.healerId}
+              statement={dispute.healerStatement}
+              evidence={dispute.healerEvidence}
+              responseDueAt={dispute.responseDueAt}
+            />
+
+            <EvidenceGallery dispute={dispute} />
+            <ChatTranscript bookingId={dispute.bookingId} />
+            <BookingDetailsCard dispute={dispute} />
           </div>
 
           {/* Right Column - Sticky Actions */}
           <div className="bg-transparent lg:sticky lg:top-[30px] lg:self-start w-full">
-             
-             <DecisionForm dispute={dispute} onUpdate={setDispute} />
-             <InternalNotes disputeId={dispute.id} initialNotes={dispute.internalNotes} />
 
-             {/* Quick Actions */}
-             <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-5 space-y-3.5">
-                <h3 className="text-[11.5px] font-bold text-slate-400 uppercase tracking-widest mb-4">Quick Shortcuts</h3>
-                
-                {!isSafety && (
-                  <button 
-                    onClick={() => setIsEscalateModalOpen(true)}
-                    disabled={escalating}
-                    className="w-full flex items-center justify-between px-4.5 py-3.5 bg-white hover:bg-red-50 border-2 border-slate-100 hover:border-red-200 text-red-600 rounded-xl transition-all font-bold text-[13.5px] group shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    <span className="flex items-center gap-2.5">
-                      <ShieldAlert className="w-4.5 h-4.5 text-red-500 group-hover:scale-110 transition-transform" /> Escalate to Safety
-                    </span>
-                    {escalating && <Loader2 className="w-4 h-4 animate-spin text-red-400" />}
-                  </button>
-                )}
+            <DecisionForm dispute={dispute} onUpdate={setDispute} />
+            <InternalNotes disputeId={dispute.id} initialNotes={dispute.internalNotes} />
 
-                <button 
-                  onClick={handleEmail}
-                  disabled={emailing}
-                  className="w-full flex items-center justify-between px-4.5 py-3.5 bg-white hover:bg-slate-50 border-2 border-slate-100 hover:border-slate-300 text-slate-700 rounded-xl transition-all font-bold text-[13.5px] shadow-sm disabled:opacity-50 disabled:cursor-not-allowed group"
+            {/* Quick Actions */}
+            <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-5 space-y-3.5">
+              <h3 className="text-[11.5px] font-bold text-slate-400 uppercase tracking-widest mb-4">Quick Shortcuts</h3>
+
+              {!isSafety && (
+                <button
+                  onClick={() => setIsEscalateModalOpen(true)}
+                  disabled={escalating}
+                  className="w-full flex items-center justify-between px-4.5 py-3.5 bg-white hover:bg-red-50 border-2 border-slate-100 hover:border-red-200 text-red-600 rounded-xl transition-all font-bold text-[13.5px] group shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <span className="flex items-center gap-2.5">
-                    <Mail className="w-4.5 h-4.5 text-slate-400 group-hover:text-blue-500 transition-colors" /> Trigger Email Resend
+                    <ShieldAlert className="w-4.5 h-4.5 text-red-500 group-hover:scale-110 transition-transform" /> Escalate to Safety
                   </span>
-                  {emailing && <Loader2 className="w-4 h-4 animate-spin text-slate-400" />}
+                  {escalating && <Loader2 className="w-4 h-4 animate-spin text-red-400" />}
                 </button>
+              )}
 
-                <a 
-                  href={dispute.booking.paymentIntentId ? `https://dashboard.stripe.com/payments/${dispute.booking.paymentIntentId}` : '#'}
-                  target={dispute.booking.paymentIntentId ? "_blank" : undefined}
-                  rel="noreferrer"
-                  className={`w-full flex items-center justify-between px-4.5 py-3.5 bg-slate-50 border-2 border-slate-100 text-indigo-700 rounded-xl transition-all font-bold text-[13.5px] ${dispute.booking.paymentIntentId ? 'hover:bg-indigo-50 hover:border-indigo-200 shadow-sm group' : 'opacity-50 cursor-not-allowed grayscale'}`}
-                >
-                   <span className="flex items-center gap-2.5">
-                    <svg viewBox="0 0 40 40" className={`w-4.5 h-4.5 fill-current ${dispute.booking.paymentIntentId && 'group-hover:scale-110 transition-transform'}`}><path d="M20 0C8.95 0 0 8.95 0 20s8.95 20 20 20 20-8.95 20-20S31.05 0 20 0zm6.95 14.88c-.02 4.19-2.61 7.21-6.75 7.21h-2.53v6.33h-3.41V10.23h5.92c4.15 0 6.78 2.01 6.77 4.65zm-6.19 4.34c2.2 0 3.34-1.2 3.34-2.84 0-1.74-1.25-2.82-3.3-2.82h-2.73v5.66h2.69z"/></svg>
-                    Stripe Trace
-                  </span>
-                  <ExternalLink className="w-4.5 h-4.5 text-indigo-400" />
-                </a>
-             </div>
+              <button
+                onClick={handleEmail}
+                disabled={emailing}
+                className="w-full flex items-center justify-between px-4.5 py-3.5 bg-white hover:bg-slate-50 border-2 border-slate-100 hover:border-slate-300 text-slate-700 rounded-xl transition-all font-bold text-[13.5px] shadow-sm disabled:opacity-50 disabled:cursor-not-allowed group"
+              >
+                <span className="flex items-center gap-2.5">
+                  <Mail className="w-4.5 h-4.5 text-slate-400 group-hover:text-blue-500 transition-colors" /> Trigger Email Resend
+                </span>
+                {emailing && <Loader2 className="w-4 h-4 animate-spin text-slate-400" />}
+              </button>
+
+              <a
+                href={dispute.booking.paymentIntentId ? `https://dashboard.stripe.com/payments/${dispute.booking.paymentIntentId}` : '#'}
+                target={dispute.booking.paymentIntentId ? "_blank" : undefined}
+                rel="noreferrer"
+                className={`w-full flex items-center justify-between px-4.5 py-3.5 bg-slate-50 border-2 border-slate-100 text-indigo-700 rounded-xl transition-all font-bold text-[13.5px] ${dispute.booking.paymentIntentId ? 'hover:bg-indigo-50 hover:border-indigo-200 shadow-sm group' : 'opacity-50 cursor-not-allowed grayscale'}`}
+              >
+                <span className="flex items-center gap-2.5">
+                  <svg viewBox="0 0 40 40" className={`w-4.5 h-4.5 fill-current ${dispute.booking.paymentIntentId && 'group-hover:scale-110 transition-transform'}`}><path d="M20 0C8.95 0 0 8.95 0 20s8.95 20 20 20 20-8.95 20-20S31.05 0 20 0zm6.95 14.88c-.02 4.19-2.61 7.21-6.75 7.21h-2.53v6.33h-3.41V10.23h5.92c4.15 0 6.78 2.01 6.77 4.65zm-6.19 4.34c2.2 0 3.34-1.2 3.34-2.84 0-1.74-1.25-2.82-3.3-2.82h-2.73v5.66h2.69z" /></svg>
+                  Stripe Trace
+                </span>
+                <ExternalLink className="w-4.5 h-4.5 text-indigo-400" />
+              </a>
+            </div>
 
           </div>
         </div>

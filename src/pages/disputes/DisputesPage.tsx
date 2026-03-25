@@ -6,8 +6,7 @@ import { getColumns, type DisputesColumnsActions } from './columns';
 import { DataTable } from '@/components/DataTable';
 import { ConfirmModal } from '@/components/ConfirmModal';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Button } from '@/components/ui/button';
-import { Download, AlertCircle } from 'lucide-react';
+import { AlertCircle } from 'lucide-react';
 
 export default function DisputesPage() {
   const [disputes, setDisputes] = useState<Dispute[]>([]);
@@ -177,27 +176,26 @@ export default function DisputesPage() {
   };
 
   return (
-    <div className="p-6 md:p-8 max-w-7xl mx-auto w-full">
+    <div className="space-y-6">
       <style>{`
         tr:has([data-safety="true"]) {
-          border-left: 4px solid #ef4444 !important;
-        }
-        tr:has([data-overdue="true"]) {
-          background-color: #fef2f2 !important;
-        }
-        .dark tr:has([data-overdue="true"]) {
-          background-color: rgba(69, 10, 10, 0.2) !important;
+          border-left: 6px solid #ef4444 !important;
         }
       `}</style>
       
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Disputes Queue</h1>
-          <p className="text-muted-foreground">Manage and triage platform disputes.</p>
+          <h2 className="text-3xl font-extrabold tracking-tight text-[#1b254b] dark:text-white">Disputes Queue</h2>
+          <p className="text-[#A3AED0] text-sm mt-1 font-medium">Manage and triage platform disputes.</p>
         </div>
-        <Button onClick={handleExport} variant="outline" className="flex items-center gap-2">
-          <Download className="w-4 h-4" /> Export CSV
-        </Button>
+        <div className="flex items-center gap-2">
+          <button 
+            onClick={handleExport} 
+            className="flex items-center bg-[#F4F7FE] dark:bg-white/5 hover:bg-[#E2E8F0] dark:hover:bg-white/10 text-[#4318FF] dark:text-white font-semibold py-2.5 px-5 rounded-full transition-all text-sm"
+          >
+            Export CSV
+          </button>
+        </div>
       </div>
 
       <DisputesFilters 
@@ -206,7 +204,7 @@ export default function DisputesPage() {
         summary={summary}
       />
 
-      <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 shadow-sm overflow-hidden">
+      <div className="bg-white dark:bg-[#111C44] rounded-[24px] p-6 shadow-[0_10px_30px_0_rgba(11,20,55,0.06)] dark:shadow-none border border-transparent dark:border-white/5">
         {loading ? (
           <div className="p-6 space-y-4">
             <Skeleton className="h-10 w-full" />

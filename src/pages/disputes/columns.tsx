@@ -67,7 +67,7 @@ export const getColumns = (actions: DisputesColumnsActions): ColumnDef<Dispute>[
       const isOverdue = row.original.isOverdue;
       return (
         <div 
-          className="flex items-center gap-2 font-mono text-sm text-gray-800 dark:text-gray-200"
+          className="flex items-center gap-2 font-bold text-sm text-[#1b254b] dark:text-white"
           data-safety={severity === 'safety'}
           data-overdue={isOverdue}
         >
@@ -89,7 +89,7 @@ export const getColumns = (actions: DisputesColumnsActions): ColumnDef<Dispute>[
       const type = row.getValue("type") as string;
       const tStyle = typeStyles[type] || typeStyles.other;
       const tLabel = typeLabels[type] || "Other";
-      return <Badge variant="secondary" className={`${tStyle} border-none`}>{tLabel}</Badge>;
+      return <Badge variant="secondary" className={`${tStyle} border-none rounded-full px-3 py-1 font-bold text-[11px]`}>{tLabel}</Badge>;
     },
   },
   {
@@ -99,13 +99,13 @@ export const getColumns = (actions: DisputesColumnsActions): ColumnDef<Dispute>[
       const severity = row.getValue("severity") as string;
       if (severity === "safety") {
         return (
-          <Badge className="bg-red-500 hover:bg-red-600 text-white border-red-500 font-bold px-2 py-0.5 whitespace-nowrap">
+          <Badge className="bg-red-500 hover:bg-red-600 text-white border-none font-bold px-3 py-1 rounded-full text-[11px] whitespace-nowrap">
             Safety
           </Badge>
         );
       }
       return (
-        <Badge variant="outline" className="text-gray-500 border-gray-200 dark:border-gray-800 font-medium px-2 py-0.5">
+        <Badge variant="outline" className="text-gray-500 border-gray-200 dark:border-gray-800 font-bold px-3 py-1 rounded-full text-[11px]">
           Normal
         </Badge>
       );
@@ -113,13 +113,15 @@ export const getColumns = (actions: DisputesColumnsActions): ColumnDef<Dispute>[
   },
   {
     accessorKey: "bookingId",
-    header: "Booking",
+    header: () => <div className="whitespace-nowrap">Booking</div>,
     cell: ({ row }) => {
-      const bookingId = row.getValue("bookingId") as string;
+      const bookingId = row.original.bookingId || "";
       return (
-        <Link to={`/bookings/sessions/${bookingId}`} className="text-blue-600 dark:text-blue-400 hover:underline">
-          {bookingId.substring(0, 8)}...
-        </Link>
+        <div className="whitespace-nowrap">
+          <Link to={`/bookings/sessions/${bookingId}`} className="text-blue-600 dark:text-blue-400 hover:underline font-bold">
+            {bookingId.substring(0, 8).toUpperCase()}...
+          </Link>
+        </div>
       );
     },
   },
@@ -128,7 +130,7 @@ export const getColumns = (actions: DisputesColumnsActions): ColumnDef<Dispute>[
     header: "Seeker",
     cell: ({ row }) => {
       return (
-        <Link to={`/users/seekers/${row.original.seekerId}`} className="text-gray-900 dark:text-gray-100 hover:underline font-medium">
+        <Link to={`/users/seekers/${row.original.seekerId}`} className="text-[#1b254b] dark:text-white hover:underline font-bold">
           {row.getValue("seekerName")}
         </Link>
       );
@@ -139,7 +141,7 @@ export const getColumns = (actions: DisputesColumnsActions): ColumnDef<Dispute>[
     header: "Healer",
     cell: ({ row }) => {
       return (
-        <Link to={`/users/healers/${row.original.healerId}`} className="text-gray-900 dark:text-gray-100 hover:underline font-medium">
+        <Link to={`/users/healers/${row.original.healerId}`} className="text-[#1b254b] dark:text-white hover:underline font-bold">
           {row.getValue("healerName")}
         </Link>
       );
@@ -154,7 +156,7 @@ export const getColumns = (actions: DisputesColumnsActions): ColumnDef<Dispute>[
         style: "currency",
         currency: row.original.currency || "USD",
       }).format(amount);
-      return <div className="font-medium">{formatted}</div>;
+      return <div className="font-bold text-[#1b254b] dark:text-white">{formatted}</div>;
     },
   },
   {
@@ -165,22 +167,22 @@ export const getColumns = (actions: DisputesColumnsActions): ColumnDef<Dispute>[
       const label = statusLabels[status] || status;
       const colorClass = statusColors[status] || statusColors.denied;
       return (
-        <StatusBadge status={label as any} className={colorClass} />
+        <StatusBadge status={label as any} className={`${colorClass} rounded-full px-3 py-1 font-bold text-[11px] border`} />
       );
     },
   },
   {
     accessorKey: "submittedAt",
-    header: "Submitted At",
+    header: () => <div className="whitespace-nowrap">Submitted At</div>,
     cell: ({ row }) => {
       const dateStr = row.getValue("submittedAt") as string;
       if (!dateStr) return null;
-      return <div className="text-sm whitespace-nowrap">{format(new Date(dateStr), "MMM d, yyyy")}</div>;
+      return <div className="font-bold text-[#1b254b] dark:text-white whitespace-nowrap">{format(new Date(dateStr), "MMM d, yyyy")}</div>;
     },
   },
   {
     accessorKey: "responseDueAt",
-    header: "Response Due",
+    header: () => <div className="whitespace-nowrap">Response Due</div>,
     cell: ({ row }) => {
       const dateStr = row.getValue("responseDueAt") as string;
       if (!dateStr) return null;
@@ -193,16 +195,16 @@ export const getColumns = (actions: DisputesColumnsActions): ColumnDef<Dispute>[
       
       if (past && isOpenOrReview) {
         return (
-          <div className="flex flex-col items-start gap-1">
-            <span className="text-red-600 font-bold text-sm whitespace-nowrap">{format(date, "MMM d, yyyy")}</span>
-            <Badge variant="destructive" className="h-5 text-[10px] px-1 py-0 bg-red-600 text-white">Overdue</Badge>
+          <div className="flex items-center gap-2">
+            <span className="text-red-600 font-bold text-[13px] whitespace-nowrap">{format(date, "MMM d, yyyy")}</span>
+            <Badge variant="destructive" className="h-5 text-[10px] px-2 py-0 bg-red-600 text-white border-none rounded-full font-bold">Overdue</Badge>
           </div>
         );
       } else if (isDueSoon && isOpenOrReview) {
         return (
-          <div className="flex flex-col items-start gap-1">
-            <span className="text-orange-500 font-bold text-sm whitespace-nowrap">{format(date, "MMM d, yyyy")}</span>
-            <Badge className="bg-orange-100 text-orange-800 border-orange-200 hover:bg-orange-200 h-5 text-[10px] px-1 py-0 border">Due Soon</Badge>
+          <div className="flex items-center gap-2">
+            <span className="text-orange-500 font-bold text-[13px] whitespace-nowrap">{format(date, "MMM d, yyyy")}</span>
+            <Badge className="bg-orange-100 text-orange-800 border-orange-200 hover:bg-orange-200 h-5 text-[10px] px-2 py-0 border rounded-full font-bold">Due Soon</Badge>
           </div>
         );
       }

@@ -2,7 +2,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Search, X } from "lucide-react";
+import { Search, X, Disc, ShieldAlert, AlertTriangle } from "lucide-react";
 import { 
   DropdownMenu, 
   DropdownMenuCheckboxItem, 
@@ -59,30 +59,30 @@ export function DisputesFilters({ filters, setFilters, summary }: DisputesFilter
           onClick={() => setFilters(prev => ({ ...prev, status: ['open'] }))}
           className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-yellow-50 text-yellow-700 border border-yellow-200 hover:bg-yellow-100 transition-colors text-sm font-medium"
         >
-          🔴 Open <Badge variant="secondary" className="bg-white/50">{summary.open}</Badge>
+          <Disc className="h-3.5 w-3.5 text-red-500 fill-red-500" /> Open <Badge variant="secondary" className="bg-white/50">{summary.open}</Badge>
         </button>
         <button 
           onClick={() => setFilters(prev => ({ ...prev, severity: 'safety' }))}
           className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-red-50 text-red-700 border border-red-200 hover:bg-red-100 transition-colors text-sm font-medium"
         >
-          🚨 Safety <Badge variant="secondary" className="bg-white/50">{summary.safety}</Badge>
+          <ShieldAlert className="h-4 w-4 text-red-600" /> Safety <Badge variant="secondary" className="bg-white/50">{summary.safety}</Badge>
         </button>
         <button 
           onClick={() => setFilters(prev => ({ ...prev, overdue: true }))}
           className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-orange-50 text-orange-700 border border-orange-200 hover:bg-orange-100 transition-colors text-sm font-medium"
         >
-          ⚠️ Overdue <Badge variant="secondary" className="bg-white/50">{summary.overdue}</Badge>
+          <AlertTriangle className="h-4 w-4 text-orange-600" /> Overdue <Badge variant="secondary" className="bg-white/50">{summary.overdue}</Badge>
         </button>
         <button 
           onClick={() => setFilters(prev => ({ ...prev, status: ['in_review'] }))}
           className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200 hover:bg-blue-100 transition-colors text-sm font-medium"
         >
-          🔵 In Review <Badge variant="secondary" className="bg-white/50">{summary.inReview}</Badge>
+          <Disc className="h-3.5 w-3.5 text-blue-500 fill-blue-500" /> In Review <Badge variant="secondary" className="bg-white/50">{summary.inReview}</Badge>
         </button>
       </div>
 
       {/* Filter Bar */}
-      <div className="flex flex-wrap gap-3 items-center bg-white dark:bg-gray-900 p-4 rounded-xl border border-gray-100 dark:border-gray-800 shadow-sm">
+      <div className="flex flex-wrap gap-3 items-center bg-white dark:bg-[#111C44] p-5 rounded-[24px] border border-transparent dark:border-white/5 shadow-[0_10px_30px_0_rgba(11,20,55,0.06)] dark:shadow-none">
         <div className="relative w-full sm:w-64">
           <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-500" />
           <Input 

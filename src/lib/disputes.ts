@@ -161,6 +161,22 @@ export const getDisputes = async (filters: GetDisputesFilters): Promise<GetDispu
       items = items.filter(d => d.isOverdue);
     }
 
+    if (filters.healerId) {
+      const s = filters.healerId.toLowerCase();
+      items = items.filter(d => 
+        (d.healerId || '').toLowerCase().includes(s) || 
+        (d.healerName || '').toLowerCase().includes(s)
+      );
+    }
+
+    if (filters.seekerId) {
+      const s = filters.seekerId.toLowerCase();
+      items = items.filter(d => 
+        (d.seekerId || '').toLowerCase().includes(s) || 
+        (d.seekerName || '').toLowerCase().includes(s)
+      );
+    }
+
     // Apply Date Range (Only if BOTH are provided)
     if (filters.dateFrom && filters.dateTo) {
       const from = new Date(filters.dateFrom);
@@ -212,17 +228,34 @@ export const sendDisputeEmail = async (id: string): Promise<void> => {
 export const exportDisputes = async (filters: GetDisputesFilters): Promise<Blob> => {
   const res = await getDisputes({ ...filters, limit: 10000, page: 1 });
   const disputes = res.data;
-  const csvRows = [
-    ['ID', 'Booking ID', 'Seeker', 'Healer', 'Type', 'Severity', 'Status', 'Requested Amount', 'Submitted At', 'Overdue']
+  const headers = [
+    'Dispute ID', 'Type', 'Severity', 'Booking ID', 'Seeker Name', 'Seeker ID', 
+    'Healer Name', 'Healer ID', 'Amount', 'Currency', 'Status', 'Submitted At', 'Response Due', 'Is Overdue'
   ];
+  
+  const csvRows = [headers.join(',')];
+  
   disputes.forEach(d => {
-    csvRows.push([
-      d.id, d.bookingId, d.seekerName || '', d.healerName || '', d.type, d.severity, d.status,
-      d.requestedAmount?.toString() || '0', d.submittedAt, String(d.isOverdue)
-    ]);
+    const row = [
+      d.id,
+      d.type,
+      d.severity,
+      d.bookingId,
+      `"${d.seekerName || ''}"`,
+      d.seekerId,
+      `"${d.healerName || ''}"`,
+      d.healerId,
+      d.requestedAmount?.toString() || '0',
+      d.currency || 'USD',
+      d.status,
+      d.submittedAt,
+      d.responseDueAt || '',
+      String(d.isOverdue)
+    ];
+    csvRows.push(row.join(','));
   });
-  const csvString = csvRows.map(r => r.join(',')).join('\n');
-  return new Blob([csvString], { type: 'text/csv' });
+  
+  return new Blob([csvRows.join('\n')], { type: 'text/csv' });
 };
 
 export const getDisputeById = async (id: string): Promise<DisputeDetail> => {

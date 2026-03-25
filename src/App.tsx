@@ -19,6 +19,8 @@ import { CampaignList } from "./pages/campaigns/CampaignList";
 import { CampaignEditor } from "./pages/campaigns/CampaignEditor";
 import { CampaignDetail } from "./pages/campaigns/CampaignDetail";
 import { Templates } from "./pages/campaigns/Templates";
+import { Unsubscribes } from "./pages/campaigns/Unsubscribes";
+import { UnsubscribePage } from "./pages/campaigns/UnsubscribePage";
 import { AdminAuthProvider } from "./contexts/AdminAuthContext";
 // import { AdminGuard } from "./components/AdminGuard";
 
@@ -73,12 +75,16 @@ function App() {
             <Route path="campaigns/:id/edit" element={<CampaignEditor />} />
             <Route path="campaigns/:id" element={<CampaignDetail />} />
             <Route path="campaigns/templates" element={<Templates />} />
+            <Route path="campaigns/unsubscribes" element={<Unsubscribes />} />
             <Route path="reports" element={<div>Reports</div>} />
             <Route path="modalities" element={<div>Modalities</div>} />
             <Route path="notifications" element={<div>Notifications</div>} />
             <Route path="settings" element={<div>Settings</div>} />
           </Route>
           {/* </Route> */}
+
+          {/* Public Routes */}
+          <Route path="/unsubscribe" element={<UnsubscribePage />} />
 
           {/* Catch-all */}
           <Route path="*" element={<Navigate to="/dashboard" replace />} />

@@ -21,6 +21,7 @@ import type { Campaign } from "./type"
 import { STATUS_OPTIONS, AUDIENCE_OPTIONS, calculateAverage } from "./utils"
 import { StatusBadge, ActionMenu, FilterChips, EmptyState } from "./components"
 import { useCampaigns } from "./useCampaigns"
+import { SubNav } from "./SubNav"
 
 
 export function CampaignList() {
@@ -188,6 +189,7 @@ export function CampaignList() {
 
     return (
         <div className="space-y-6">
+            <SubNav />
             {/* Header */}
             <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div>

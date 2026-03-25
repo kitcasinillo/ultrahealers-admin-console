@@ -104,7 +104,7 @@ export function useCampaigns() {
 
     const handleDuplicate = useCallback(async (campaign: Campaign) => {
         try {
-            const { name, subject, audience, metrics } = campaign
+            const { name, subject, audience } = campaign
             const res = await createCampaign({
                 title: `${name} (Copy)`,
                 subject,

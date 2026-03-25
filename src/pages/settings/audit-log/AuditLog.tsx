@@ -7,7 +7,7 @@ import { RefreshCw, Search, History, FilterX, Download } from "lucide-react";
 import { useAuditLogs } from "./useAuditLogs";
 import type { AuditLogEntry } from "./types";
 import { ActionBadge, ResourceBadge, ChangesView } from "./components";
-import { ACTION_OPTIONS, RESOURCE_OPTIONS, formatChanges } from "./utils";
+import { ACTION_OPTIONS, RESOURCE_OPTIONS, formatChanges, formatActionLabel, formatResourceLabel } from "./utils";
 import { toast } from "react-hot-toast";
 
 export function AuditLog() {
@@ -35,8 +35,8 @@ export function AuditLog() {
     const csvRows = logs.map(log => [
       new Date(log.timestamp).toLocaleString(),
       log.adminName,
-      log.action,
-      log.resourceType,
+      formatActionLabel(log.action),
+      formatResourceLabel(log.resourceType),
       log.resourceId,
       formatChanges(log.changes),
       log.ipAddress

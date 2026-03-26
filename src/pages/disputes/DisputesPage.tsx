@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useToast } from '@/contexts/ToastContext';
 import { getDisputes, updateDisputeStatus, escalateDispute, sendDisputeEmail, exportDisputes } from '@/lib/disputes';
 import type { Dispute } from '@/lib/disputes';
 import { DisputesFilters, type DisputesFiltersState } from './DisputesFilters';
@@ -9,6 +10,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { AlertCircle } from 'lucide-react';
 
 export default function DisputesPage() {
+  const { showToast } = useToast();
   const [disputes, setDisputes] = useState<Dispute[]>([]);
   const [loading, setLoading] = useState(true);
   const [filters, setFilters] = useState<DisputesFiltersState>({
@@ -72,7 +74,7 @@ export default function DisputesPage() {
       }
     } catch (error) {
       console.error(error);
-      alert('Failed to load disputes');
+      showToast('Failed to load disputes', 'error');
     } finally {
       setLoading(false);
     }
@@ -82,10 +84,6 @@ export default function DisputesPage() {
     fetchDisputes();
   }, [fetchDisputes]);
 
-  const showToast = useCallback((msg: string, isError = false) => {
-    // Basic fallback without accessing ToastContext since we can't find it directly
-    alert(isError ? `Error: ${msg}` : `Success: ${msg}`);
-  }, []);
 
   const actions: DisputesColumnsActions = useMemo(() => ({
     onMarkInReview: (id) => {
@@ -101,7 +99,7 @@ export default function DisputesPage() {
             showToast('Dispute marked as In Review');
             fetchDisputes();
           } catch (e) {
-            showToast('Failed to update status', true);
+            showToast('Failed to update status', 'error');
           } finally {
             setConfirmModal(p => ({ ...p, isOpen: false, isLoading: false }));
           }
@@ -121,7 +119,7 @@ export default function DisputesPage() {
             showToast('Dispute escalated to Safety');
             fetchDisputes();
           } catch (e) {
-            showToast('Failed to escalate dispute', true);
+            showToast('Failed to escalate dispute', 'error');
           } finally {
             setConfirmModal(p => ({ ...p, isOpen: false, isLoading: false }));
           }
@@ -140,7 +138,7 @@ export default function DisputesPage() {
             await sendDisputeEmail(id);
             showToast('Email notification sent successfully');
           } catch (e) {
-            showToast('Failed to send email', true);
+            showToast('Failed to send email', 'error');
           } finally {
             setConfirmModal(p => ({ ...p, isOpen: false, isLoading: false }));
           }
@@ -168,10 +166,10 @@ export default function DisputesPage() {
         link.click();
         link.parentNode?.removeChild(link);
       } else {
-        alert("Downloaded export file successfully");
+        showToast("Downloaded export file successfully");
       }
     } catch (e) {
-      showToast('Failed to export disputes', true);
+      showToast('Failed to export disputes', 'error');
     }
   };
 

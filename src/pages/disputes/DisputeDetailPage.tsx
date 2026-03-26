@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useToast } from "@/contexts/ToastContext";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { getDisputeById, escalateDispute, sendDisputeEmail, type DisputeDetail } from "@/lib/disputes";
 import { ArrowLeft, Loader2, CheckCircle2, ShieldAlert, Mail, ExternalLink } from "lucide-react";
@@ -13,6 +14,7 @@ import DecisionForm from "./components/DecisionForm";
 import InternalNotes from "./components/InternalNotes";
 
 export default function DisputeDetailPage() {
+  const { showToast } = useToast();
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [dispute, setDispute] = useState<DisputeDetail | null>(null);
@@ -27,7 +29,7 @@ export default function DisputeDetailPage() {
       .then(data => setDispute(data))
       .catch(err => {
         console.error(err);
-        alert("Failed to locate dispute details.");
+        showToast("Failed to locate dispute details.", "error");
         navigate("/disputes");
       })
       .finally(() => setLoading(false));
@@ -40,10 +42,10 @@ export default function DisputeDetailPage() {
     try {
       const updated = await escalateDispute(dispute.id);
       setDispute(prev => prev ? { ...prev, severity: updated.severity } : null);
-      alert("Dispute escalated to safety.");
+      showToast("Dispute escalated to safety.");
     } catch (err) {
       console.error(err);
-      alert("Failed to escalate dispute.");
+      showToast("Failed to escalate dispute.", "error");
     } finally {
       setEscalating(false);
     }
@@ -54,10 +56,10 @@ export default function DisputeDetailPage() {
     setEmailing(true);
     try {
       await sendDisputeEmail(dispute.id);
-      alert("Email notification sent to both parties.");
+      showToast("Email notification sent to both parties.");
     } catch (err) {
       console.error(err);
-      alert("Failed to send email.");
+      showToast("Failed to send email.", "error");
     } finally {
       setEmailing(false);
     }

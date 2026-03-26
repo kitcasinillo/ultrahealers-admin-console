@@ -15,11 +15,12 @@ import DisputeDetailPage from './pages/disputes/DisputeDetailPage';
 // import ModalitiesPage from './pages/modalities';
 // import PayoutsPage from './pages/payouts/index';
 import { AdminAuthProvider } from "./contexts/AdminAuthContext";
-// import { AdminGuard } from "./components/AdminGuard";
+import { ToastProvider } from "./contexts/ToastContext";
 
 function App() {
   return (
-    <AdminAuthProvider>
+    <ToastProvider>
+      <AdminAuthProvider>
       <BrowserRouter>
         <Routes>
           <Route path="/login" element={<Login />} />
@@ -62,7 +63,8 @@ function App() {
           <Route path="*" element={<Navigate to="/dashboard" replace />} />
         </Routes>
       </BrowserRouter>
-    </AdminAuthProvider>
+      </AdminAuthProvider>
+    </ToastProvider>
   );
 }
 

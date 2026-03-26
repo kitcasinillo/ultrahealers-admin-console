@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from "react"
+import { useToast } from "@/contexts/ToastContext"
 import { DataTable } from "../../components/DataTable"
 import { RetreatsFilters } from "./RetreatsFilters"
 import { getColumns, type Retreat } from "./columns"
@@ -15,6 +16,7 @@ import { Skeleton } from "../../components/ui/skeleton"
 
 
 export default function RetreatsPage() {
+    const { showToast } = useToast()
     const [data, setData] = useState<Retreat[]>([])
     const [isLoading, setIsLoading] = useState(true)
     const [filters, setFilters] = useState<any>({
@@ -55,10 +57,11 @@ export default function RetreatsPage() {
         try {
             setIsActionLoading(true)
             await approveRetreat(id)
+            showToast("Retreat approved successfully")
             fetchData()
-            // Toast success handled by context if wrapped
         } catch (error) {
             console.error("Failed to approve retreat:", error)
+            showToast("Failed to approve retreat", "error")
         } finally {
             setIsActionLoading(false)
         }
@@ -75,9 +78,11 @@ export default function RetreatsPage() {
             setIsActionLoading(true)
             await deleteRetreat(selectedRetreatId)
             setIsDeleteModalOpen(false)
+            showToast("Retreat deleted successfully")
             fetchData()
         } catch (error) {
             console.error("Failed to delete retreat:", error)
+            showToast("Failed to delete retreat", "error")
         } finally {
             setIsActionLoading(false)
         }
@@ -88,9 +93,11 @@ export default function RetreatsPage() {
         try {
             setIsActionLoading(true)
             await updateRetreatStatus(id, newStatus)
+            showToast(`Retreat status updated to ${newStatus}`)
             fetchData()
         } catch (error) {
             console.error("Failed to update status:", error)
+            showToast("Failed to update status", "error")
         } finally {
             setIsActionLoading(false)
         }
@@ -106,8 +113,10 @@ export default function RetreatsPage() {
             document.body.appendChild(link)
             link.click()
             link.remove()
+            showToast("Exported CSV successfully")
         } catch (error) {
             console.error("Export failed:", error)
+            showToast("Export failed", "error")
         }
     }
 

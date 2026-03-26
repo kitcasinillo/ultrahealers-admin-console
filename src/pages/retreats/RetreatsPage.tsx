@@ -113,10 +113,9 @@ export default function RetreatsPage() {
             document.body.appendChild(link)
             link.click()
             link.remove()
-            showToast("Exported CSV successfully")
+
         } catch (error) {
             console.error("Export failed:", error)
-            showToast("Export failed", "error")
         }
     }
 

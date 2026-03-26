@@ -13,6 +13,8 @@ import { AdminAuthProvider } from "./contexts/AdminAuthContext";
 import { CampaignReport } from "./pages/reports/CampaignReport";
 import { DisputeReport } from "./pages/reports/DisputeReport";
 import { UserReport } from "./pages/reports/UserReport";
+import { BookingReport } from "./pages/reports/BookingReport";
+import { RetreatReport } from "./pages/reports/RetreatReport";
 
 function App() {
   return (
@@ -49,6 +51,8 @@ function App() {
             <Route path="reports/campaigns" element={<CampaignReport />} />
             <Route path="reports/disputes" element={<DisputeReport />} />
             <Route path="reports/users" element={<UserReport />} />
+            <Route path="reports/bookings" element={<BookingReport />} />
+            <Route path="reports/retreats" element={<RetreatReport />} />
 
             <Route path="modalities" element={<div>Modalities</div>} />
             <Route path="notifications" element={<div>Notifications</div>} />

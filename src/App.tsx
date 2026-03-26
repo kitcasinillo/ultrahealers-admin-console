@@ -9,11 +9,13 @@ import { SeekerDetail } from "./pages/users/SeekerDetail";
 import { Listings } from "./pages/listings/Listings";
 import { ListingDetail } from "./pages/listings/ListingDetail";
 import { AdminAuthProvider } from "./contexts/AdminAuthContext";
-import { AdminGuard } from "./components/AdminGuard";
+import SEOPage from "./pages/seo/SEOPage";
+import { Toaster } from "react-hot-toast";
 
 function App() {
   return (
     <AdminAuthProvider>
+      <Toaster position="top-right" />
       <BrowserRouter>
         <Routes>
           <Route path="/login" element={<Login />} />
@@ -44,6 +46,7 @@ function App() {
             <Route path="modalities" element={<div>Modalities</div>} />
             <Route path="notifications" element={<div>Notifications</div>} />
             <Route path="settings" element={<div>Settings</div>} />
+            <Route path="seo" element={<SEOPage />} />
           </Route>
           {/* </Route> */}
 

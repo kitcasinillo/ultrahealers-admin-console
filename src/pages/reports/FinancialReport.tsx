@@ -8,8 +8,7 @@ import {
   TrendingUp,
   Award,
   Wallet,
-  Activity,
-  ArrowUpRight
+  ArrowUpRight,
 } from "lucide-react";
 
 // Common Components
@@ -18,7 +17,7 @@ import { ExportDropdown } from "@/components/common/ExportDropdown";
 import { GranularityTabs } from "@/components/common/GranularityTabs";
 
 // Utilities
-import { exportFinancialPdf, exportFinancialExcel } from "@/lib/exportUtils";
+import { exportFinancialPdf, exportFinancialExcel, type FinancialExportPayload } from "@/lib/exportUtils";
 
 // Chart Components
 import { BaseAreaChart, type AreaConfig } from "@/components/Charts/BaseAreaChart";
@@ -91,12 +90,102 @@ const bookingsData = [
     netRevenue: 10.5,
     stripePi: "pi_3Oh...",
   },
+  {
+    date: "2024-03-23",
+    bookingId: "BK-8820",
+    listing: "Yoga Retreat",
+    healer: "Emma Wilson",
+    seeker: "Alice Smith",
+    grossAmount: 450.0,
+    healerCommission: 360.0,
+    seekerFee: 45.0,
+    processingFee: 13.5,
+    netRevenue: 31.5,
+    stripePi: "pi_3Og...",
+  },
+  {
+    date: "2024-03-22",
+    bookingId: "BK-8819",
+    listing: "Meditation Workshop",
+    healer: "Michael Chen",
+    seeker: "Bob Brown",
+    grossAmount: 80.0,
+    healerCommission: 64.0,
+    seekerFee: 8.0,
+    processingFee: 2.4,
+    netRevenue: 5.6,
+    stripePi: "pi_3Of...",
+  },
+  {
+    date: "2024-03-21",
+    bookingId: "BK-8818",
+    listing: "Spiritual Healing",
+    healer: "Aria Thorne",
+    seeker: "Charlie Green",
+    grossAmount: 200.0,
+    healerCommission: 160.0,
+    seekerFee: 20.0,
+    processingFee: 6.0,
+    netRevenue: 14.0,
+    stripePi: "pi_3Oe...",
+  },
+  {
+    date: "2024-03-20",
+    bookingId: "BK-8817",
+    listing: "Forest Therapy",
+    healer: "David Miller",
+    seeker: "Diana Prince",
+    grossAmount: 120.0,
+    healerCommission: 96.0,
+    seekerFee: 12.0,
+    processingFee: 3.6,
+    netRevenue: 8.4,
+    stripePi: "pi_3Od...",
+  },
+  {
+    date: "2024-03-19",
+    bookingId: "BK-8816",
+    listing: "Mindfulness Session",
+    healer: "Dr. Sarah Johnson",
+    seeker: "Ethan Hunt",
+    grossAmount: 150.0,
+    healerCommission: 120.0,
+    seekerFee: 15.0,
+    processingFee: 4.5,
+    netRevenue: 10.5,
+    stripePi: "pi_3Oc...",
+  },
+  {
+    date: "2024-03-18",
+    bookingId: "BK-8815",
+    listing: "Zen Retreat",
+    healer: "Emma Wilson",
+    seeker: "Fiona Apple",
+    grossAmount: 500.0,
+    healerCommission: 400.0,
+    seekerFee: 50.0,
+    processingFee: 15.0,
+    netRevenue: 35.0,
+    stripePi: "pi_3Ob...",
+  },
 ];
 
 const premiumRevenueData = [
   {
     healer: "Dr. Sarah Johnson",
     activationDate: "2024-03-01",
+    amount: 99.0,
+    stripeSessionId: "cs_test_...",
+  },
+  {
+    healer: "Emma Wilson",
+    activationDate: "2024-03-05",
+    amount: 99.0,
+    stripeSessionId: "cs_test_...",
+  },
+  {
+    healer: "Michael Chen",
+    activationDate: "2024-03-10",
     amount: 99.0,
     stripeSessionId: "cs_test_...",
   },
@@ -183,34 +272,115 @@ export function FinancialReport() {
   const [customEndDate, setCustomEndDate] = useState("");
   const [granularity, setGranularity] = useState("Monthly");
 
-  // Export operations are now handled by utilities for improved formatting and reliability.
-
-  const trendData = revenueTrendData.map(d => ({ ...d, name: d.month }));
   const areaConfigs: AreaConfig[] = [
     { name: "Sessions", dataKey: "sessions", stroke: "#4318FF" },
     { name: "Retreats", dataKey: "retreats", stroke: "#6AD2FF" },
     { name: "Subscriptions", dataKey: "subs", stroke: "#8A99AF" },
   ];
 
+  // --- Filtering Logic ---
+  const getFilteredData = () => {
+    // Basic reactive trend data calculation
+    const baseTrend = revenueTrendData.map(d => ({ ...d, name: d.month }));
+
+    // For this demo, we'll map specific date ranges to specific data subsets
+    // Today = 2024-03-24 only
+    // Last 7 Days = 2024-03-18 to 2024-03-24
+    // Last 30 Days = All
+    
+    if (dateRange === "Today") {
+      return {
+        bookings: bookingsData.filter(b => b.date === "2024-03-24"),
+        premium: [],
+        trend: baseTrend.slice(-1),
+        fees: stripeFeeImpactData.slice(-1),
+        source: revenueBySourceData.map(d => ({ ...d, value: d.value * 0.1 })),
+        healers: topHealersData.slice(0, 1),
+        retreats: topRetreatsData.slice(0, 1),
+        comparison: monthlyRevenueComparison.map(d => ({ ...d, revenue: d.revenue * 0.05 }))
+      };
+    }
+
+    if (dateRange === "Last 7 Days") {
+      return {
+        bookings: bookingsData.filter(b => b.date >= "2024-03-18"),
+        premium: premiumRevenueData.filter(p => p.activationDate >= "2024-03-18"),
+        trend: baseTrend.slice(-2),
+        fees: stripeFeeImpactData.slice(-7),
+        source: revenueBySourceData.map(d => ({ ...d, value: d.value * 0.25 })),
+        healers: topHealersData.slice(0, 4),
+        retreats: topRetreatsData.slice(0, 4),
+        comparison: monthlyRevenueComparison.map(d => ({ ...d, revenue: d.revenue * 0.25 }))
+      };
+    }
+
+    // Default or "Last 30 Days"
+    return {
+      bookings: bookingsData,
+      premium: premiumRevenueData,
+      trend: baseTrend,
+      fees: stripeFeeImpactData,
+      source: revenueBySourceData,
+      healers: topHealersData,
+      retreats: topRetreatsData,
+      comparison: monthlyRevenueComparison
+    };
+  };
+
+  const filtered = getFilteredData();
+
   return (
     <div className="p-4 sm:p-6 lg:p-8 space-y-12 animate-in fade-in duration-700 max-w-[1700px] mx-auto overflow-hidden">
 
-      {/* 1. Dashboard Header (Reverted to Normal standard) */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+      {/* 1. Dashboard Header */}
+      <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-6">
         <div className="space-y-1">
-          <h1 className="text-4xl font-extrabold text-[#1b254b] dark:text-white tracking-tighter">Financial Overview</h1>
+          <h1 className="text-3xl md:text-4xl font-extrabold text-[#1b254b] dark:text-white tracking-tighter">Financial Overview</h1>
+          <p className="text-xs font-medium text-[#A3AED0] uppercase tracking-widest pl-0.5">
+            {dateRange === 'Custom Range' ? `From ${customStartDate} to ${customEndDate}` : `Reporting: ${dateRange}`}
+          </p>
         </div>
 
-        <div className="flex flex-col sm:flex-row items-center gap-4">
-          <GranularityTabs granularity={granularity} setGranularity={setGranularity} />
-          <DateRangePicker
-            dateRange={dateRange} setDateRange={setDateRange}
-            customStartDate={customStartDate} setCustomStartDate={setCustomStartDate}
-            customEndDate={customEndDate} setCustomEndDate={setCustomEndDate}
-          />
+        <div className="flex flex-col lg:flex-row items-stretch lg:items-center gap-4 w-full xl:w-auto">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:flex items-center gap-4 w-full">
+            <GranularityTabs granularity={granularity} setGranularity={setGranularity} />
+            <DateRangePicker
+              dateRange={dateRange} setDateRange={setDateRange}
+              customStartDate={customStartDate} setCustomStartDate={setCustomStartDate}
+              customEndDate={customEndDate} setCustomEndDate={setCustomEndDate}
+            />
+          </div>
           <ExportDropdown
-            onExportExcel={() => exportFinancialExcel(bookingsData, premiumRevenueData)}
-            onExportPdf={() => exportFinancialPdf(bookingsData, premiumRevenueData, "Booking Financial Report Audit")}
+            onExportExcel={() => {
+              const payload: FinancialExportPayload = {
+                bookings: filtered.bookings,
+                premium: filtered.premium,
+                title: "Booking Financial Report",
+                dateRangeLabel: dateRange === 'Custom Range' ? `${customStartDate} to ${customEndDate}` : dateRange,
+                revenueBySource: filtered.source,
+                revenueTrend: filtered.trend.map(d => ({ month: d.month, sessions: d.sessions, retreats: d.retreats, subs: d.subs })),
+                monthlyComparison: filtered.comparison,
+                stripeFeeImpact: filtered.fees,
+                topHealers: filtered.healers,
+                topRetreats: filtered.retreats,
+              };
+              exportFinancialExcel(payload);
+            }}
+            onExportPdf={() => {
+              const payload: FinancialExportPayload = {
+                bookings: filtered.bookings,
+                premium: filtered.premium,
+                title: "Booking Financial Report",
+                dateRangeLabel: dateRange === 'Custom Range' ? `${customStartDate} to ${customEndDate}` : dateRange,
+                revenueBySource: filtered.source,
+                revenueTrend: filtered.trend.map(d => ({ month: d.month, sessions: d.sessions, retreats: d.retreats, subs: d.subs })),
+                monthlyComparison: filtered.comparison,
+                stripeFeeImpact: filtered.fees,
+                topHealers: filtered.healers,
+                topRetreats: filtered.retreats,
+              };
+              exportFinancialPdf(payload);
+            }}
           />
         </div>
       </div>
@@ -222,8 +392,8 @@ export function FinancialReport() {
         <div className="space-y-6">
           <SectionHeader title="Revenue by Source" icon={PieIcon} description="Income distribution (Pie) and historical lifecycle trends (Area Chart)." />
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            <BasePieChart title="Revenue Mix Overview" data={revenueBySourceData} />
-            <BaseAreaChart title="Revenue Trend Analytics" data={trendData} areas={areaConfigs} yAxisTickFormatter={(v) => `$${v / 1000}k`} />
+            <BasePieChart title="Revenue Mix Overview" data={filtered.source} />
+            <BaseAreaChart title="Revenue Trend Analytics" data={filtered.trend} areas={areaConfigs} yAxisTickFormatter={(v: number) => `$${v / 1000}k`} />
           </div>
         </div>
 
@@ -242,14 +412,14 @@ export function FinancialReport() {
               <CardContent className="px-8 pb-8">
                 <BaseBarChart
                   title=""
-                  data={monthlyRevenueComparison}
+                  data={filtered.comparison}
                   bars={[{ name: "Current Monthly", dataKey: "revenue", fill: "#4318FF", radius: [8, 8, 0, 0] }, { name: "Prior Period", dataKey: "prior", fill: "#6AD2FF", radius: [8, 8, 0, 0] }]}
-                  yAxisTickFormatter={(v) => `$${v / 1000}k`}
+                  yAxisTickFormatter={(v: number) => `$${v / 1000}k`}
                 />
               </CardContent>
             </Card>
 
-            <BaseLineChart title="Stripe Processing Fee Impact" data={stripeFeeImpactData} lines={[
+            <BaseLineChart title="Stripe Processing Fee Impact" data={filtered.fees} lines={[
               { name: "Gross Value ($)", dataKey: "gross", stroke: "#4318FF" },
               { name: "Stripe Fees ($)", dataKey: "fees", stroke: "#6AD2FF" }
             ]} />
@@ -260,8 +430,8 @@ export function FinancialReport() {
         <div className="space-y-6">
           <SectionHeader title="Platform Activity Standings" icon={Award} description="Leadership rankings for healers and retreat events." />
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            <BaseHorizontalBarChart title="Top 10 High-Revenue Healers" data={topHealersData} dataKey="revenue" nameKey="name" fill="#4318FF" />
-            <BaseHorizontalBarChart title="Top 10 High-Growth Retreat Events" data={topRetreatsData} dataKey="revenue" nameKey="name" fill="#6AD2FF" />
+            <BaseHorizontalBarChart title="Top 10 High-Revenue Healers" data={filtered.healers} dataKey="revenue" nameKey="name" fill="#4318FF" />
+            <BaseHorizontalBarChart title="Top 10 High-Growth Retreat Events" data={filtered.retreats} dataKey="revenue" nameKey="name" fill="#6AD2FF" />
           </div>
         </div>
       </div>
@@ -281,7 +451,7 @@ export function FinancialReport() {
             </div>
           </CardHeader>
           <CardContent className="p-8 pb-10">
-            <DataTable columns={bookingColumns} data={bookingsData} />
+            <DataTable columns={bookingColumns} data={filtered.bookings} />
           </CardContent>
         </Card>
 
@@ -289,7 +459,7 @@ export function FinancialReport() {
           <CardHeader className="py-5 px-10 border-b border-gray-50 dark:border-white/5 flex items-center gap-3">
             <CardTitle className="text-lg font-bold text-[#1b254b] dark:text-white uppercase tracking-tighter">Premium Activation Log</CardTitle>
           </CardHeader>
-          <CardContent className="p-8 px-10"><DataTable columns={premiumColumns} data={premiumRevenueData} /></CardContent>
+          <CardContent className="p-8 px-10"><DataTable columns={premiumColumns} data={filtered.premium} /></CardContent>
         </Card>
       </div>
     </div>

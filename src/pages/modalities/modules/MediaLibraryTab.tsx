@@ -7,7 +7,8 @@ import {
   Layers, 
   Upload, 
   Check, 
-  RefreshCw 
+  RefreshCw,
+  Loader2
 } from "lucide-react";
 import { Badge } from "../../../components/ui/badge";
 import { Button } from "../../../components/ui/button";
@@ -21,26 +22,147 @@ import {
   DropdownMenuLabel 
 } from "../../../components/ui/dropdown-menu";
 import { cn } from "../../../lib/utils";
+import { useToast } from "../../../components/ui/toaster";
 
 export function MediaLibraryTab() {
+  const { toast, removeToast } = useToast();
   const [activeFolder, setActiveFolder] = useState("all");
   const [activeTag, setActiveTag] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
+  const [isUploading, setIsUploading] = useState(false);
 
-  const mockAssets = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(i => ({
-    id: i,
-    name: `asset_image_${i}.webp`,
-    size: "124 KB",
-    dims: "512x512"
-  }));
+  const [assets, setAssets] = useState<{
+    id: number;
+    name: string;
+    size: string;
+    dims: string;
+    folder: "icons" | "brand" | "all";
+    tags: string[];
+    url?: string;
+  }[]>([
+    { id: 1, name: "retreat_hero_01.webp", size: "842 KB", dims: "1920x1080", folder: "all", tags: ["Hero", "App"] },
+    { id: 2, name: "spa_treatment_interior.webp", size: "1.2 MB", dims: "2400x1600", folder: "brand", tags: ["Brand", "Hero"] },
+    { id: 3, name: "yoga_mat_closeup.webp", size: "450 KB", dims: "1080x1080", folder: "all", tags: ["App", "Icons"] },
+    { id: 4, name: "forest_landscape.webp", size: "2.1 MB", dims: "3840x2160", folder: "all", tags: ["Hero"] },
+    { id: 5, name: "crystal_healing_set.webp", size: "670 KB", dims: "1200x1200", folder: "all", tags: ["Icons", "Brand"] },
+    { id: 6, name: "arrow-right.svg", size: "2 KB", dims: "24x24", folder: "icons", tags: ["SVG", "Icons"] },
+    { id: 7, name: "logo-transparent.png", size: "45 KB", dims: "512x512", folder: "brand", tags: ["Brand", "PNG"] },
+    { id: 8, name: "user-profile-default.png", size: "12 KB", dims: "128x128", folder: "icons", tags: ["Icons", "PNG"] },
+  ]);
 
-  const filteredAssets = mockAssets.filter(asset => 
-    asset.name.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const filteredAssets = assets.filter(asset => {
+    const matchesSearch = asset.name.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesFolder = activeFolder === "all" || asset.folder === activeFolder;
+    const matchesTag = !activeTag || asset.tags.includes(activeTag);
+    return matchesSearch && matchesFolder && matchesTag;
+  });
 
   const handleUploadClick = () => {
     document.getElementById("library-upload-input")?.click();
   };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    setIsUploading(true);
+    const toastId = toast({
+      title: "Uploading Assets",
+      description: `Uploading ${files.length} ${files.length === 1 ? 'file' : 'files'} to the library...`,
+      duration: Infinity
+    });
+
+    try {
+      // Mock validation: error if any file > 10MB
+      const oversizedFiles = Array.from(files).filter(f => f.size > 10 * 1024 * 1024);
+      if (oversizedFiles.length > 0) {
+        throw new Error(`${oversizedFiles.length} file(s) exceed the 10MB size limit.`);
+      }
+
+      // Simulate upload delay
+      setTimeout(() => {
+        const newAssets = Array.from(files).map((file, index) => ({
+          id: Date.now() + index,
+          name: file.name,
+          size: `${(file.size / 1024).toFixed(1)} KB`,
+          dims: "Original",
+          folder: activeFolder as any,
+          tags: activeTag ? [activeTag] : ["App"],
+          url: URL.createObjectURL(file)
+        }));
+
+        setAssets(prev => [...newAssets, ...prev]);
+        setIsUploading(false);
+        removeToast(toastId);
+        
+        if (document.getElementById("library-upload-input")) {
+          (document.getElementById("library-upload-input") as HTMLInputElement).value = "";
+        }
+
+        toast({
+          title: "Upload Successful",
+          description: "Your files have been added to the media library.",
+          variant: "success",
+          duration: 3000
+        });
+      }, 1500);
+    } catch (err: any) {
+      // Handle error
+      setTimeout(() => {
+        removeToast(toastId);
+        toast({
+          title: "Upload Error",
+          description: err.message || "There was a problem uploading your files. Please try again.",
+          variant: "destructive",
+          duration: 5000
+        });
+        setIsUploading(false);
+        if (document.getElementById("library-upload-input")) {
+          (document.getElementById("library-upload-input") as HTMLInputElement).value = "";
+        }
+      }, 800);
+    }
+  };
+
+  const handleToolAction = (action: string) => {
+    const toastId = toast({
+      title: "Running Tool",
+      description: `${action} is currently in progress...`,
+      duration: Infinity
+    });
+
+    try {
+      // Mock random failure (1 in 5 chance)
+      const shouldFail = Math.random() < 0.2;
+      
+      setTimeout(() => {
+        removeToast(toastId);
+        if (shouldFail) {
+          toast({
+            title: "Process Failed",
+            description: `${action} could not be completed at this time.`,
+            variant: "destructive",
+            duration: 4000
+          });
+        } else {
+          toast({
+            title: "Process Complete",
+            description: `${action} task has finished successfully.`,
+            variant: "success",
+            duration: 3000
+          });
+        }
+      }, 1200);
+    } catch (err) {
+       removeToast(toastId);
+       toast({
+        title: "System Error",
+        description: "An unexpected error occurred during processing.",
+        variant: "destructive"
+      });
+    }
+  };
+
   return (
     <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
       {/* Sidebar / Folders */}
@@ -93,7 +215,7 @@ export function MediaLibraryTab() {
             <div className="flex flex-wrap gap-2 px-1">
               {["SVG", "PNG", "App", "Brand", "Hero", "Icons"].map(tag => (
                 <Badge 
-                  key={tag} 
+                   key={tag} 
                   variant="secondary" 
                   onClick={() => setActiveTag(activeTag === tag ? null : tag)}
                   className={cn(
@@ -129,8 +251,9 @@ export function MediaLibraryTab() {
                 type="file" 
                 id="library-upload-input" 
                 className="hidden" 
-                onChange={(e) => console.log("Files uploaded:", e.target.files)}
+                onChange={handleFileChange}
                 multiple
+                accept="image/*"
               />
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
@@ -145,14 +268,23 @@ export function MediaLibraryTab() {
                 <DropdownMenuContent className="w-56 rounded-xl border border-gray-100 dark:border-white/5 shadow-xl p-2 bg-white dark:bg-[#111C44]">
                   <DropdownMenuLabel className="text-xs font-bold text-[#A3AED0] px-2 py-2">Image Optimization</DropdownMenuLabel>
                   <DropdownMenuSeparator className="bg-gray-50 dark:bg-white/5" />
-                  <DropdownMenuItem className="rounded-lg cursor-pointer font-semibold text-sm py-2.5 text-[#1b254b] dark:text-white hover:bg-[#F4F7FE] dark:hover:bg-white/5">
+                  <DropdownMenuItem 
+                    onClick={() => handleToolAction("Batch Optimization")}
+                    className="rounded-lg cursor-pointer font-semibold text-sm py-2.5 text-[#1b254b] dark:text-white hover:bg-[#F4F7FE] dark:hover:bg-white/5"
+                  >
                     Batch Optimize All
                   </DropdownMenuItem>
-                  <DropdownMenuItem className="rounded-lg cursor-pointer font-semibold text-sm py-2.5 text-[#1b254b] dark:text-white hover:bg-[#F4F7FE] dark:hover:bg-white/5">
+                  <DropdownMenuItem 
+                    onClick={() => handleToolAction("Cache Clearance")}
+                    className="rounded-lg cursor-pointer font-semibold text-sm py-2.5 text-[#1b254b] dark:text-white hover:bg-[#F4F7FE] dark:hover:bg-white/5"
+                  >
                     Clear Asset Cache
                   </DropdownMenuItem>
                   <DropdownMenuSeparator className="bg-gray-50 dark:bg-white/5" />
-                  <DropdownMenuItem className="rounded-lg cursor-pointer font-semibold text-sm py-2.5 text-[#4318FF] hover:bg-[#4318FF]/10">
+                  <DropdownMenuItem 
+                    onClick={() => handleToolAction("Performance Audit")}
+                    className="rounded-lg cursor-pointer font-semibold text-sm py-2.5 text-[#4318FF] hover:bg-[#4318FF]/10"
+                  >
                     Performance Audit
                   </DropdownMenuItem>
                 </DropdownMenuContent>
@@ -160,10 +292,15 @@ export function MediaLibraryTab() {
 
               <Button 
                 onClick={handleUploadClick}
-                className="bg-[#4318FF] hover:bg-[#3311db] text-white font-bold h-12 rounded-xl px-6 shadow-[0_4px_14px_0_rgba(67,24,255,0.39)] cursor-pointer"
+                disabled={isUploading}
+                className="bg-[#4318FF] hover:bg-[#3311db] text-white font-bold h-12 rounded-xl px-6 shadow-[0_4px_14px_0_rgba(67,24,255,0.39)] cursor-pointer disabled:opacity-70"
               >
-                <Upload className="mr-2 h-4 w-4" />
-                Upload
+                {isUploading ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                  <Upload className="mr-2 h-4 w-4" />
+                )}
+                {isUploading ? "Uploading..." : "Upload"}
               </Button>
             </div>
           </div>
@@ -172,9 +309,13 @@ export function MediaLibraryTab() {
             {filteredAssets.map((asset) => (
               <div key={asset.id} className="group cursor-pointer">
                 <div className="aspect-square bg-[#F4F7FE] dark:bg-white/5 rounded-2xl flex items-center justify-center border-2 border-transparent group-hover:border-[#4318FF]/20 group-hover:bg-[#4318FF]/5 transition-all overflow-hidden relative shadow-sm">
-                  <ImageIcon className="h-10 w-10 text-[#A3AED0] group-hover:scale-110 transition-transform opacity-40" />
+                  {asset.url ? (
+                    <img src={asset.url} alt={asset.name} className="w-full h-full object-cover transition-transform group-hover:scale-110" />
+                  ) : (
+                    <ImageIcon className="h-10 w-10 text-[#A3AED0] group-hover:scale-110 transition-transform opacity-40" />
+                  )}
                   <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <Badge className="bg-white/90 text-[10px] font-bold text-[#4318FF] shadow-sm">WEBP</Badge>
+                    <Badge className="bg-white/90 text-[10px] font-bold text-[#4318FF] shadow-sm uppercase">{asset.name.split('.').pop() || 'WEBP'}</Badge>
                   </div>
                 </div>
                 <div className="mt-3 px-1">

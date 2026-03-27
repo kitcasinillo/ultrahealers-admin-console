@@ -43,7 +43,7 @@ export function Payments() {
     const [timeRange, setTimeRange] = useState('month');
     const [isDropdownOpen, setIsDropdownOpen] = useState(false);
     const [activeTab, setActiveTab] = useState('revenue');
-    
+
     // Custom Date Range States
     const [dateFrom, setDateFrom] = useState('');
     const [dateTo, setDateTo] = useState('');
@@ -62,17 +62,11 @@ export function Payments() {
             {/* Header with Title and Tabs */}
             <div className="flex flex-col xl:flex-row xl:items-end justify-between gap-6 pt-4">
                 <div className="flex flex-col gap-2">
-                    <div className="flex">
-                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#4318FF]/10 text-[9px] font-black text-[#4318FF] uppercase tracking-wider">
-                            <Zap className="h-2.5 w-2.5 fill-[#4318FF]" />
-                            Platform Finance
-                        </span>
-                    </div>
                     <h2 className="text-4xl font-black tracking-[-0.03em] text-[#1b254b] dark:text-white uppercase leading-none">
                         Payments Center
                     </h2>
                 </div>
-                
+
                 <div className="flex items-center bg-white dark:bg-white/5 p-1.5 rounded-full border border-[#E9EDF7] dark:border-white/10 shadow-sm">
                     {[
                         { id: 'revenue', label: 'REVENUE OVERVIEW' },
@@ -82,11 +76,10 @@ export function Payments() {
                         <button
                             key={tab.id}
                             onClick={() => setActiveTab(tab.id)}
-                            className={`px-6 py-3.5 rounded-full text-[10px] font-black transition-all duration-300 ${
-                                activeTab === tab.id
-                                    ? "bg-white dark:bg-[#111C44] text-[#4318FF] shadow-[0_4px_12px_rgba(0,0,0,0.08)] scale-[1.02]"
-                                    : "text-[#A3AED0] hover:text-[#1b254b] dark:hover:text-white"
-                            }`}
+                            className={`px-6 py-3.5 rounded-full text-[10px] font-black transition-all duration-300 ${activeTab === tab.id
+                                ? "bg-white dark:bg-[#111C44] text-[#4318FF] shadow-[0_4px_12px_rgba(0,0,0,0.08)] scale-[1.02]"
+                                : "text-[#A3AED0] hover:text-[#1b254b] dark:hover:text-white"
+                                }`}
                         >
                             {tab.label}
                         </button>
@@ -102,7 +95,7 @@ export function Payments() {
                     </h4>
                 </div>
                 <div className="relative">
-                    <button 
+                    <button
                         onClick={(e) => {
                             e.stopPropagation();
                             setIsDropdownOpen(!isDropdownOpen);
@@ -115,7 +108,7 @@ export function Payments() {
                     </button>
 
                     {isDropdownOpen && (
-                        <div 
+                        <div
                             className="absolute right-0 mt-3 w-72 bg-white dark:bg-[#1b254b] rounded-[30px] shadow-[0_20px_40px_rgba(11,20,55,0.12)] border border-[#E9EDF7] dark:border-white/5 p-4 z-50 animate-in fade-in slide-in-from-top-3 duration-300"
                             onClick={(e) => e.stopPropagation()} // Prevent closure when clicking inside the dropdown
                         >
@@ -127,11 +120,10 @@ export function Payments() {
                                             setTimeRange(range.id);
                                             if (range.id !== 'custom') setIsDropdownOpen(false);
                                         }}
-                                        className={`w-full text-left px-5 py-3 rounded-2xl text-xs font-black transition-all duration-200 ${
-                                            timeRange === range.id 
-                                                ? "text-[#4318FF] bg-[#F4F7FE] dark:bg-white/5 shadow-sm" 
-                                                : "text-[#A3AED0] hover:text-[#1b254b] dark:hover:text-white hover:bg-[#F4F7FE] dark:hover:bg-white/5"
-                                        }`}
+                                        className={`w-full text-left px-5 py-3 rounded-2xl text-xs font-black transition-all duration-200 ${timeRange === range.id
+                                            ? "text-[#4318FF] bg-[#F4F7FE] dark:bg-white/5 shadow-sm"
+                                            : "text-[#A3AED0] hover:text-[#1b254b] dark:hover:text-white hover:bg-[#F4F7FE] dark:hover:bg-white/5"
+                                            }`}
                                     >
                                         {range.label}
                                     </button>
@@ -143,8 +135,8 @@ export function Payments() {
                                 <div className="mt-4 pt-4 border-t border-[#E9EDF7] dark:border-white/5 space-y-4 animate-in slide-in-from-top-2">
                                     <div className="space-y-1.5">
                                         <label className="text-[10px] font-black text-[#A3AED0] uppercase tracking-wider ml-1">From</label>
-                                        <input 
-                                            type="date" 
+                                        <input
+                                            type="date"
                                             value={dateFrom}
                                             onChange={(e) => setDateFrom(e.target.value)}
                                             className="w-full bg-[#F4F7FE] dark:bg-white/5 border-none rounded-xl px-4 py-2.5 text-xs font-black text-[#1b254b] dark:text-white focus:ring-2 focus:ring-[#4318FF]/20 cursor-pointer"
@@ -152,14 +144,14 @@ export function Payments() {
                                     </div>
                                     <div className="space-y-1.5">
                                         <label className="text-[10px] font-black text-[#A3AED0] uppercase tracking-wider ml-1">To</label>
-                                        <input 
-                                            type="date" 
+                                        <input
+                                            type="date"
                                             value={dateTo}
                                             onChange={(e) => setDateTo(e.target.value)}
                                             className="w-full bg-[#F4F7FE] dark:bg-white/5 border-none rounded-xl px-4 py-2.5 text-xs font-black text-[#1b254b] dark:text-white focus:ring-2 focus:ring-[#4318FF]/20 cursor-pointer"
                                         />
                                     </div>
-                                    <button 
+                                    <button
                                         onClick={() => setIsDropdownOpen(false)}
                                         className="w-full bg-[#4318FF] text-white py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-lg shadow-[#4318FF]/20 hover:scale-[1.02] active:scale-95 transition-all"
                                     >
@@ -331,11 +323,11 @@ export function Payments() {
                                     </span>
                                 </div>
                                 <div className="h-1.5 w-full bg-[#F4F7FE] dark:bg-white/5 rounded-full overflow-hidden">
-                                    <div 
+                                    <div
                                         className="h-full rounded-full transition-all duration-1000"
-                                        style={{ 
+                                        style={{
                                             width: `${item.value}%`,
-                                            backgroundColor: item.color 
+                                            backgroundColor: item.color
                                         }}
                                     />
                                 </div>

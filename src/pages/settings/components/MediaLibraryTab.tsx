@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { 
   Folder, 
   Image as ImageIcon, 
@@ -34,6 +34,8 @@ export function MediaLibraryTab() {
   const [isUploading, setIsUploading] = useState(false);
   const [assetToDelete, setAssetToDelete] = useState<{ id: number, name: string } | null>(null);
 
+  const [isLoading, setIsLoading] = useState(true);
+
   const [assets, setAssets] = useState<{
     id: number;
     name: string;
@@ -42,16 +44,15 @@ export function MediaLibraryTab() {
     folder: "icons" | "brand" | "all";
     tags: string[];
     url?: string;
-  }[]>([
-    { id: 1, name: "retreat_hero_01.webp", size: "842 KB", dims: "1920x1080", folder: "all", tags: ["Hero", "App"] },
-    { id: 2, name: "spa_treatment_interior.webp", size: "1.2 MB", dims: "2400x1600", folder: "brand", tags: ["Brand", "Hero"] },
-    { id: 3, name: "yoga_mat_closeup.webp", size: "450 KB", dims: "1080x1080", folder: "all", tags: ["App", "Icons"] },
-    { id: 4, name: "forest_landscape.webp", size: "2.1 MB", dims: "3840x2160", folder: "all", tags: ["Hero"] },
-    { id: 5, name: "crystal_healing_set.webp", size: "670 KB", dims: "1200x1200", folder: "all", tags: ["Icons", "Brand"] },
-    { id: 6, name: "arrow-right.svg", size: "2 KB", dims: "24x24", folder: "icons", tags: ["SVG", "Icons"] },
-    { id: 7, name: "logo-transparent.png", size: "45 KB", dims: "512x512", folder: "brand", tags: ["Brand", "PNG"] },
-    { id: 8, name: "user-profile-default.png", size: "12 KB", dims: "128x128", folder: "icons", tags: ["Icons", "PNG"] },
-  ]);
+  }[]>([]);
+
+  useEffect(() => {
+    // Simulate initial data fetching
+    const timer = setTimeout(() => {
+      setIsLoading(false);
+    }, 1500);
+    return () => clearTimeout(timer);
+  }, []);
 
   const filteredAssets = assets.filter(asset => {
     const matchesSearch = asset.name.toLowerCase().includes(searchQuery.toLowerCase());
@@ -95,15 +96,30 @@ export function MediaLibraryTab() {
 
       // Simulate upload delay
       setTimeout(() => {
-        const newAssets = Array.from(files).map((file, index) => ({
-          id: Date.now() + index,
-          name: file.name,
-          size: `${(file.size / 1024).toFixed(1)} KB`,
-          dims: "Original",
-          folder: activeFolder as any,
-          tags: activeTag ? [activeTag] : ["App"],
-          url: URL.createObjectURL(file)
-        }));
+        const newAssets = Array.from(files).map((file, index) => {
+          const fileExt = file.name.split('.').pop()?.toUpperCase() || '';
+          const assignedTags = activeTag ? [activeTag] : [];
+          
+          // Automatically add the file extension to the tags if it's a known format
+          if (['PNG', 'SVG', 'WEBP', 'JPG', 'JPEG'].includes(fileExt) && !assignedTags.includes(fileExt)) {
+            assignedTags.push(fileExt === 'JPEG' ? 'JPG' : fileExt);
+          }
+          
+          // Fallback to 'App' only if no tags were assigned
+          if (assignedTags.length === 0) {
+            assignedTags.push("App");
+          }
+
+          return {
+            id: Date.now() + index,
+            name: file.name,
+            size: `${(file.size / 1024).toFixed(1)} KB`,
+            dims: "Original",
+            folder: activeFolder as any,
+            tags: assignedTags,
+            url: URL.createObjectURL(file)
+          };
+        });
 
         setAssets(prev => [...newAssets, ...prev]);
         setIsUploading(false);
@@ -320,36 +336,58 @@ export function MediaLibraryTab() {
           </div>
 
           <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-5 gap-5">
-            {filteredAssets.map((asset) => (
-              <div key={asset.id} className="group cursor-pointer">
-                <div className="aspect-square bg-[#F4F7FE] dark:bg-white/5 rounded-2xl flex items-center justify-center border-2 border-transparent group-hover:border-[#4318FF]/20 group-hover:bg-[#4318FF]/5 transition-all overflow-hidden relative shadow-sm">
-                  {asset.url ? (
-                    <img src={asset.url} alt={asset.name} className="w-full h-full object-cover transition-transform group-hover:scale-110" />
-                  ) : (
-                    <ImageIcon className="h-10 w-10 text-[#A3AED0] group-hover:scale-110 transition-transform opacity-40" />
-                  )}
-                  <div className="absolute top-2 left-2 opacity-0 group-hover:opacity-100 transition-opacity z-10">
-                    <button 
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setAssetToDelete({ id: asset.id, name: asset.name });
-                      }}
-                      className="bg-red-500/90 hover:bg-red-600 text-white p-1.5 rounded-lg shadow-sm backdrop-blur-sm transition-all cursor-pointer hover:scale-110"
-                      title="Delete asset"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </button>
-                  </div>
-                  <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity z-10">
-                    <Badge className="bg-white/90 text-[10px] font-bold text-[#4318FF] shadow-sm uppercase">{asset.name.split('.').pop() || 'WEBP'}</Badge>
+            {isLoading ? (
+              Array.from({ length: 5 }).map((_, i) => (
+                <div key={i} className="group">
+                  <div className="aspect-square bg-[#F4F7FE] dark:bg-white/5 rounded-2xl animate-pulse shadow-sm" />
+                  <div className="mt-3 px-1 space-y-2">
+                    <div className="h-3 bg-[#F4F7FE] dark:bg-white/5 animate-pulse rounded w-3/4"></div>
+                    <div className="h-2 bg-[#F4F7FE] dark:bg-white/5 animate-pulse rounded w-1/2"></div>
                   </div>
                 </div>
-                <div className="mt-3 px-1">
-                  <p className="text-xs font-bold text-[#1b254b] dark:text-white truncate">{asset.name}</p>
-                  <p className="text-[10px] font-bold text-[#A3AED0] mt-0.5">{asset.size} • {asset.dims}</p>
+              ))
+            ) : filteredAssets.length > 0 ? (
+              filteredAssets.map((asset) => (
+                <div key={asset.id} className="group cursor-pointer">
+                  <div className="aspect-square bg-[#F4F7FE] dark:bg-white/5 rounded-2xl flex items-center justify-center border-2 border-transparent group-hover:border-[#4318FF]/20 group-hover:bg-[#4318FF]/5 transition-all overflow-hidden relative shadow-sm">
+                    {asset.url ? (
+                      <img src={asset.url} alt={asset.name} className="w-full h-full object-cover transition-transform group-hover:scale-110" />
+                    ) : (
+                      <ImageIcon className="h-10 w-10 text-[#A3AED0] group-hover:scale-110 transition-transform opacity-40" />
+                    )}
+                    <div className="absolute top-2 left-2 opacity-0 group-hover:opacity-100 transition-opacity z-10">
+                      <button 
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setAssetToDelete({ id: asset.id, name: asset.name });
+                        }}
+                        className="bg-red-500/90 hover:bg-red-600 text-white p-1.5 rounded-lg shadow-sm backdrop-blur-sm transition-all cursor-pointer hover:scale-110"
+                        title="Delete asset"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </div>
+                    <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity z-10 flex flex-col gap-1 items-end">
+                      {asset.tags?.map((tag, idx) => (
+                        <Badge key={idx} className="bg-white/90 text-[10px] font-bold text-[#4318FF] shadow-sm uppercase">
+                          {tag}
+                        </Badge>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="mt-3 px-1">
+                    <p className="text-xs font-bold text-[#1b254b] dark:text-white truncate">{asset.name}</p>
+                    <p className="text-[10px] font-bold text-[#A3AED0] mt-0.5">{asset.size} • {asset.dims}</p>
+                  </div>
                 </div>
+              ))
+            ) : (
+              <div className="col-span-full py-16 flex flex-col items-center justify-center text-[#A3AED0]">
+                <FileImage className="h-12 w-12 mb-4 opacity-20" />
+                <p className="font-bold text-[#1b254b] dark:text-white text-base">No assets found</p>
+                <p className="text-sm mt-1">Upload files to populate your media library</p>
               </div>
-            ))}
+            )}
           </div>
         </div>
 

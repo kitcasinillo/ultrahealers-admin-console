@@ -221,109 +221,72 @@ export const exportCampaignPdf = (payload: CampaignExportPayload) => {
   doc.text(`Generated on: ${new Date().toLocaleString()}`, 14, 28);
 
   import('jspdf-autotable').then(({ default: autoTable }) => {
-    // 1. Key Performance Metrics
-    doc.setFontSize(14);
-    doc.setTextColor(27, 37, 75);
-    doc.text("1. Key Performance Metrics", 14, 40);
+    let currentY = 40;
+    let sectionIdx = 1;
 
-    autoTable(doc, {
-      startY: 45,
-      head: [['Metric', 'Value', 'Details']],
-      body: kpiData.map(kpi => [kpi.title, kpi.value, kpi.description]),
-      theme: 'grid',
-      headStyles: { fillColor: [67, 24, 255] },
-      styles: { fontSize: 9 }
-    });
-
-    let currentY = (doc as any).lastAutoTable.finalY + 15;
-
-    if (currentY > doc.internal.pageSize.getHeight() - 40) {
-      doc.addPage();
-      currentY = 20;
+    if (kpiData && kpiData.length > 0) {
+      if (currentY > doc.internal.pageSize.getHeight() - 40) { doc.addPage(); currentY = 20; }
+      doc.setFontSize(14); doc.setTextColor(27, 37, 75);
+      doc.text(`${sectionIdx++}. Key Performance Metrics`, 14, currentY);
+      autoTable(doc, {
+        startY: currentY + 5,
+        head: [['Metric', 'Value', 'Details']],
+        body: kpiData.map(kpi => [kpi.title, kpi.value, kpi.description]),
+        theme: 'grid', headStyles: { fillColor: [67, 24, 255] }, styles: { fontSize: 9 }
+      });
+      currentY = (doc as any).lastAutoTable.finalY + 15;
     }
 
-    // 2. Campaign Summary
-    doc.setFontSize(14);
-    doc.setTextColor(27, 37, 75);
-    doc.text("2. Campaign Summary", 14, currentY);
-
-    autoTable(doc, {
-      startY: currentY + 5,
-      head: [['Campaign Name', 'Sent', 'Open Rate', 'CTR', 'Bounce Rate', 'Status']],
-      body: summaryData.map(c => [
-        c.name, c.sent.toLocaleString(), `${c.openRate}%`, `${c.ctr}%`, `${c.bounceRate}%`, c.status
-      ]),
-      theme: 'striped',
-      headStyles: { fillColor: [67, 24, 255] },
-      styles: { fontSize: 9 }
-    });
-
-    currentY = (doc as any).lastAutoTable.finalY + 15;
-
-    if (currentY > doc.internal.pageSize.getHeight() - 40) {
-      doc.addPage();
-      currentY = 20;
+    if (summaryData && summaryData.length > 0) {
+      if (currentY > doc.internal.pageSize.getHeight() - 40) { doc.addPage(); currentY = 20; }
+      doc.setFontSize(14); doc.setTextColor(27, 37, 75);
+      doc.text(`${sectionIdx++}. Campaign Summary`, 14, currentY);
+      autoTable(doc, {
+        startY: currentY + 5,
+        head: [['Campaign Name', 'Sent', 'Open Rate', 'CTR', 'Bounce Rate', 'Status']],
+        body: summaryData.map(c => [c.name, c.sent.toLocaleString(), `${c.openRate}%`, `${c.ctr}%`, `${c.bounceRate}%`, c.status]),
+        theme: 'striped', headStyles: { fillColor: [67, 24, 255] }, styles: { fontSize: 9 }
+      });
+      currentY = (doc as any).lastAutoTable.finalY + 15;
     }
 
-    // 3. Reach & Deliverability
-    doc.setFontSize(14);
-    doc.setTextColor(27, 37, 75);
-    doc.text("3. Reach & Deliverability", 14, currentY);
-
-    autoTable(doc, {
-      startY: currentY + 5,
-      head: [['Period', 'Sent', 'Delivered', 'Delivery Rate']],
-      body: reachData.map(r => [
-        r.name, r.sent.toLocaleString(), r.delivered.toLocaleString(), `${((r.delivered / r.sent) * 100).toFixed(1)}%`
-      ]),
-      theme: 'striped',
-      headStyles: { fillColor: [67, 24, 255] },
-      styles: { fontSize: 9 }
-    });
-
-    currentY = (doc as any).lastAutoTable.finalY + 15;
-
-    if (currentY > doc.internal.pageSize.getHeight() - 40) {
-      doc.addPage();
-      currentY = 20;
+    if (reachData && reachData.length > 0) {
+      if (currentY > doc.internal.pageSize.getHeight() - 40) { doc.addPage(); currentY = 20; }
+      doc.setFontSize(14); doc.setTextColor(27, 37, 75);
+      doc.text(`${sectionIdx++}. Reach & Deliverability`, 14, currentY);
+      autoTable(doc, {
+        startY: currentY + 5,
+        head: [['Period', 'Sent', 'Delivered', 'Delivery Rate']],
+        body: reachData.map(r => [r.name, r.sent.toLocaleString(), r.delivered.toLocaleString(), `${((r.delivered / r.sent) * 100).toFixed(1)}%`]),
+        theme: 'striped', headStyles: { fillColor: [67, 24, 255] }, styles: { fontSize: 9 }
+      });
+      currentY = (doc as any).lastAutoTable.finalY + 15;
     }
 
-    // 4. Unsubscribe Rate Trend
-    doc.setFontSize(14);
-    doc.text("4. Unsubscribe Rate Trend", 14, currentY);
-
-    autoTable(doc, {
-      startY: currentY + 5,
-      head: [['Period', 'Unsubscribe Rate (%)']],
-      body: unsubscribeTrend.map(u => [
-        u.name, `${u.rate}%`
-      ]),
-      theme: 'striped',
-      headStyles: { fillColor: [255, 91, 91] },
-      styles: { fontSize: 9 }
-    });
-
-    currentY = (doc as any).lastAutoTable.finalY + 15;
-
-    if (currentY > doc.internal.pageSize.getHeight() - 40) {
-      doc.addPage();
-      currentY = 20;
+    if (unsubscribeTrend && unsubscribeTrend.length > 0) {
+      if (currentY > doc.internal.pageSize.getHeight() - 40) { doc.addPage(); currentY = 20; }
+      doc.setFontSize(14); doc.setTextColor(27, 37, 75);
+      doc.text(`${sectionIdx++}. Unsubscribe Rate Trend`, 14, currentY);
+      autoTable(doc, {
+        startY: currentY + 5,
+        head: [['Period', 'Unsubscribe Rate (%)']],
+        body: unsubscribeTrend.map(u => [u.name, `${u.rate}%`]),
+        theme: 'striped', headStyles: { fillColor: [255, 91, 91] }, styles: { fontSize: 9 }
+      });
+      currentY = (doc as any).lastAutoTable.finalY + 15;
     }
 
-    // 5. Audience Segment Performance
-    doc.setFontSize(14);
-    doc.text("5. Audience Segment Performance", 14, currentY);
-
-    autoTable(doc, {
-      startY: currentY + 5,
-      head: [['Segment', 'Engagement (%)']],
-      body: segmentPerformance.map(s => [
-        s.name, `${s.value}%`
-      ]),
-      theme: 'striped',
-      headStyles: { fillColor: [67, 24, 255] },
-      styles: { fontSize: 9 }
-    });
+    if (segmentPerformance && segmentPerformance.length > 0) {
+      if (currentY > doc.internal.pageSize.getHeight() - 40) { doc.addPage(); currentY = 20; }
+      doc.setFontSize(14); doc.setTextColor(27, 37, 75);
+      doc.text(`${sectionIdx++}. Audience Segment Performance`, 14, currentY);
+      autoTable(doc, {
+        startY: currentY + 5,
+        head: [['Segment', 'Engagement (%)']],
+        body: segmentPerformance.map(s => [s.name, `${s.value}%`]),
+        theme: 'striped', headStyles: { fillColor: [67, 24, 255] }, styles: { fontSize: 9 }
+      });
+    }
 
     doc.save(`Campaign_Report_${new Date().getTime()}.pdf`);
   });
@@ -333,52 +296,30 @@ export const exportCampaignExcel = (payload: CampaignExportPayload) => {
   const { kpiData, summaryData, reachData, unsubscribeTrend, segmentPerformance } = payload;
   const wb = XLSX.utils.book_new();
 
-  // Sheet 1: Key Performance Metrics
-  const formattedKPIs = kpiData.map(kpi => ({
-    'Metric': kpi.title,
-    'Value': kpi.value,
-    'Details': kpi.description
-  }));
-  const ws0 = XLSX.utils.json_to_sheet(formattedKPIs);
-  XLSX.utils.book_append_sheet(wb, ws0, "Key Metrics");
+  if (kpiData && kpiData.length > 0) {
+    const ws0 = XLSX.utils.json_to_sheet(kpiData.map(kpi => ({ 'Metric': kpi.title, 'Value': kpi.value, 'Details': kpi.description })));
+    XLSX.utils.book_append_sheet(wb, ws0, "Key Metrics");
+  }
 
-  // Sheet 1: Campaign Summary
-  const formattedSummary = summaryData.map(c => ({
-    'Campaign Name': c.name,
-    'Sent': c.sent,
-    'Open Rate (%)': c.openRate,
-    'CTR (%)': c.ctr,
-    'Bounce Rate (%)': c.bounceRate,
-    'Status': c.status
-  }));
-  const ws1 = XLSX.utils.json_to_sheet(formattedSummary);
-  XLSX.utils.book_append_sheet(wb, ws1, "Campaign Summary");
+  if (summaryData && summaryData.length > 0) {
+    const ws1 = XLSX.utils.json_to_sheet(summaryData.map(c => ({ 'Campaign Name': c.name, 'Sent': c.sent, 'Open Rate (%)': c.openRate, 'CTR (%)': c.ctr, 'Bounce Rate (%)': c.bounceRate, 'Status': c.status })));
+    XLSX.utils.book_append_sheet(wb, ws1, "Campaign Summary");
+  }
 
-  // Sheet 2: Reach & Deliverability
-  const formattedReach = reachData.map(r => ({
-    'Period': r.name,
-    'Sent': r.sent,
-    'Delivered': r.delivered,
-    'Delivery Rate (%)': Number(((r.delivered / r.sent) * 100).toFixed(1))
-  }));
-  const ws2 = XLSX.utils.json_to_sheet(formattedReach);
-  XLSX.utils.book_append_sheet(wb, ws2, "Reach & Deliverability");
+  if (reachData && reachData.length > 0) {
+    const ws2 = XLSX.utils.json_to_sheet(reachData.map(r => ({ 'Period': r.name, 'Sent': r.sent, 'Delivered': r.delivered, 'Delivery Rate (%)': Number(((r.delivered / r.sent) * 100).toFixed(1)) })));
+    XLSX.utils.book_append_sheet(wb, ws2, "Reach & Deliverability");
+  }
 
-  // Sheet 3: Unsubscribe Rate Trend
-  const formattedUnsub = unsubscribeTrend.map(u => ({
-    'Period': u.name,
-    'Unsubscribe Rate (%)': u.rate
-  }));
-  const ws3 = XLSX.utils.json_to_sheet(formattedUnsub);
-  XLSX.utils.book_append_sheet(wb, ws3, "Unsubscribe Trend");
+  if (unsubscribeTrend && unsubscribeTrend.length > 0) {
+    const ws3 = XLSX.utils.json_to_sheet(unsubscribeTrend.map(u => ({ 'Period': u.name, 'Unsubscribe Rate (%)': u.rate })));
+    XLSX.utils.book_append_sheet(wb, ws3, "Unsubscribe Trend");
+  }
 
-  // Sheet 4: Audience Segment Performance
-  const formattedSegments = segmentPerformance.map(s => ({
-    'Segment': s.name,
-    'Engagement (%)': s.value
-  }));
-  const ws4 = XLSX.utils.json_to_sheet(formattedSegments);
-  XLSX.utils.book_append_sheet(wb, ws4, "Segment Performance");
+  if (segmentPerformance && segmentPerformance.length > 0) {
+    const ws4 = XLSX.utils.json_to_sheet(segmentPerformance.map(s => ({ 'Segment': s.name, 'Engagement (%)': s.value })));
+    XLSX.utils.book_append_sheet(wb, ws4, "Segment Performance");
+  }
 
   XLSX.writeFile(wb, `Campaign_Report_${new Date().getTime()}.xlsx`);
 };

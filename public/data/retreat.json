@@ -1,0 +1,50 @@
+[
+    {
+        "id": "R-001",
+        "title": "Zen Wellness Retreat",
+        "location": "Ubud, Bali",
+        "startDate": "2024-06-01",
+        "endDate": "2024-06-07",
+        "price": 1500,
+        "currency": "USD",
+        "imageUrl": "https://images.unsplash.com/photo-1545389336-cf09bd699b05?q=80&w=800&auto=format&fit=crop",
+        "hostName": "John Doe",
+        "hostId": "H-001",
+        "status": "active",
+        "bookedSpots": 12,
+        "capacity": 20,
+        "revenue": 18000
+    },
+    {
+        "id": "R-002",
+        "title": "Mountain Yoga Escape",
+        "location": "Rishikesh, India",
+        "startDate": "2024-07-15",
+        "endDate": "2024-07-22",
+        "price": 800,
+        "currency": "USD",
+        "imageUrl": "https://images.unsplash.com/photo-1506126613408-eca07968f171?q=80&w=800&auto=format&fit=crop",
+        "hostName": "Jane Smith",
+        "hostId": "H-002",
+        "status": "inactive",
+        "bookedSpots": 0,
+        "capacity": 15,
+        "revenue": 0
+    },
+    {
+        "id": "R-003",
+        "title": "Desert Silence Meditation",
+        "location": "Sedona, USA",
+        "startDate": "2024-08-10",
+        "endDate": "2024-08-15",
+        "price": 2500,
+        "currency": "USD",
+        "imageUrl": "https://images.unsplash.com/photo-1509043759401-136742328bb3?q=80&w=800&auto=format&fit=crop",
+        "hostName": "Master Oogway",
+        "hostId": "H-003",
+        "status": "full",
+        "bookedSpots": 10,
+        "capacity": 10,
+        "revenue": 25000
+    }
+]

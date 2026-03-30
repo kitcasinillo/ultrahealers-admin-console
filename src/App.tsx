@@ -8,12 +8,19 @@ import { Seekers } from "./pages/users/Seekers";
 import { SeekerDetail } from "./pages/users/SeekerDetail";
 import { Listings } from "./pages/listings/Listings";
 import { ListingDetail } from "./pages/listings/ListingDetail";
+import RetreatsPage from "./pages/retreats/RetreatsPage";
+import RetreatDetail from "./pages/retreats/RetreatDetail";
+import DisputesPage from "./pages/disputes/DisputesPage";
+import DisputeDetailPage from './pages/disputes/DisputeDetailPage';
+// import ModalitiesPage from './pages/modalities';
+// import PayoutsPage from './pages/payouts/index';
 import { AdminAuthProvider } from "./contexts/AdminAuthContext";
-import { AdminGuard } from "./components/AdminGuard";
+import { ToastProvider } from "./contexts/ToastContext";
 
 function App() {
   return (
-    <AdminAuthProvider>
+    <ToastProvider>
+      <AdminAuthProvider>
       <BrowserRouter>
         <Routes>
           <Route path="/login" element={<Login />} />
@@ -32,12 +39,17 @@ function App() {
 
             <Route path="listings" element={<Listings />} />
             <Route path="listings/:id" element={<ListingDetail />} />
-            <Route path="retreats" element={<div>Retreats</div>} />
+            <Route path="retreats" element={<RetreatsPage />} />
+            <Route path="retreats/:id" element={<RetreatDetail />} />
+
 
             <Route path="bookings/sessions" element={<div>Session Bookings</div>} />
             <Route path="bookings/retreats" element={<div>Retreat Bookings</div>} />
 
-            <Route path="disputes" element={<div>Disputes</div>} />
+            {/* Disputes */}
+            <Route path="disputes" element={<DisputesPage />} />
+            <Route path="disputes/:id" element={<DisputeDetailPage />} />
+
             <Route path="finance" element={<div>Finance</div>} />
             <Route path="campaigns" element={<div>Campaigns</div>} />
             <Route path="reports" element={<div>Reports</div>} />
@@ -51,7 +63,8 @@ function App() {
           <Route path="*" element={<Navigate to="/dashboard" replace />} />
         </Routes>
       </BrowserRouter>
-    </AdminAuthProvider>
+      </AdminAuthProvider>
+    </ToastProvider>
   );
 }
 

@@ -89,14 +89,14 @@ export function DataTable<TData, TValue>({
             </div>
             <div className="flex items-center justify-end space-x-2 py-4">
                 <button
-                    className="flex items-center bg-[#F4F7FE] dark:bg-white/5 hover:bg-[#E2E8F0] dark:hover:bg-white/10 text-[#4318FF] dark:text-white font-bold py-2 px-4 rounded-xl transition-all text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="flex items-center bg-[#F4F7FE] dark:bg-white/5 hover:bg-[#E2E8F0] dark:hover:bg-white/10 text-[#4318FF] dark:text-white font-bold py-2.5 px-6 rounded-full transition-all text-sm disabled:opacity-50 disabled:cursor-not-allowed"
                     onClick={() => table.previousPage()}
                     disabled={!table.getCanPreviousPage()}
                 >
                     Previous
                 </button>
                 <button
-                    className="flex items-center bg-[#F4F7FE] dark:bg-white/5 hover:bg-[#E2E8F0] dark:hover:bg-white/10 text-[#4318FF] dark:text-white font-bold py-2 px-4 rounded-xl transition-all text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="flex items-center bg-[#F4F7FE] dark:bg-white/5 hover:bg-[#E2E8F0] dark:hover:bg-white/10 text-[#4318FF] dark:text-white font-bold py-2.5 px-6 rounded-full transition-all text-sm disabled:opacity-50 disabled:cursor-not-allowed"
                     onClick={() => table.nextPage()}
                     disabled={!table.getCanNextPage()}
                 >

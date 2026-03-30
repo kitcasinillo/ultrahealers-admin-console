@@ -201,6 +201,7 @@ export const exportFinancialExcel = (bookings: any[], premium: any[]) => {
  */
 
 export interface CampaignExportPayload {
+  kpiData: Array<{ title: string; value: string; description: string }>;
   summaryData: any[];
   reachData: any[];
   unsubscribeTrend: any[];
@@ -208,7 +209,7 @@ export interface CampaignExportPayload {
 }
 
 export const exportCampaignPdf = (payload: CampaignExportPayload) => {
-  const { summaryData, reachData, unsubscribeTrend, segmentPerformance } = payload;
+  const { kpiData, summaryData, reachData, unsubscribeTrend, segmentPerformance } = payload;
   const doc = new jsPDF('l', 'mm', 'a4');
 
   doc.setFontSize(22);
@@ -219,13 +220,30 @@ export const exportCampaignPdf = (payload: CampaignExportPayload) => {
   doc.setTextColor(163, 174, 208);
   doc.text(`Generated on: ${new Date().toLocaleString()}`, 14, 28);
 
-  doc.setFontSize(14);
-  doc.setTextColor(27, 37, 75);
-  doc.text("1. Campaign Summary", 14, 40);
-
   import('jspdf-autotable').then(({ default: autoTable }) => {
+    // 1. Key Performance Metrics
+    doc.setFontSize(14);
+    doc.setTextColor(27, 37, 75);
+    doc.text("1. Key Performance Metrics", 14, 40);
+
     autoTable(doc, {
       startY: 45,
+      head: [['Metric', 'Value', 'Details']],
+      body: kpiData.map(kpi => [kpi.title, kpi.value, kpi.description]),
+      theme: 'grid',
+      headStyles: { fillColor: [67, 24, 255] },
+      styles: { fontSize: 9 }
+    });
+
+    let currentY = (doc as any).lastAutoTable.finalY + 15;
+
+    // 2. Campaign Summary
+    doc.setFontSize(14);
+    doc.setTextColor(27, 37, 75);
+    doc.text("2. Campaign Summary", 14, currentY);
+
+    autoTable(doc, {
+      startY: currentY + 5,
       head: [['Campaign Name', 'Sent', 'Open Rate', 'CTR', 'Bounce Rate', 'Status']],
       body: summaryData.map(c => [
         c.name, c.sent.toLocaleString(), `${c.openRate}%`, `${c.ctr}%`, `${c.bounceRate}%`, c.status
@@ -235,12 +253,12 @@ export const exportCampaignPdf = (payload: CampaignExportPayload) => {
       styles: { fontSize: 9 }
     });
 
-    let currentY = (doc as any).lastAutoTable.finalY + 15;
+    currentY = (doc as any).lastAutoTable.finalY + 15;
 
-    // 2. Reach & Deliverability
+    // 3. Reach & Deliverability
     doc.setFontSize(14);
     doc.setTextColor(27, 37, 75);
-    doc.text("2. Reach & Deliverability", 14, currentY);
+    doc.text("3. Reach & Deliverability", 14, currentY);
 
     autoTable(doc, {
       startY: currentY + 5,
@@ -255,9 +273,9 @@ export const exportCampaignPdf = (payload: CampaignExportPayload) => {
 
     currentY = (doc as any).lastAutoTable.finalY + 15;
 
-    // 3. Unsubscribe Rate Trend
+    // 4. Unsubscribe Rate Trend
     doc.setFontSize(14);
-    doc.text("3. Unsubscribe Rate Trend", 14, currentY);
+    doc.text("4. Unsubscribe Rate Trend", 14, currentY);
 
     autoTable(doc, {
       startY: currentY + 5,
@@ -278,9 +296,9 @@ export const exportCampaignPdf = (payload: CampaignExportPayload) => {
       currentY = 22;
     }
 
-    // 4. Audience Segment Performance
+    // 5. Audience Segment Performance
     doc.setFontSize(14);
-    doc.text("4. Audience Segment Performance", 14, currentY);
+    doc.text("5. Audience Segment Performance", 14, currentY);
 
     autoTable(doc, {
       startY: currentY + 5,
@@ -298,8 +316,17 @@ export const exportCampaignPdf = (payload: CampaignExportPayload) => {
 };
 
 export const exportCampaignExcel = (payload: CampaignExportPayload) => {
-  const { summaryData, reachData, unsubscribeTrend, segmentPerformance } = payload;
+  const { kpiData, summaryData, reachData, unsubscribeTrend, segmentPerformance } = payload;
   const wb = XLSX.utils.book_new();
+
+  // Sheet 1: Key Performance Metrics
+  const formattedKPIs = kpiData.map(kpi => ({
+    'Metric': kpi.title,
+    'Value': kpi.value,
+    'Details': kpi.description
+  }));
+  const ws0 = XLSX.utils.json_to_sheet(formattedKPIs);
+  XLSX.utils.book_append_sheet(wb, ws0, "Key Metrics");
 
   // Sheet 1: Campaign Summary
   const formattedSummary = summaryData.map(c => ({

@@ -54,6 +54,13 @@ const reachData = [
   { name: "Mar", sent: 61000, delivered: 60500 },
 ];
 
+const kpiData = [
+  { title: "Best-performing campaign by open rate", value: "48.2%", description: "Welcome Series #1" },
+  { title: "Avg. CTR (Clicks)", value: "5.25%", description: "+1.2% from last month" },
+  { title: "Total Transmitted", value: "49,500", description: "Across 5 active campaigns" },
+  { title: "Deliverability Score", value: "98.2%", description: "-0.05% fluctuation" },
+];
+
 // --- Column Definitions ---
 
 const columns: ColumnDef<any>[] = [
@@ -111,8 +118,8 @@ export function CampaignReport() {
             setCustomEndDate={setCustomEndDate}
           />
           <ExportDropdown
-            onExportExcel={() => exportCampaignExcel({ summaryData, reachData, unsubscribeTrend, segmentPerformance })}
-            onExportPdf={() => exportCampaignPdf({ summaryData, reachData, unsubscribeTrend, segmentPerformance })}
+            onExportExcel={() => exportCampaignExcel({ kpiData, summaryData, reachData, unsubscribeTrend, segmentPerformance })}
+            onExportPdf={() => exportCampaignPdf({ kpiData, summaryData, reachData, unsubscribeTrend, segmentPerformance })}
           />
         </div>
       </div>

@@ -8,7 +8,8 @@ import {
   Upload, 
   Check, 
   RefreshCw,
-  Loader2
+  Loader2,
+  Trash2
 } from "lucide-react";
 import { Badge } from "../../../components/ui/badge";
 import { Button } from "../../../components/ui/button";
@@ -23,6 +24,7 @@ import {
 } from "../../../components/ui/dropdown-menu";
 import { cn } from "../../../lib/utils";
 import { useToast } from "../../../components/ui/toaster";
+import { ConfirmModal } from "../../../components/modals/ConfirmModal";
 
 export function MediaLibraryTab() {
   const { toast, removeToast } = useToast();
@@ -30,6 +32,7 @@ export function MediaLibraryTab() {
   const [activeTag, setActiveTag] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [isUploading, setIsUploading] = useState(false);
+  const [assetToDelete, setAssetToDelete] = useState<{ id: number, name: string } | null>(null);
 
   const [assets, setAssets] = useState<{
     id: number;
@@ -56,6 +59,17 @@ export function MediaLibraryTab() {
     const matchesTag = !activeTag || asset.tags.includes(activeTag);
     return matchesSearch && matchesFolder && matchesTag;
   });
+
+  const handleDeleteConfirm = (id: number, name: string) => {
+    setAssets(prev => prev.filter(a => a.id !== id));
+    toast({
+      title: "Asset Deleted",
+      description: `"${name}" has been removed from the library.`,
+      variant: "success",
+      duration: 3000
+    });
+    setAssetToDelete(null);
+  };
 
   const handleUploadClick = () => {
     document.getElementById("library-upload-input")?.click();
@@ -314,7 +328,19 @@ export function MediaLibraryTab() {
                   ) : (
                     <ImageIcon className="h-10 w-10 text-[#A3AED0] group-hover:scale-110 transition-transform opacity-40" />
                   )}
-                  <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <div className="absolute top-2 left-2 opacity-0 group-hover:opacity-100 transition-opacity z-10">
+                    <button 
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setAssetToDelete({ id: asset.id, name: asset.name });
+                      }}
+                      className="bg-red-500/90 hover:bg-red-600 text-white p-1.5 rounded-lg shadow-sm backdrop-blur-sm transition-all cursor-pointer hover:scale-110"
+                      title="Delete asset"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  </div>
+                  <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity z-10">
                     <Badge className="bg-white/90 text-[10px] font-bold text-[#4318FF] shadow-sm uppercase">{asset.name.split('.').pop() || 'WEBP'}</Badge>
                   </div>
                 </div>
@@ -371,6 +397,18 @@ export function MediaLibraryTab() {
           </div>
         </div>
       </div>
+
+      <ConfirmModal
+        isOpen={!!assetToDelete}
+        onClose={() => setAssetToDelete(null)}
+        onConfirm={() => {
+          if (assetToDelete) handleDeleteConfirm(assetToDelete.id, assetToDelete.name);
+        }}
+        title="Delete Asset"
+        description={`Are you sure you want to delete "${assetToDelete?.name}"? This action cannot be undone.`}
+        confirmText="Delete"
+        variant="destructive"
+      />
     </div>
   );
 }

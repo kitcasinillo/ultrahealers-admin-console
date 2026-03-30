@@ -3,7 +3,7 @@ import { useForm, type Resolver, type Control, type UseFormWatch } from "react-h
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "react-hot-toast";
 import { doc, getDoc, setDoc, addDoc, collection, serverTimestamp } from "firebase/firestore";
-import { Save, RefreshCcw, Mail, Link as LinkIcon, Shield } from "lucide-react";
+import { Save, RefreshCcw, Mail, Link as LinkIcon, Shield, Image as ImageIcon } from "lucide-react";
 
 import { db } from "../../lib/firebase";
 import { useAdminAuth } from "../../contexts/AdminAuthContext";
@@ -26,6 +26,7 @@ import { FeatureFlagSettings } from "./components/FeatureFlagSettings";
 import { EmailSettings } from "./components/EmailSettings";
 import { SystemSettings } from "./components/SystemSettings";
 import { AuditLogSettings } from "./components/AuditLogSettings";
+import { MediaLibraryTab } from "./components/MediaLibraryTab";
 
 /**
  * SettingsPage Component
@@ -170,6 +171,10 @@ export function SettingsPage() {
                                     <Shield className="w-4 h-4 mr-2" />
                                     Audit Log
                                 </TabsTrigger>
+                                <TabsTrigger value="media" className="rounded-md px-4 py-2 data-[state=active]:bg-[#F4F7FE] data-[state=active]:dark:bg-white/5 data-[state=active]:text-[#4318FF] data-[state=active]:dark:text-white font-bold text-[#A3AED0]">
+                                    <ImageIcon className="w-4 h-4 mr-2" />
+                                    Media
+                                </TabsTrigger>
                             </TabsList>
                         </div>
 
@@ -182,6 +187,7 @@ export function SettingsPage() {
                                 <TabsTrigger value="email" className="text-xs px-4">Email</TabsTrigger>
                                 <TabsTrigger value="system" className="text-xs px-4">System</TabsTrigger>
                                 <TabsTrigger value="audit_log" className="text-xs px-4">Audit</TabsTrigger>
+                                <TabsTrigger value="media" className="text-xs px-4">Media</TabsTrigger>
                             </TabsList>
                         </div>
 
@@ -210,6 +216,10 @@ export function SettingsPage() {
 
                         <TabsContent value="audit_log" className="mt-0 space-y-6 outline-none">
                             <AuditLogSettings />
+                        </TabsContent>
+
+                        <TabsContent value="media" className="mt-0 space-y-6 outline-none">
+                            <MediaLibraryTab />
                         </TabsContent>
                     </Tabs>
                 </form>

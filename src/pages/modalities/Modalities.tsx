@@ -23,11 +23,9 @@ import {
 
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "../../components/ui/tabs";
 import { ConfirmModal } from "../../components/modals/ConfirmModal";
 
 import { SortableRow } from "./modules/SortableRow";
-import { MediaLibraryTab } from "./modules/MediaLibraryTab";
 import { AddModalityModal } from "../../components/modals/AddModalityModal";
 import { EditModalityModal } from "../../components/modals/EditModalityModal";
 
@@ -163,23 +161,7 @@ export default function Modalities() {
         </div>
       </div>
 
-      <Tabs defaultValue="list" className="w-full">
-        <TabsList className="bg-transparent border-b border-gray-100 dark:border-white/5 w-full justify-start rounded-none h-auto p-0 mb-8 gap-10">
-          <TabsTrigger
-            value="list"
-            className="data-[state=active]:border-b-2 data-[state=active]:border-[#4318FF] data-[state=active]:text-[#4318FF] dark:data-[state=active]:text-white rounded-none bg-transparent px-0 py-4 font-bold text-[15px] text-[#A3AED0] transition-all border-b-2 border-transparent hover:text-[#1b254b] dark:hover:text-white shadow-none data-[state=active]:bg-transparent data-[state=active]:shadow-none"
-          >
-            Modalities List
-          </TabsTrigger>
-          <TabsTrigger
-            value="media"
-            className="data-[state=active]:border-b-2 data-[state=active]:border-[#4318FF] data-[state=active]:text-[#4318FF] dark:data-[state=active]:text-white rounded-none bg-transparent px-0 py-4 font-bold text-[15px] text-[#A3AED0] transition-all border-b-2 border-transparent hover:text-[#1b254b] dark:hover:text-white shadow-none data-[state=active]:bg-transparent data-[state=active]:shadow-none"
-          >
-            Media Library
-          </TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="list" className="mt-0">
+      <div className="w-full mt-2">
           <div className="bg-white dark:bg-[#111C44] rounded-[22px] p-6 shadow-[0_10px_30px_0_rgba(11,20,55,0.06)] dark:shadow-none border border-transparent dark:border-white/5">
             <div className="mb-6 max-w-sm">
               <div className="relative">
@@ -258,12 +240,7 @@ export default function Modalities() {
               </button>
             </div>
           </div>
-        </TabsContent>
-
-        <TabsContent value="media" className="mt-0">
-          <MediaLibraryTab />
-        </TabsContent>
-      </Tabs>
+      </div>
 
       <AddModalityModal
         isOpen={isAddModalOpen}

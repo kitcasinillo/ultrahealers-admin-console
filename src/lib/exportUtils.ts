@@ -179,14 +179,21 @@ export const exportFinancialPdf = (payload: FinancialExportPayload) => {
     styles: { fontSize: 9 }
   });
 
-  // --- New Page: Fees & Rankings ---
-  doc.addPage();
+  // --- Section 4: Stripe Fee Impact ---
+  lastY = (doc as any).lastAutoTable.finalY + 12;
+  
+  // Check for page overflow for header
+  if (lastY > doc.internal.pageSize.getHeight() - 40) {
+    doc.addPage();
+    lastY = 20;
+  }
+  
   doc.setFontSize(14);
   doc.setTextColor(27, 37, 75);
-  doc.text("4. Stripe Processing Fee Impact", 14, 20);
-
+  doc.text("4. Stripe Processing Fee Impact", 14, lastY);
+  
   autoTable(doc, {
-    startY: 25,
+    startY: lastY + 5,
     head: [['Day/Period', 'Gross Value ($)', 'Stripe Fees ($)', 'Net After Fees ($)', 'Fee Rate (%)']],
     body: stripeFeeImpact.map(d => [
       d.name,
@@ -199,10 +206,17 @@ export const exportFinancialPdf = (payload: FinancialExportPayload) => {
     headStyles: { fillColor: [67, 24, 255] },
     styles: { fontSize: 9 }
   });
-
+  
   lastY = (doc as any).lastAutoTable.finalY + 12;
-  doc.text("5. Top High-Revenue Healers", 14, lastY);
-
+  
+  // Check for page overflow for header
+  if (lastY > doc.internal.pageSize.getHeight() - 40) {
+    doc.addPage();
+    lastY = 20;
+  }
+  
+  doc.text("5. Top High-Revenue Healers (Top 10)", 14, lastY);
+  
   autoTable(doc, {
     startY: lastY + 5,
     head: [['Rank', 'Healer Name', 'Revenue ($)']],
@@ -215,10 +229,17 @@ export const exportFinancialPdf = (payload: FinancialExportPayload) => {
     headStyles: { fillColor: [67, 24, 255] },
     styles: { fontSize: 9 }
   });
-
+  
   lastY = (doc as any).lastAutoTable.finalY + 12;
-  doc.text("6. Top High-Growth Retreat Events", 14, lastY);
 
+  // Check for page overflow for header
+  if (lastY > doc.internal.pageSize.getHeight() - 40) {
+    doc.addPage();
+    lastY = 20;
+  }
+
+  doc.text("6. Top High-Growth Retreat Events (Top 10)", 14, lastY);
+  
   autoTable(doc, {
     startY: lastY + 5,
     head: [['Rank', 'Retreat Name', 'Revenue ($)']],
@@ -231,15 +252,22 @@ export const exportFinancialPdf = (payload: FinancialExportPayload) => {
     headStyles: { fillColor: [67, 24, 255] },
     styles: { fontSize: 9 }
   });
+  
+  // --- Section 7: Booking Audit ---
+  lastY = (doc as any).lastAutoTable.finalY + 12;
 
-  // --- New Page: Booking Audit ---
-  doc.addPage();
+  // Audit Logs are long, but let's see if we can start them on the same page
+  if (lastY > doc.internal.pageSize.getHeight() - 50) {
+    doc.addPage();
+    lastY = 20;
+  }
+
   doc.setFontSize(14);
   doc.setTextColor(27, 37, 75);
-  doc.text("7. Booking Financial Audit", 14, 20);
-
+  doc.text("7. Booking Financial Audit", 14, lastY);
+  
   autoTable(doc, {
-    startY: 25,
+    startY: lastY + 5,
     head: [['Date', 'Booking ID', 'Listing', 'Healer', 'Seeker', 'Gross', 'Comm.', 'S.Fee', 'P.Fee', 'Net', 'Stripe PI']],
     body: bookings.map(b => [
       b.date, b.bookingId, b.listing, b.healer, b.seeker,
@@ -251,11 +279,17 @@ export const exportFinancialPdf = (payload: FinancialExportPayload) => {
     headStyles: { fillColor: [67, 24, 255] },
     styles: { fontSize: 7 } // Smaller font to accommodate 11 columns
   });
-
+  
   // --- Section 8: Premium Activations ---
-  lastY = (doc as any).lastAutoTable.finalY + 15;
-  doc.text("8. Premium Activations", 14, lastY);
+  lastY = (doc as any).lastAutoTable.finalY + 12;
 
+  if (lastY > doc.internal.pageSize.getHeight() - 40) {
+    doc.addPage();
+    lastY = 20;
+  }
+
+  doc.text("8. Premium Activations", 14, lastY);
+  
   autoTable(doc, {
     startY: lastY + 5,
     head: [['Healer', 'Date', 'Amount', 'Session ID']],

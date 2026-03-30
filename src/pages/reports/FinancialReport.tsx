@@ -56,6 +56,11 @@ const topHealersData = [
   { name: "Michael Chen", revenue: 9200 },
   { name: "Aria Thorne", revenue: 8500 },
   { name: "David Miller", revenue: 7900 },
+  { name: "Sophia Reed", revenue: 7200 },
+  { name: "Lucas Graham", revenue: 6500 },
+  { name: "Olivia White", revenue: 5900 },
+  { name: "Ethan Hunt", revenue: 5200 },
+  { name: "Nathan Drake", revenue: 4800 },
 ];
 
 const topRetreatsData = [
@@ -64,6 +69,11 @@ const topRetreatsData = [
   { name: "Spiritual Awakening", revenue: 10500 },
   { name: "Beach Escape", revenue: 9800 },
   { name: "Forest Healing", revenue: 8400 },
+  { name: "Desert Silence", revenue: 7800 },
+  { name: "Mountain Breath", revenue: 7100 },
+  { name: "Urban Reset", revenue: 6400 },
+  { name: "Island Soul", revenue: 5800 },
+  { name: "Nordic Calm", revenue: 5100 },
 ];
 
 const stripeFeeImpactData = [
@@ -308,8 +318,8 @@ export function FinancialReport() {
         trend: baseTrend.slice(-2),
         fees: stripeFeeImpactData.slice(-7),
         source: revenueBySourceData.map(d => ({ ...d, value: d.value * 0.25 })),
-        healers: topHealersData.slice(0, 4),
-        retreats: topRetreatsData.slice(0, 4),
+        healers: topHealersData.slice(0, 7),
+        retreats: topRetreatsData.slice(0, 7),
         comparison: monthlyRevenueComparison.map(d => ({ ...d, revenue: d.revenue * 0.25 }))
       };
     }

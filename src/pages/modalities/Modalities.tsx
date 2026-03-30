@@ -4,6 +4,7 @@ import {
   RefreshCw,
   Search,
 } from "lucide-react";
+import { toast } from "react-hot-toast";
 import {
   DndContext,
   closestCenter,
@@ -41,6 +42,9 @@ export default function Modalities() {
   const [searchQuery, setSearchQuery] = useState("");
   const [formData, setFormData] = useState({ name: "", icon: "" });
 
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 5;
+
   const sensors = useSensors(
     useSensor(PointerSensor),
     useSensor(KeyboardSensor, {
@@ -53,6 +57,13 @@ export default function Modalities() {
       m.name.toLowerCase().includes(searchQuery.toLowerCase())
     );
   }, [modalities, searchQuery]);
+
+  // Pagination logic
+  const totalPages = Math.ceil(filteredModalities.length / itemsPerPage);
+  const paginatedModalities = useMemo(() => {
+    const start = (currentPage - 1) * itemsPerPage;
+    return filteredModalities.slice(start, start + itemsPerPage);
+  }, [filteredModalities, currentPage]);
 
   // Handlers
   const handleDragEnd = (event: DragEndEvent) => {
@@ -68,20 +79,38 @@ export default function Modalities() {
   };
 
   const handleToggleActive = (id: string, active: boolean) => {
+    const modality = modalities.find(m => m.id === id);
+    if (modality) {
+      toast.success(`"${modality.name}" has been ${active ? 'enabled' : 'disabled'}.`);
+    }
     setModalities(prev => prev.map(m => m.id === id ? { ...m, active } : m));
   };
 
   const handleAdd = () => {
+    const trimmedName = formData.name.trim();
+
+    if (!trimmedName) {
+      toast.error("Please provide a modality name.");
+      return;
+    }
+
+    if (modalities.some(m => m.name.toLowerCase() === trimmedName.toLowerCase())) {
+      toast.error(`A modality named "${trimmedName}" already exists.`);
+      return;
+    }
+
     const newModality: Modality = {
       id: Math.random().toString(36).substr(2, 9),
-      name: formData.name,
+      name: trimmedName,
       icon: formData.icon || "✨",
       listingsCount: 0,
       active: true,
       order: modalities.length,
       createdAt: new Date().toISOString()
     };
+    
     setModalities([...modalities, newModality]);
+    toast.success(`"${trimmedName}" has been created.`);
     setIsAddModalOpen(false);
     setFormData({ name: "", icon: "" });
   };
@@ -89,6 +118,7 @@ export default function Modalities() {
   const handleEdit = () => {
     if (!currentModality) return;
     setModalities(prev => prev.map(m => m.id === currentModality.id ? { ...m, name: formData.name, icon: formData.icon } : m));
+    toast.success(`"${formData.name}" has been updated.`);
     setIsEditModalOpen(false);
     setCurrentModality(null);
     setFormData({ name: "", icon: "" });
@@ -97,6 +127,7 @@ export default function Modalities() {
   const handleDelete = () => {
     if (!currentModality) return;
     setModalities(prev => prev.filter(m => m.id !== currentModality.id));
+    toast.success(`"${currentModality.name}" has been deleted.`);
     setIsConfirmDeleteOpen(false);
     setCurrentModality(null);
   };
@@ -182,10 +213,10 @@ export default function Modalities() {
                   </thead>
                   <tbody className="divide-y divide-gray-100 dark:divide-white/5">
                     <SortableContext
-                      items={filteredModalities.map(m => m.id)}
+                      items={paginatedModalities.map(m => m.id)}
                       strategy={verticalListSortingStrategy}
                     >
-                      {filteredModalities.map((modality) => (
+                      {paginatedModalities.map((modality) => (
                         <SortableRow
                           key={modality.id}
                           modality={modality}
@@ -205,6 +236,26 @@ export default function Modalities() {
                   </tbody>
                 </table>
               </DndContext>
+            </div>
+
+            <div className="flex items-center justify-end space-x-2 pt-6 pb-2">
+              <button
+                className="flex items-center bg-[#F4F7FE] dark:bg-white/5 hover:bg-[#E2E8F0] dark:hover:bg-white/10 text-[#4318FF] dark:text-white font-bold py-2 px-4 rounded-xl transition-all text-sm disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                disabled={currentPage === 1}
+              >
+                Previous
+              </button>
+              <div className="text-sm font-medium text-[#A3AED0] px-2 flex items-center">
+                Page {currentPage} of {totalPages || 1}
+              </div>
+              <button
+                className="flex items-center bg-[#F4F7FE] dark:bg-white/5 hover:bg-[#E2E8F0] dark:hover:bg-white/10 text-[#4318FF] dark:text-white font-bold py-2 px-4 rounded-xl transition-all text-sm disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                disabled={currentPage >= totalPages}
+              >
+                Next
+              </button>
             </div>
           </div>
         </TabsContent>

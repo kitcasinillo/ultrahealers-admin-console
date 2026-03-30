@@ -103,16 +103,15 @@ const DialogDescription = React.forwardRef<
     className={cn("text-sm text-[#A3AED0]", className)}
     {...props}
   />
-)
-)
+))
 DialogDescription.displayName = DialogPrimitive.Description.displayName
 
 export {
   Dialog,
   DialogPortal,
   DialogOverlay,
-  DialogClose,
   DialogTrigger,
+  DialogClose,
   DialogContent,
   DialogHeader,
   DialogFooter,

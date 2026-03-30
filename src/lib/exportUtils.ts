@@ -237,6 +237,11 @@ export const exportCampaignPdf = (payload: CampaignExportPayload) => {
 
     let currentY = (doc as any).lastAutoTable.finalY + 15;
 
+    if (currentY > doc.internal.pageSize.getHeight() - 40) {
+      doc.addPage();
+      currentY = 20;
+    }
+
     // 2. Campaign Summary
     doc.setFontSize(14);
     doc.setTextColor(27, 37, 75);
@@ -254,6 +259,11 @@ export const exportCampaignPdf = (payload: CampaignExportPayload) => {
     });
 
     currentY = (doc as any).lastAutoTable.finalY + 15;
+
+    if (currentY > doc.internal.pageSize.getHeight() - 40) {
+      doc.addPage();
+      currentY = 20;
+    }
 
     // 3. Reach & Deliverability
     doc.setFontSize(14);
@@ -273,6 +283,11 @@ export const exportCampaignPdf = (payload: CampaignExportPayload) => {
 
     currentY = (doc as any).lastAutoTable.finalY + 15;
 
+    if (currentY > doc.internal.pageSize.getHeight() - 40) {
+      doc.addPage();
+      currentY = 20;
+    }
+
     // 4. Unsubscribe Rate Trend
     doc.setFontSize(14);
     doc.text("4. Unsubscribe Rate Trend", 14, currentY);
@@ -290,10 +305,9 @@ export const exportCampaignPdf = (payload: CampaignExportPayload) => {
 
     currentY = (doc as any).lastAutoTable.finalY + 15;
 
-    // Check if we need a new page
-    if (currentY > 160) {
+    if (currentY > doc.internal.pageSize.getHeight() - 40) {
       doc.addPage();
-      currentY = 22;
+      currentY = 20;
     }
 
     // 5. Audience Segment Performance

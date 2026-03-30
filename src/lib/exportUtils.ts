@@ -694,7 +694,13 @@ export const exportGrowthExcel = (payload: GrowthExportPayload) => {
   } = payload;
   const wb = XLSX.utils.book_new();
 
-  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(summaryData), "Summary Metrics");
+  const summaryFormatted = summaryData.map(s => ({
+    "Metric": s.title,
+    "Current Value": s.value,
+    "Context/Trend": s.description || "-"
+  }));
+
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(summaryFormatted), "Summary Metrics");
   XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(registrationTrend), "Registration Trend");
   XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(churnIndicators), "Churn Indicators");
   XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(healerFunnel), "Healer Funnel");
@@ -703,4 +709,80 @@ export const exportGrowthExcel = (payload: GrowthExportPayload) => {
   XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(retentionData), "Retention Cohorts");
 
   XLSX.writeFile(wb, `Growth_Report_${new Date().getTime()}.xlsx`);
+};
+
+/**
+ * Growth Report CSV Export
+ */
+export const exportGrowthCsv = (payload: GrowthExportPayload) => {
+  const { 
+    summaryData,
+    registrationTrend, 
+    churnIndicators, 
+    healerFunnel, 
+    seekerFunnel, 
+    subscriptionCohort, 
+    retentionData 
+  } = payload;
+
+  let csvContent = "";
+
+  // 1. Summary Metrics
+  csvContent += "REPORT SUMMARY (KEY METRICS)\n";
+  csvContent += "Metric,Value,Context\n";
+  summaryData.forEach(s => {
+    csvContent += `"${s.title}","${s.value}","${s.description || '-'}"\n`;
+  });
+  csvContent += "\n";
+
+  // 2. Registration Trend
+  csvContent += "REGISTRATION TREND\n";
+  csvContent += "Period,Seekers,Healers,Total Added\n";
+  registrationTrend.forEach(r => {
+    csvContent += `"${r.name}",${r.seekers},${r.healers},${r.seekers + r.healers}\n`;
+  });
+  csvContent += "\n";
+
+  // 3. Churn Indicators
+  csvContent += "CHURN INDICATORS (INACTIVE)\n";
+  csvContent += "Period,Seekers,Healers\n";
+  churnIndicators.forEach(c => {
+    csvContent += `"${c.name}",${c.seekers},${c.healers}\n`;
+  });
+  csvContent += "\n";
+
+  // 4. Conversion Funnels
+  csvContent += "CONVERSION FUNNELS SUMMARY\n";
+  csvContent += "Step (Healer),Count (Healer),Step (Seeker),Count (Seeker)\n";
+  healerFunnel.forEach((h, i) => {
+    const sStep = seekerFunnel[i] ? seekerFunnel[i].step : "-";
+    const sVal = seekerFunnel[i] ? seekerFunnel[i].value : "-";
+    csvContent += `"${h.step}",${h.value},"${sStep}",${sVal}\n`;
+  });
+  csvContent += "\n";
+
+  // 5. Subscription Upgrades
+  csvContent += "SUBSCRIPTION UPGRADE RATE\n";
+  csvContent += "Cohort,Upgrade Rate (%)\n";
+  subscriptionCohort.forEach(s => {
+    csvContent += `"${s.name}",${s.rate}%\n`;
+  });
+  csvContent += "\n";
+
+  // 6. Retention Cohorts
+  csvContent += "RETENTION COHORTS (MONTHLY)\n";
+  csvContent += "Cohort,Size,M0,M1,M2,M3\n";
+  retentionData.forEach(r => {
+    csvContent += `"${r.cohort}",${r.users},${r.m0}%,${r.m1 || '-'}%,${r.m2 || '-'}%,${r.m3 || '-'}%\n`;
+  });
+
+  const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.setAttribute("href", url);
+  link.setAttribute("download", `Growth_Report_${new Date().getTime()}.csv`);
+  link.style.visibility = "hidden";
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
 };

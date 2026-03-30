@@ -18,6 +18,7 @@ import { FeatureFlagSettings } from "./components/FeatureFlagSettings";
 import { EmailSettings } from "./components/EmailSettings";
 import { SystemSettings } from "./components/SystemSettings";
 import { AuditLogSettings } from "./components/AuditLogSettings";
+import { ConfirmModal } from "@/components/ui/ConfirmModal";
 
 /**
  * SettingsPage Component
@@ -27,6 +28,7 @@ export function SettingsPage() {
     const { user } = useAdminAuth();
     const [isSaving, setIsSaving] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
+    const [isResetConfirmOpen, setIsResetConfirmOpen] = useState(false);
 
     const form = useForm<SettingsFormValues>({
         resolver: zodResolver(formSchema) as unknown as Resolver<SettingsFormValues>,
@@ -82,10 +84,12 @@ export function SettingsPage() {
     };
 
     const handleReset = () => {
-        if (window.confirm("Are you sure you want to reset all settings to their default values? Make sure to save afterwards.")) {
-            form.reset(defaultValues);
-            toast.success("Settings reverted to defaults. Remember to hit save.");
-        }
+        setIsResetConfirmOpen(true);
+    };
+
+    const confirmReset = () => {
+        form.reset(defaultValues);
+        toast.success("Settings reverted to defaults. Remember to hit save.");
     };
 
     if (isLoading) {
@@ -198,6 +202,18 @@ export function SettingsPage() {
                     </Tabs>
                 </form>
             </Form>
+
+            <ConfirmModal
+                isOpen={isResetConfirmOpen}
+                onClose={() => setIsResetConfirmOpen(false)}
+                onConfirm={confirmReset}
+                title="Reset to Defaults?"
+                description="Are you sure you want to reset all platform settings? This will revert everything to the factory defaults. Don't forget to save changes afterwards to apply them."
+                confirmText="Reset Settings"
+                cancelText="Cancel"
+                variant="warning"
+                icon={<RefreshCcw size={32} className="text-amber-500" />}
+            />
         </div>
     );
 }

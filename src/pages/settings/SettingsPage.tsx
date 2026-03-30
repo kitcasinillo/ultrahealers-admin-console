@@ -10,6 +10,14 @@ import { useAdminAuth } from "../../contexts/AdminAuthContext";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Form } from "@/components/ui/form";
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from "@/components/ui/dialog";
 
 import { formSchema, defaultValues, type SettingsFormValues } from "./schema";
 import { GeneralSettings } from "./components/GeneralSettings";
@@ -27,6 +35,7 @@ export function SettingsPage() {
     const { user } = useAdminAuth();
     const [isSaving, setIsSaving] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
+    const [isResetDialogOpen, setIsResetDialogOpen] = useState(false);
 
     const form = useForm<SettingsFormValues>({
         resolver: zodResolver(formSchema) as unknown as Resolver<SettingsFormValues>,
@@ -86,10 +95,13 @@ export function SettingsPage() {
     };
 
     const handleReset = () => {
-        if (window.confirm("Are you sure you want to reset all settings to their default values? Make sure to save afterwards.")) {
-            form.reset(defaultValues);
-            toast.success("Settings reverted to defaults. Remember to hit save.");
-        }
+        setIsResetDialogOpen(true);
+    };
+
+    const confirmReset = () => {
+        form.reset(defaultValues);
+        toast.success("Settings reverted to defaults. Remember to hit save.");
+        setIsResetDialogOpen(false);
     };
 
     if (isLoading) {
@@ -202,6 +214,21 @@ export function SettingsPage() {
                     </Tabs>
                 </form>
             </Form>
+
+            <Dialog open={isResetDialogOpen} onOpenChange={setIsResetDialogOpen}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Reset Platform Settings</DialogTitle>
+                        <DialogDescription>
+                            Are you sure you want to reset all settings to their default values? Make sure to click "Save Changes" afterwards to apply them.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setIsResetDialogOpen(false)}>Cancel</Button>
+                        <Button className="bg-red-600 hover:bg-red-700 text-white shadow-sm border border-transparent" onClick={confirmReset}>Confirm</Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </div>
     );
 }

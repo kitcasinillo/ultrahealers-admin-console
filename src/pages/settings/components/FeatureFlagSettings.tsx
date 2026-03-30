@@ -2,6 +2,7 @@ import { useState } from "react";
 import type { Control } from "react-hook-form";
 import { useFieldArray } from "react-hook-form";
 import { Plus, Trash2 } from "lucide-react";
+import { toast } from "react-hot-toast";
 
 import {
     FormControl,
@@ -41,9 +42,19 @@ export function FeatureFlagSettings({ control }: FeatureFlagSettingsProps) {
 
     const [isDialogOpen, setIsDialogOpen] = useState(false);
     const [newFlag, setNewFlag] = useState({ id: "", label: "", description: "", tier: "free" as "free" | "premium" });
+    const [flagToDelete, setFlagToDelete] = useState<number | null>(null);
 
     const handleAddFlag = () => {
-        if (!newFlag.id || !newFlag.label) return;
+        if (!newFlag.id || !newFlag.label) {
+            toast.error("Please provide both an ID and a display label.");
+            return;
+        }
+
+        const exists = fields.some((f) => f.id === newFlag.id);
+        if (exists) {
+            toast.error(`A flag with ID "${newFlag.id}" already exists.`);
+            return;
+        }
         
         append({
             id: newFlag.id,
@@ -53,8 +64,17 @@ export function FeatureFlagSettings({ control }: FeatureFlagSettingsProps) {
             enabled: false,
         });
         
+        toast.success(`Custom flag "${newFlag.label}" created! Remember to save changes.`);
         setNewFlag({ id: "", label: "", description: "", tier: "free" });
         setIsDialogOpen(false);
+    };
+
+    const confirmDelete = () => {
+        if (flagToDelete !== null) {
+            remove(flagToDelete);
+            toast.success("Custom flag removed. Remember to save changes.");
+            setFlagToDelete(null);
+        }
     };
 
     const isDefaultFlag = (id: string) => {
@@ -88,15 +108,18 @@ export function FeatureFlagSettings({ control }: FeatureFlagSettingsProps) {
                             <FormControl>
                                 <Switch
                                     checked={formField.value}
-                                    onCheckedChange={formField.onChange}
+                                    onCheckedChange={(checked) => {
+                                        formField.onChange(checked);
+                                        toast.success(`"${field.label}" has been ${checked ? 'enabled' : 'disabled'}.`);
+                                    }}
                                     className="data-[state=checked]:bg-[#4318FF]"
                                 />
                             </FormControl>
                             {!isDefault && (
                                 <button
                                     type="button"
-                                    onClick={() => remove(index)}
-                                    className="text-gray-400 hover:text-red-500 absolute -top-2 -right-2 opacity-0 group-hover:opacity-100 transition-opacity p-1 bg-white dark:bg-[#111C44] rounded-full shadow-sm border border-gray-100 dark:border-white/5"
+                                    onClick={() => setFlagToDelete(index)}
+                                    className="text-gray-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 absolute -top-2 -right-2 opacity-0 group-hover:opacity-100 transition-all cursor-pointer p-1.5 bg-white dark:bg-[#111C44] rounded-full shadow-sm border border-gray-100 dark:border-white/5"
                                 >
                                     <Trash2 className="w-4 h-4" />
                                 </button>
@@ -212,6 +235,21 @@ export function FeatureFlagSettings({ control }: FeatureFlagSettingsProps) {
                     </div>
                 </CardContent>
             </Card>
+
+            <Dialog open={flagToDelete !== null} onOpenChange={(open) => !open && setFlagToDelete(null)}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Delete Custom Flag</DialogTitle>
+                        <DialogDescription>
+                            Are you sure you want to delete this custom flag? This action cannot be undone. Remember to save your platform settings for the changes to take effect.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setFlagToDelete(null)}>Cancel</Button>
+                        <Button onClick={confirmDelete} className="bg-red-600 hover:bg-red-700 text-white shadow-sm border border-transparent">Delete</Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </div>
     );
 }

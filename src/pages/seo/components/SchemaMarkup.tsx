@@ -4,6 +4,7 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Code, MapPin, ShoppingBag, Calendar, MessageSquare, ExternalLink } from "lucide-react";
+import { toast } from "react-hot-toast";
 
 export function SchemaMarkup() {
     const [schemas, setSchemas] = useState({
@@ -15,7 +16,23 @@ export function SchemaMarkup() {
     });
 
     const toggleSchema = (key: keyof typeof schemas) => {
-        setSchemas(prev => ({ ...prev, [key]: !prev[key] }));
+        const names = {
+            localBusiness: "LocalBusiness",
+            product: "Product / Service",
+            article: "Article Schema",
+            event: "Event Schema",
+            faq: "FAQ Section"
+        };
+        
+        const isEnabled = !schemas[key];
+        
+        if (isEnabled) {
+            toast.success(`${names[key]} enabled`);
+        } else {
+            toast(`${names[key]} disabled`, { icon: 'ℹ️' });
+        }
+        
+        setSchemas(prev => ({ ...prev, [key]: isEnabled }));
     };
 
     return (

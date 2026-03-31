@@ -11,7 +11,15 @@ import {
     SelectTrigger, 
     SelectValue 
 } from "@/components/ui/select";
-import { Search, Trash2, Edit3, PlusCircle } from "lucide-react";
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from "@/components/ui/dialog";
+import { Search, Trash2, Edit3, PlusCircle, AlertTriangle } from "lucide-react";
 import { toast } from "react-hot-toast";
 
 interface MetaOverride {
@@ -21,6 +29,16 @@ interface MetaOverride {
     description: string;
     type: 'Healer' | 'Retreat' | 'Listing' | 'General';
 }
+
+const getBadgeColor = (type: string) => {
+    switch(type) {
+        case 'Healer': return 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 border-blue-200 dark:border-blue-800/50';
+        case 'Retreat': return 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800/50';
+        case 'Listing': return 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400 border-purple-200 dark:border-purple-800/50';
+        case 'General': return 'bg-gray-100 text-gray-700 dark:bg-gray-800/50 dark:text-gray-400 border-gray-200 dark:border-gray-700/50';
+        default: return 'bg-gray-100 text-gray-700 dark:bg-gray-800/50 dark:text-gray-400 border-gray-200 dark:border-gray-700/50';
+    }
+};
 
 export function MetaManager() {
     const [overrides, setOverrides] = useState<MetaOverride[]>([
@@ -34,6 +52,9 @@ export function MetaManager() {
     const [searchQuery, setSearchQuery] = useState("");
     const [activeFilter, setActiveFilter] = useState("All");
     const [editingId, setEditingId] = useState<string | null>(null);
+
+    const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+    const [overrideToDelete, setOverrideToDelete] = useState<{id: string, entity: string} | null>(null);
 
     const handleApply = () => {
         if (!target || !title) {
@@ -79,9 +100,18 @@ export function MetaManager() {
         window.scrollTo({ top: 0, behavior: 'smooth' });
     };
 
-    const handleRemove = (id: string, entityName: string) => {
-        setOverrides(overrides.filter(item => item.id !== id));
-        toast.success(`Removed override for ${entityName}`);
+    const initiateRemove = (id: string, entityName: string) => {
+        setOverrideToDelete({ id, entity: entityName });
+        setIsDeleteDialogOpen(true);
+    };
+
+    const confirmRemove = () => {
+        if (overrideToDelete) {
+            setOverrides(overrides.filter(item => item.id !== overrideToDelete.id));
+            toast.success(`Removed override for ${overrideToDelete.entity}`);
+            setIsDeleteDialogOpen(false);
+            setOverrideToDelete(null);
+        }
     };
 
     const filteredOverrides = overrides.filter(item => {
@@ -225,7 +255,7 @@ export function MetaManager() {
                                 <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
                                     <div className="space-y-1.5">
                                         <div className="flex items-center gap-2">
-                                            <span className="px-2 py-0.5 rounded text-[10px] font-extrabold uppercase tracking-tight bg-gray-100 text-gray-500 dark:bg-white/10 dark:text-gray-400 border border-gray-200/50 dark:border-white/5">
+                                            <span className={`px-2 py-0.5 rounded text-[10px] font-extrabold uppercase tracking-tight border ${getBadgeColor(item.type)}`}>
                                                 {item.type}
                                             </span>
                                             <h5 className="font-bold text-[#1b254b] dark:text-white text-sm tracking-tight">{item.entity}</h5>
@@ -245,7 +275,7 @@ export function MetaManager() {
                                         <Button 
                                             variant="outline" 
                                             size="icon" 
-                                            onClick={() => handleRemove(item.id, item.entity)}
+                                            onClick={() => initiateRemove(item.id, item.entity)}
                                             className="h-8 w-8 rounded-lg border-gray-200 dark:border-white/5 text-[#A3AED0] hover:text-red-500 transition-all"
                                         >
                                             <Trash2 className="w-3.5 h-3.5" />
@@ -265,6 +295,28 @@ export function MetaManager() {
                     </div>
                 </CardContent>
             </Card>
+
+            <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+                <DialogContent className="sm:max-w-[425px]">
+                    <DialogHeader>
+                        <DialogTitle className="flex items-center gap-2 text-red-500">
+                            <AlertTriangle className="h-5 w-5" />
+                            Confirm Deletion
+                        </DialogTitle>
+                        <DialogDescription className="py-2">
+                            Are you sure you want to delete the SEO override for <strong className="text-[#1b254b] dark:text-white">{overrideToDelete?.entity}</strong>? This action cannot be undone.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <DialogFooter className="pt-4 flex gap-2 sm:gap-0">
+                        <Button variant="outline" onClick={() => setIsDeleteDialogOpen(false)}>
+                            Cancel
+                        </Button>
+                        <Button variant="destructive" onClick={confirmRemove} className="bg-red-500 hover:bg-red-600 text-white">
+                            Delete
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </div>
     );
 }

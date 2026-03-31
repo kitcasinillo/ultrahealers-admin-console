@@ -3,7 +3,15 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Search, Trash2, Link as LinkIcon, Info } from "lucide-react";
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from "@/components/ui/dialog";
+import { Search, Trash2, Link as LinkIcon, Info, AlertTriangle } from "lucide-react";
 import { toast } from "react-hot-toast";
 
 interface CanonicalMapping {
@@ -23,6 +31,9 @@ export function CanonicalUrls() {
     const [newPath, setNewPath] = useState("");
     const [newCanonical, setNewCanonical] = useState("");
 
+    const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+    const [mappingToDelete, setMappingToDelete] = useState<CanonicalMapping | null>(null);
+
     const handleAdd = () => {
         if (!newPath || !newCanonical) {
              toast.error("Both internal path and canonical URL are required.");
@@ -40,9 +51,18 @@ export function CanonicalUrls() {
         toast.success("Canonical mapping registry updated.");
     };
 
-    const handleRemove = (id: string) => {
-        setMappings(mappings.filter(m => m.id !== id));
-        toast.success("Canonical entry removed.");
+    const initiateRemove = (mapping: CanonicalMapping) => {
+        setMappingToDelete(mapping);
+        setIsDeleteDialogOpen(true);
+    };
+
+    const confirmRemove = () => {
+        if (mappingToDelete) {
+            setMappings(mappings.filter(m => m.id !== mappingToDelete.id));
+            toast.success("Canonical entry removed.");
+            setIsDeleteDialogOpen(false);
+            setMappingToDelete(null);
+        }
     };
 
     return (
@@ -141,7 +161,7 @@ export function CanonicalUrls() {
                                             <Button 
                                                 variant="outline" 
                                                 size="icon" 
-                                                onClick={() => handleRemove(mapping.id)}
+                                                onClick={() => initiateRemove(mapping)}
                                                 className="h-8 w-8 rounded-lg border-gray-200 dark:border-white/5 text-[#A3AED0] hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
                                             >
                                                 <Trash2 className="w-3.5 h-3.5" />
@@ -154,6 +174,28 @@ export function CanonicalUrls() {
                     </div>
                 </CardContent>
             </Card>
+
+            <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+                <DialogContent className="sm:max-w-[425px]">
+                    <DialogHeader>
+                        <DialogTitle className="flex items-center gap-2 text-red-500">
+                            <AlertTriangle className="h-5 w-5" />
+                            Confirm Deletion
+                        </DialogTitle>
+                        <DialogDescription className="py-2">
+                            Are you sure you want to delete the canonical mapping for <strong className="text-[#1b254b] dark:text-white">{mappingToDelete?.path}</strong>? This action cannot be undone.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <DialogFooter className="pt-4 flex gap-2 sm:gap-0">
+                        <Button variant="outline" onClick={() => setIsDeleteDialogOpen(false)}>
+                            Cancel
+                        </Button>
+                        <Button variant="destructive" onClick={confirmRemove} className="bg-red-500 hover:bg-red-600 text-white">
+                            Delete
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </div>
     );
 }

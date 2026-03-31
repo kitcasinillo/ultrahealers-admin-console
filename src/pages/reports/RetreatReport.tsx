@@ -116,7 +116,7 @@ const retreatPerformanceData = [
 ];
 
 export function RetreatReport() {
-  const [dateRange, setDateRange] = useState("Last 6 Months");
+  const [dateRange, setDateRange] = useState("This Month");
   const [customStartDate, setCustomStartDate] = useState("");
   const [customEndDate, setCustomEndDate] = useState("");
   const [granularity, setGranularity] = useState("Monthly");
@@ -245,7 +245,9 @@ export function RetreatReport() {
             Efficiency Tracking
           </div>
         </div>
-        <DataTable columns={columns} data={retreatPerformanceData} />
+        <div className="overflow-x-auto -mx-6 px-6">
+          <DataTable columns={columns} data={retreatPerformanceData} />
+        </div>
       </div>
 
     </div>

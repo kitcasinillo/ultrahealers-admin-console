@@ -20,10 +20,11 @@ interface BaseLineChartProps {
   title: string;
   data: any[];
   lines: LineConfig[];
+  xAxisKey?: string;
   className?: string;
 }
 
-export function BaseLineChart({ title, data, lines, className }: BaseLineChartProps) {
+export function BaseLineChart({ title, data, lines, xAxisKey = "name", className }: BaseLineChartProps) {
   return (
     <Card className={`rounded-3xl border-none shadow-[0_10px_30px_0_rgba(11,20,55,0.06)] dark:bg-[#111C44] min-w-0 h-full flex flex-col ${className || ""}`}>
       <CardHeader className="shrink-0">
@@ -35,7 +36,7 @@ export function BaseLineChart({ title, data, lines, className }: BaseLineChartPr
             <LineChart data={data} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
               <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E2E8F0" opacity={0.5} />
               <XAxis 
-                dataKey="name" 
+                dataKey={xAxisKey} 
                 axisLine={false} 
                 tickLine={false} 
                 tick={{ fill: '#A3AED0', fontSize: 12 }}

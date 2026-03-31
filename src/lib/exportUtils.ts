@@ -121,41 +121,41 @@ export const exportFinancialPdf = (bookings: any[], premium: any[], title: strin
   doc.setTextColor(163, 174, 208);
   doc.text(`Generated on: ${new Date().toLocaleString()}`, 14, 28);
 
-    // 1. Bookings Table
-    doc.setFontSize(14);
-    doc.setTextColor(27, 37, 75);
-    doc.text("1. Booking Financial Audit", 14, 40);
+  // 1. Bookings Table
+  doc.setFontSize(14);
+  doc.setTextColor(27, 37, 75);
+  doc.text("1. Booking Financial Audit", 14, 40);
 
-    autoTable(doc, {
-      startY: 45,
-      head: [['Date', 'Booking ID', 'Listing', 'Healer', 'Seeker', 'Gross', 'Comm.', 'S.Fee', 'P.Fee', 'Net']],
-      body: bookings.map(b => [
-        b.date, b.bookingId, b.listing, b.healer, b.seeker,
-        `$${b.grossAmount.toFixed(2)}`, `$${b.healerCommission.toFixed(2)}`,
-        `$${b.seekerFee.toFixed(2)}`, `$${b.processingFee.toFixed(2)}`, `$${b.netRevenue.toFixed(2)}`
-      ]),
-      theme: 'striped',
-      headStyles: { fillColor: [67, 24, 255] },
-      styles: { fontSize: 8 }
-    });
+  autoTable(doc, {
+    startY: 45,
+    head: [['Date', 'Booking ID', 'Listing', 'Healer', 'Seeker', 'Gross', 'Comm.', 'S.Fee', 'P.Fee', 'Net']],
+    body: bookings.map(b => [
+      b.date, b.bookingId, b.listing, b.healer, b.seeker,
+      `$${b.grossAmount.toFixed(2)}`, `$${b.healerCommission.toFixed(2)}`,
+      `$${b.seekerFee.toFixed(2)}`, `$${b.processingFee.toFixed(2)}`, `$${b.netRevenue.toFixed(2)}`
+    ]),
+    theme: 'striped',
+    headStyles: { fillColor: [67, 24, 255] },
+    styles: { fontSize: 8 }
+  });
 
-    const finalY = (doc as any).lastAutoTable.finalY + 15;
+  const finalY = (doc as any).lastAutoTable.finalY + 15;
 
-    // 2. Premium Table
-    doc.text("2. Premium Activations", 14, finalY);
+  // 2. Premium Table
+  doc.text("2. Premium Activations", 14, finalY);
 
-    autoTable(doc, {
-      startY: finalY + 5,
-      head: [['Healer', 'Date', 'Amount', 'Session ID']],
-      body: premium.map(p => [
-        p.healer, p.activationDate, `$${p.amount.toFixed(2)}`, p.stripeSessionId
-      ]),
-      theme: 'striped',
-      headStyles: { fillColor: [67, 24, 255] },
-      styles: { fontSize: 8 }
-    });
+  autoTable(doc, {
+    startY: finalY + 5,
+    head: [['Healer', 'Date', 'Amount', 'Session ID']],
+    body: premium.map(p => [
+      p.healer, p.activationDate, `$${p.amount.toFixed(2)}`, p.stripeSessionId
+    ]),
+    theme: 'striped',
+    headStyles: { fillColor: [67, 24, 255] },
+    styles: { fontSize: 8 }
+  });
 
-    doc.save(`Financial_Report_${new Date().getTime()}.pdf`);
+  doc.save(`Financial_Report_${new Date().getTime()}.pdf`);
 };
 
 export const exportFinancialExcel = (bookings: any[], premium: any[]) => {
@@ -220,76 +220,76 @@ export const exportCampaignPdf = (payload: CampaignExportPayload) => {
   doc.setTextColor(27, 37, 75);
   doc.text("1. Campaign Summary", 14, 40);
 
-    autoTable(doc, {
-      startY: 45,
-      head: [['Campaign Name', 'Sent', 'Open Rate', 'CTR', 'Bounce Rate', 'Status']],
-      body: summaryData.map(c => [
-        c.name, c.sent.toLocaleString(), `${c.openRate}%`, `${c.ctr}%`, `${c.bounceRate}%`, c.status
-      ]),
-      theme: 'striped',
-      headStyles: { fillColor: [67, 24, 255] },
-      styles: { fontSize: 9 }
-    });
+  autoTable(doc, {
+    startY: 45,
+    head: [['Campaign Name', 'Sent', 'Open Rate', 'CTR', 'Bounce Rate', 'Status']],
+    body: summaryData.map(c => [
+      c.name, c.sent.toLocaleString(), `${c.openRate}%`, `${c.ctr}%`, `${c.bounceRate}%`, c.status
+    ]),
+    theme: 'striped',
+    headStyles: { fillColor: [67, 24, 255] },
+    styles: { fontSize: 9 }
+  });
 
-    let currentY = (doc as any).lastAutoTable.finalY + 15;
+  let currentY = (doc as any).lastAutoTable.finalY + 15;
 
-    // 2. Reach & Deliverability
-    doc.setFontSize(14);
-    doc.setTextColor(27, 37, 75);
-    doc.text("2. Reach & Deliverability", 14, currentY);
+  // 2. Reach & Deliverability
+  doc.setFontSize(14);
+  doc.setTextColor(27, 37, 75);
+  doc.text("2. Reach & Deliverability", 14, currentY);
 
-    autoTable(doc, {
-      startY: currentY + 5,
-      head: [['Period', 'Sent', 'Delivered', 'Delivery Rate']],
-      body: reachData.map(r => [
-        r.name, r.sent.toLocaleString(), r.delivered.toLocaleString(), `${((r.delivered / r.sent) * 100).toFixed(1)}%`
-      ]),
-      theme: 'striped',
-      headStyles: { fillColor: [67, 24, 255] },
-      styles: { fontSize: 9 }
-    });
+  autoTable(doc, {
+    startY: currentY + 5,
+    head: [['Period', 'Sent', 'Delivered', 'Delivery Rate']],
+    body: reachData.map(r => [
+      r.name, r.sent.toLocaleString(), r.delivered.toLocaleString(), `${((r.delivered / r.sent) * 100).toFixed(1)}%`
+    ]),
+    theme: 'striped',
+    headStyles: { fillColor: [67, 24, 255] },
+    styles: { fontSize: 9 }
+  });
 
-    currentY = (doc as any).lastAutoTable.finalY + 15;
+  currentY = (doc as any).lastAutoTable.finalY + 15;
 
-    // 3. Unsubscribe Rate Trend
-    doc.setFontSize(14);
-    doc.text("3. Unsubscribe Rate Trend", 14, currentY);
+  // 3. Unsubscribe Rate Trend
+  doc.setFontSize(14);
+  doc.text("3. Unsubscribe Rate Trend", 14, currentY);
 
-    autoTable(doc, {
-      startY: currentY + 5,
-      head: [['Period', 'Unsubscribe Rate (%)']],
-      body: unsubscribeTrend.map(u => [
-        u.name, `${u.rate}%`
-      ]),
-      theme: 'striped',
-      headStyles: { fillColor: [255, 91, 91] },
-      styles: { fontSize: 9 }
-    });
+  autoTable(doc, {
+    startY: currentY + 5,
+    head: [['Period', 'Unsubscribe Rate (%)']],
+    body: unsubscribeTrend.map(u => [
+      u.name, `${u.rate}%`
+    ]),
+    theme: 'striped',
+    headStyles: { fillColor: [255, 91, 91] },
+    styles: { fontSize: 9 }
+  });
 
-    currentY = (doc as any).lastAutoTable.finalY + 15;
+  currentY = (doc as any).lastAutoTable.finalY + 15;
 
-    // Check if we need a new page
-    if (currentY > 160) {
-      doc.addPage();
-      currentY = 22;
-    }
+  // Check if we need a new page
+  if (currentY > 160) {
+    doc.addPage();
+    currentY = 22;
+  }
 
-    // 4. Audience Segment Performance
-    doc.setFontSize(14);
-    doc.text("4. Audience Segment Performance", 14, currentY);
+  // 4. Audience Segment Performance
+  doc.setFontSize(14);
+  doc.text("4. Audience Segment Performance", 14, currentY);
 
-    autoTable(doc, {
-      startY: currentY + 5,
-      head: [['Segment', 'Engagement (%)']],
-      body: segmentPerformance.map(s => [
-        s.name, `${s.value}%`
-      ]),
-      theme: 'striped',
-      headStyles: { fillColor: [67, 24, 255] },
-      styles: { fontSize: 9 }
-    });
+  autoTable(doc, {
+    startY: currentY + 5,
+    head: [['Segment', 'Engagement (%)']],
+    body: segmentPerformance.map(s => [
+      s.name, `${s.value}%`
+    ]),
+    theme: 'striped',
+    headStyles: { fillColor: [67, 24, 255] },
+    styles: { fontSize: 9 }
+  });
 
-    doc.save(`Campaign_Report_${new Date().getTime()}.pdf`);
+  doc.save(`Campaign_Report_${new Date().getTime()}.pdf`);
 };
 
 export const exportCampaignExcel = (payload: CampaignExportPayload) => {
@@ -373,104 +373,104 @@ export const exportDisputePdf = (payload: DisputeExportPayload) => {
   doc.setTextColor(163, 174, 208);
   doc.text(`Generated on: ${new Date().toLocaleString()}`, 14, 28);
 
-    // 1. Dispute Rate Trend
-    doc.setFontSize(14);
-    doc.setTextColor(27, 37, 75);
-    doc.text("1. Dispute Rate Trend", 14, 40);
+  // 1. Dispute Rate Trend
+  doc.setFontSize(14);
+  doc.setTextColor(27, 37, 75);
+  doc.text("1. Dispute Rate Trend", 14, 40);
 
-    autoTable(doc, {
-      startY: 45,
-      head: [['Period', 'Dispute Rate (%)']],
-      body: disputeRateTrend.map(d => [d.name, `${d.rate}%`]),
-      theme: 'striped',
-      headStyles: { fillColor: [67, 24, 255] },
-      styles: { fontSize: 9 }
-    });
+  autoTable(doc, {
+    startY: 45,
+    head: [['Period', 'Dispute Rate (%)']],
+    body: disputeRateTrend.map(d => [d.name, `${d.rate}%`]),
+    theme: 'striped',
+    headStyles: { fillColor: [67, 24, 255] },
+    styles: { fontSize: 9 }
+  });
 
-    let currentY = (doc as any).lastAutoTable.finalY + 15;
+  let currentY = (doc as any).lastAutoTable.finalY + 15;
 
-    // 2. Disputes by Type
-    doc.text("2. Disputes by Type", 14, currentY);
-    autoTable(doc, {
-      startY: currentY + 5,
-      head: [['Type', 'Count']],
-      body: disputesByType.map(d => [d.name, String(d.value)]),
-      theme: 'striped',
-      headStyles: { fillColor: [67, 24, 255] },
-      styles: { fontSize: 9 }
-    });
+  // 2. Disputes by Type
+  doc.text("2. Disputes by Type", 14, currentY);
+  autoTable(doc, {
+    startY: currentY + 5,
+    head: [['Type', 'Count']],
+    body: disputesByType.map(d => [d.name, String(d.value)]),
+    theme: 'striped',
+    headStyles: { fillColor: [67, 24, 255] },
+    styles: { fontSize: 9 }
+  });
 
-    currentY = (doc as any).lastAutoTable.finalY + 15;
-    if (currentY > 160) { doc.addPage(); currentY = 20; }
+  currentY = (doc as any).lastAutoTable.finalY + 15;
+  if (currentY > 160) { doc.addPage(); currentY = 20; }
 
-    // 3. Resolution Outcomes
-    doc.text("3. Resolution Outcomes", 14, currentY);
-    autoTable(doc, {
-      startY: currentY + 5,
-      head: [['Period', 'Refund', 'Partial', 'Credit', 'Denied']],
-      body: outcomeBreakdown.map(o => [o.name, String(o.refund), String(o.partial), String(o.credit), String(o.deny)]),
-      theme: 'striped',
-      headStyles: { fillColor: [67, 24, 255] },
-      styles: { fontSize: 9 }
-    });
+  // 3. Resolution Outcomes
+  doc.text("3. Resolution Outcomes", 14, currentY);
+  autoTable(doc, {
+    startY: currentY + 5,
+    head: [['Period', 'Refund', 'Partial', 'Credit', 'Denied']],
+    body: outcomeBreakdown.map(o => [o.name, String(o.refund), String(o.partial), String(o.credit), String(o.deny)]),
+    theme: 'striped',
+    headStyles: { fillColor: [67, 24, 255] },
+    styles: { fontSize: 9 }
+  });
 
-    currentY = (doc as any).lastAutoTable.finalY + 15;
-    if (currentY > 160) { doc.addPage(); currentY = 20; }
+  currentY = (doc as any).lastAutoTable.finalY + 15;
+  if (currentY > 160) { doc.addPage(); currentY = 20; }
 
-    // 4. Disputes by Severity
-    doc.text("4. Disputes by Severity", 14, currentY);
-    autoTable(doc, {
-      startY: currentY + 5,
-      head: [['Period', 'Normal', 'Safety']],
-      body: disputesBySeverity.map(d => [d.name, String(d.normal), String(d.safety)]),
-      theme: 'striped',
-      headStyles: { fillColor: [67, 24, 255] },
-      styles: { fontSize: 9 }
-    });
+  // 4. Disputes by Severity
+  doc.text("4. Disputes by Severity", 14, currentY);
+  autoTable(doc, {
+    startY: currentY + 5,
+    head: [['Period', 'Normal', 'Safety']],
+    body: disputesBySeverity.map(d => [d.name, String(d.normal), String(d.safety)]),
+    theme: 'striped',
+    headStyles: { fillColor: [67, 24, 255] },
+    styles: { fontSize: 9 }
+  });
 
-    currentY = (doc as any).lastAutoTable.finalY + 15;
-    if (currentY > 160) { doc.addPage(); currentY = 20; }
+  currentY = (doc as any).lastAutoTable.finalY + 15;
+  if (currentY > 160) { doc.addPage(); currentY = 20; }
 
-    // 5. Avg. Resolution Time
-    doc.text("5. Avg. Resolution Time Trend", 14, currentY);
-    autoTable(doc, {
-      startY: currentY + 5,
-      head: [['Period', 'Hours']],
-      body: resolutionTimeTrend.map(r => [r.name, String(r.hours)]),
-      theme: 'striped',
-      headStyles: { fillColor: [67, 24, 255] },
-      styles: { fontSize: 9 }
-    });
+  // 5. Avg. Resolution Time
+  doc.text("5. Avg. Resolution Time Trend", 14, currentY);
+  autoTable(doc, {
+    startY: currentY + 5,
+    head: [['Period', 'Hours']],
+    body: resolutionTimeTrend.map(r => [r.name, String(r.hours)]),
+    theme: 'striped',
+    headStyles: { fillColor: [67, 24, 255] },
+    styles: { fontSize: 9 }
+  });
 
-    currentY = (doc as any).lastAutoTable.finalY + 15;
-    if (currentY > 160) { doc.addPage(); currentY = 20; }
+  currentY = (doc as any).lastAutoTable.finalY + 15;
+  if (currentY > 160) { doc.addPage(); currentY = 20; }
 
-    // 6. Dispute Rate by Modality
-    doc.text("6. Dispute Rate by Modality", 14, currentY);
-    autoTable(doc, {
-      startY: currentY + 5,
-      head: [['Modality', 'Dispute Rate (%)']],
-      body: modalityDisputeRate.map(m => [m.name, `${m.value}%`]),
-      theme: 'striped',
-      headStyles: { fillColor: [124, 58, 237] },
-      styles: { fontSize: 9 }
-    });
+  // 6. Dispute Rate by Modality
+  doc.text("6. Dispute Rate by Modality", 14, currentY);
+  autoTable(doc, {
+    startY: currentY + 5,
+    head: [['Modality', 'Dispute Rate (%)']],
+    body: modalityDisputeRate.map(m => [m.name, `${m.value}%`]),
+    theme: 'striped',
+    headStyles: { fillColor: [124, 58, 237] },
+    styles: { fontSize: 9 }
+  });
 
-    currentY = (doc as any).lastAutoTable.finalY + 15;
-    if (currentY > 160) { doc.addPage(); currentY = 20; }
+  currentY = (doc as any).lastAutoTable.finalY + 15;
+  if (currentY > 160) { doc.addPage(); currentY = 20; }
 
-    // 7. Healer Repeat Disputes
-    doc.text("7. Healer Repeat Disputes (Flagged)", 14, currentY);
-    autoTable(doc, {
-      startY: currentY + 5,
-      head: [['Healer Name', 'Disputes', 'Status']],
-      body: healerRepeatDisputes.map(h => [h.name, String(h.disputes), h.status]),
-      theme: 'striped',
-      headStyles: { fillColor: [239, 68, 68] },
-      styles: { fontSize: 9 }
-    });
+  // 7. Healer Repeat Disputes
+  doc.text("7. Healer Repeat Disputes (Flagged)", 14, currentY);
+  autoTable(doc, {
+    startY: currentY + 5,
+    head: [['Healer Name', 'Disputes', 'Status']],
+    body: healerRepeatDisputes.map(h => [h.name, String(h.disputes), h.status]),
+    theme: 'striped',
+    headStyles: { fillColor: [239, 68, 68] },
+    styles: { fontSize: 9 }
+  });
 
-    doc.save(`Dispute_Report_${new Date().getTime()}.pdf`);
+  doc.save(`Dispute_Report_${new Date().getTime()}.pdf`);
 };
 
 export const exportDisputeExcel = (payload: DisputeExportPayload) => {
@@ -557,16 +557,16 @@ export interface GrowthExportPayload {
 }
 
 export const exportGrowthPdf = (payload: GrowthExportPayload) => {
-  const { 
+  const {
     summaryData,
-    registrationTrend, 
-    churnIndicators, 
-    healerFunnel, 
-    seekerFunnel, 
-    subscriptionCohort, 
-    retentionData 
+    registrationTrend,
+    churnIndicators,
+    healerFunnel,
+    seekerFunnel,
+    subscriptionCohort,
+    retentionData
   } = payload;
-  
+
   const doc = new jsPDF('p', 'mm', 'a4');
 
   doc.setFontSize(22);
@@ -577,110 +577,110 @@ export const exportGrowthPdf = (payload: GrowthExportPayload) => {
   doc.setTextColor(163, 174, 208);
   doc.text(`Generated on: ${new Date().toLocaleString()}`, 14, 28);
 
-    // 1. Summary Metrics
-    doc.setFontSize(14);
-    doc.setTextColor(27, 37, 75);
-    doc.text("1. Key Performance Summary", 14, 40);
+  // 1. Summary Metrics
+  doc.setFontSize(14);
+  doc.setTextColor(27, 37, 75);
+  doc.text("1. Key Performance Summary", 14, 40);
 
-    autoTable(doc, {
-      startY: 45,
-      head: [['Metric', 'Value', 'Context']],
-      body: summaryData.map(s => [s.title, s.value, s.description || '-']),
-      theme: 'grid',
-      headStyles: { fillColor: [67, 24, 255] },
-      styles: { fontSize: 9 }
-    });
+  autoTable(doc, {
+    startY: 45,
+    head: [['Metric', 'Value', 'Context']],
+    body: summaryData.map(s => [s.title, s.value, s.description || '-']),
+    theme: 'grid',
+    headStyles: { fillColor: [67, 24, 255] },
+    styles: { fontSize: 9 }
+  });
 
-    let currentY = (doc as any).lastAutoTable.finalY + 15;
+  let currentY = (doc as any).lastAutoTable.finalY + 15;
 
-    // 2. Registration Trend
-    doc.setFontSize(14);
-    doc.setTextColor(27, 37, 75);
-    doc.text("2. Registration Trend", 14, currentY);
+  // 2. Registration Trend
+  doc.setFontSize(14);
+  doc.setTextColor(27, 37, 75);
+  doc.text("2. Registration Trend", 14, currentY);
 
-    autoTable(doc, {
-      startY: currentY + 5,
-      head: [['Period', 'Seekers', 'Healers', 'Total']],
-      body: registrationTrend.map(r => [r.name, String(r.seekers), String(r.healers), String(r.seekers + r.healers)]),
-      theme: 'striped',
-      headStyles: { fillColor: [67, 24, 255] },
-      styles: { fontSize: 9 }
-    });
+  autoTable(doc, {
+    startY: currentY + 5,
+    head: [['Period', 'Seekers', 'Healers', 'Total']],
+    body: registrationTrend.map(r => [r.name, String(r.seekers), String(r.healers), String(r.seekers + r.healers)]),
+    theme: 'striped',
+    headStyles: { fillColor: [67, 24, 255] },
+    styles: { fontSize: 9 }
+  });
 
-    currentY = (doc as any).lastAutoTable.finalY + 15;
+  currentY = (doc as any).lastAutoTable.finalY + 15;
 
-    // 3. Churn Indicators
-    doc.text("3. Churn Indicators (Inactive)", 14, currentY);
-    autoTable(doc, {
-      startY: currentY + 5,
-      head: [['Period', 'Seekers', 'Healers']],
-      body: churnIndicators.map(c => [c.name, String(c.seekers), String(c.healers)]),
-      theme: 'striped',
-      headStyles: { fillColor: [255, 91, 91] },
-      styles: { fontSize: 9 }
-    });
+  // 3. Churn Indicators
+  doc.text("3. Churn Indicators (Inactive)", 14, currentY);
+  autoTable(doc, {
+    startY: currentY + 5,
+    head: [['Period', 'Seekers', 'Healers']],
+    body: churnIndicators.map(c => [c.name, String(c.seekers), String(c.healers)]),
+    theme: 'striped',
+    headStyles: { fillColor: [255, 91, 91] },
+    styles: { fontSize: 9 }
+  });
 
-    currentY = (doc as any).lastAutoTable.finalY + 15;
-    if (currentY > 240) { doc.addPage(); currentY = 20; }
+  currentY = (doc as any).lastAutoTable.finalY + 15;
+  if (currentY > 240) { doc.addPage(); currentY = 20; }
 
-    // 4. Conversion Funnels (Combined summary)
-    doc.text("4. Conversion Funnels Summary", 14, currentY);
-    autoTable(doc, {
-      startY: currentY + 5,
-      head: [['Funnel Step', 'Healers', 'Seeker Step', 'Seekers']],
-      body: healerFunnel.map((h, i) => [
-        h.step, String(h.value), 
-        seekerFunnel[i]?.step || '-', seekerFunnel[i] ? String(seekerFunnel[i].value) : '-'
-      ]),
-      theme: 'striped',
-      headStyles: { fillColor: [1, 163, 180] },
-      styles: { fontSize: 8 }
-    });
+  // 4. Conversion Funnels (Combined summary)
+  doc.text("4. Conversion Funnels Summary", 14, currentY);
+  autoTable(doc, {
+    startY: currentY + 5,
+    head: [['Funnel Step', 'Healers', 'Seeker Step', 'Seekers']],
+    body: healerFunnel.map((h, i) => [
+      h.step, String(h.value),
+      seekerFunnel[i]?.step || '-', seekerFunnel[i] ? String(seekerFunnel[i].value) : '-'
+    ]),
+    theme: 'striped',
+    headStyles: { fillColor: [1, 163, 180] },
+    styles: { fontSize: 8 }
+  });
 
-    doc.addPage();
-    currentY = 20;
+  doc.addPage();
+  currentY = 20;
 
-    // 5. Subscription & Retention
-    doc.text("5. Subscription & Retention Metrics", 14, currentY);
-    
-    // Upgrade Rate
-    autoTable(doc, {
-      startY: currentY + 5,
-      head: [['Cohort', 'Premium Upgrade Rate (%)']],
-      body: subscriptionCohort.map(s => [s.name, `${s.rate}%`]),
-      theme: 'striped',
-      headStyles: { fillColor: [124, 58, 237] },
-      styles: { fontSize: 9 }
-    });
+  // 5. Subscription & Retention
+  doc.text("5. Subscription & Retention Metrics", 14, currentY);
 
-    currentY = (doc as any).lastAutoTable.finalY + 15;
+  // Upgrade Rate
+  autoTable(doc, {
+    startY: currentY + 5,
+    head: [['Cohort', 'Premium Upgrade Rate (%)']],
+    body: subscriptionCohort.map(s => [s.name, `${s.rate}%`]),
+    theme: 'striped',
+    headStyles: { fillColor: [124, 58, 237] },
+    styles: { fontSize: 9 }
+  });
 
-    // Retention Heatmap (Table format)
-    doc.text("6. Monthly Retention Cohorts", 14, currentY);
-    autoTable(doc, {
-      startY: currentY + 5,
-      head: [['Cohort', 'Size', 'M0', 'M1', 'M2', 'M3']],
-      body: retentionData.map(r => [
-        r.cohort, r.users.toLocaleString(), 
-        `${r.m0}%`, r.m1 ? `${r.m1}%` : '-', r.m2 ? `${r.m2}%` : '-', r.m3 ? `${r.m3}%` : '-'
-      ]),
-      theme: 'grid',
-      headStyles: { fillColor: [1, 163, 180] },
-      styles: { fontSize: 9 }
-    });
+  currentY = (doc as any).lastAutoTable.finalY + 15;
 
-    doc.save(`Growth_Report_${new Date().getTime()}.pdf`);
+  // Retention Heatmap (Table format)
+  doc.text("6. Monthly Retention Cohorts", 14, currentY);
+  autoTable(doc, {
+    startY: currentY + 5,
+    head: [['Cohort', 'Size', 'M0', 'M1', 'M2', 'M3']],
+    body: retentionData.map(r => [
+      r.cohort, r.users.toLocaleString(),
+      `${r.m0}%`, r.m1 ? `${r.m1}%` : '-', r.m2 ? `${r.m2}%` : '-', r.m3 ? `${r.m3}%` : '-'
+    ]),
+    theme: 'grid',
+    headStyles: { fillColor: [1, 163, 180] },
+    styles: { fontSize: 9 }
+  });
+
+  doc.save(`Growth_Report_${new Date().getTime()}.pdf`);
 };
 
 export const exportGrowthExcel = (payload: GrowthExportPayload) => {
-  const { 
+  const {
     summaryData,
-    registrationTrend, 
-    churnIndicators, 
-    healerFunnel, 
-    seekerFunnel, 
-    subscriptionCohort, 
-    retentionData 
+    registrationTrend,
+    churnIndicators,
+    healerFunnel,
+    seekerFunnel,
+    subscriptionCohort,
+    retentionData
   } = payload;
   const wb = XLSX.utils.book_new();
 
@@ -702,16 +702,27 @@ export const exportGrowthExcel = (payload: GrowthExportPayload) => {
 export interface BookingExportPayload {
   summaryData: any[];
   bookingVolume: any[];
+  avgBookingValue: any[];
   modalityPopularity: any[];
   durationDistribution: any[];
   completionRate: any[];
-  avgBookingValue: any[];
+  formatBreakdown: any[];
   topHealersByCount: any[];
   topHealersByRevenue: any[];
 }
 
 export const exportBookingReportPdf = (payload: BookingExportPayload) => {
-  const { summaryData, bookingVolume, modalityPopularity, durationDistribution, completionRate, topHealersByCount } = payload;
+  const { 
+    summaryData, 
+    bookingVolume, 
+    avgBookingValue, 
+    modalityPopularity, 
+    durationDistribution, 
+    completionRate, 
+    formatBreakdown,
+    topHealersByCount,
+    topHealersByRevenue
+  } = payload;
   const doc = new jsPDF('p', 'mm', 'a4');
 
   doc.setFontSize(22);
@@ -739,7 +750,7 @@ export const exportBookingReportPdf = (payload: BookingExportPayload) => {
     let currentY = (doc as any).lastAutoTable.finalY + 15;
 
     // 2. Booking Volume
-    doc.text("2. Booking Volume Trend", 14, currentY);
+    doc.text("2. Booking Volume", 14, currentY);
     autoTable(doc, {
       startY: currentY + 5,
       head: [['Period', 'Total Bookings']],
@@ -750,10 +761,24 @@ export const exportBookingReportPdf = (payload: BookingExportPayload) => {
     });
 
     currentY = (doc as any).lastAutoTable.finalY + 15;
-    if (currentY > 160) { doc.addPage(); currentY = 20; }
+    if (currentY > 240) { doc.addPage(); currentY = 20; }
 
-    // 3. Modality Popularity
-    doc.text("3. Modality Popularity", 14, currentY);
+    // 3. Avg Booking Value
+    doc.text("3. Average Booking Value ($)", 14, currentY);
+    autoTable(doc, {
+      startY: currentY + 5,
+      head: [['Period', 'Value ($)']],
+      body: avgBookingValue.map(v => [v.name, `$${v.value}`]),
+      theme: 'striped',
+      headStyles: { fillColor: [1, 163, 180] },
+      styles: { fontSize: 9 }
+    });
+
+    currentY = (doc as any).lastAutoTable.finalY + 15;
+    if (currentY > 240) { doc.addPage(); currentY = 20; }
+
+    // 4. Modality Popularity
+    doc.text("4. Modality Popularity", 14, currentY);
     autoTable(doc, {
       startY: currentY + 5,
       head: [['Modality', 'Sessions Count']],
@@ -764,17 +789,42 @@ export const exportBookingReportPdf = (payload: BookingExportPayload) => {
     });
 
     currentY = (doc as any).lastAutoTable.finalY + 15;
-    if (currentY > 160) { doc.addPage(); currentY = 20; }
+    if (currentY > 240) { doc.addPage(); currentY = 20; }
 
-    // 4. Session Length & Format
-    doc.text("4. Session Metrics (Duration & Completion)", 14, currentY);
+    // 5. Session Length Distribution
+    doc.text("5. Session Length Distribution", 14, currentY);
     autoTable(doc, {
       startY: currentY + 5,
-      head: [['Metric', 'Detail', 'Count/Rate']],
-      body: [
-        ...durationDistribution.map(d => ['Duration', d.length, String(d.count)]),
-        ...completionRate.map(c => ['Lifecycle', c.status, `${c.rate}%`])
-      ],
+      head: [['Length', 'Count']],
+      body: durationDistribution.map(d => [d.length, String(d.count)]),
+      theme: 'striped',
+      headStyles: { fillColor: [1, 163, 180] },
+      styles: { fontSize: 9 }
+    });
+
+    currentY = (doc as any).lastAutoTable.finalY + 15;
+    if (currentY > 240) { doc.addPage(); currentY = 20; }
+
+    // 6. Completion Rate
+    doc.text("6. Booking Lifecycle Completion Rate (%)", 14, currentY);
+    autoTable(doc, {
+      startY: currentY + 5,
+      head: [['Status', 'Rate (%)']],
+      body: completionRate.map(c => [c.status, `${c.rate}%`]),
+      theme: 'striped',
+      headStyles: { fillColor: [124, 58, 237] },
+      styles: { fontSize: 9 }
+    });
+
+    currentY = (doc as any).lastAutoTable.finalY + 15;
+    if (currentY > 240) { doc.addPage(); currentY = 20; }
+
+    // 7. Format Breakdown
+    doc.text("7. Format Breakdown (Remote vs In-Person)", 14, currentY);
+    autoTable(doc, {
+      startY: currentY + 5,
+      head: [['Format', 'Value (%)']],
+      body: formatBreakdown.map(f => [f.name, `${f.value}%`]),
       theme: 'striped',
       headStyles: { fillColor: [1, 163, 180] },
       styles: { fontSize: 9 }
@@ -783,14 +833,27 @@ export const exportBookingReportPdf = (payload: BookingExportPayload) => {
     doc.addPage();
     currentY = 20;
 
-    // 5. Top Practitioners
-    doc.text("5. Top 10 Practitioners by Performance", 14, currentY);
+    // 8. Top Healers by Count
+    doc.text("8. Top 10 Practitioners by Booking Count", 14, currentY);
     autoTable(doc, {
       startY: currentY + 5,
-      head: [['Practitioner', 'Bookings', 'Revenue', 'Rating']],
-      body: topHealersByCount.map(h => [h.name, String(h.count), `$${h.revenue.toLocaleString()}`, `${h.rating}`]),
+      head: [['Practitioner', 'Bookings', 'Rating']],
+      body: topHealersByCount.map(h => [h.name, String(h.count), `${h.rating}`]),
       theme: 'striped',
-      headStyles: { fillColor: [124, 58, 237] },
+      headStyles: { fillColor: [67, 24, 255] },
+      styles: { fontSize: 9 }
+    });
+
+    currentY = (doc as any).lastAutoTable.finalY + 15;
+
+    // 9. Top Healers by Revenue
+    doc.text("9. Top 10 Practitioners by Revenue ($)", 14, currentY);
+    autoTable(doc, {
+      startY: currentY + 5,
+      head: [['Practitioner', 'Revenue ($)', 'Rating']],
+      body: topHealersByRevenue.map(h => [h.name, `$${h.revenue.toLocaleString()}`, `${h.rating}`]),
+      theme: 'striped',
+      headStyles: { fillColor: [1, 163, 180] },
       styles: { fontSize: 9 }
     });
 
@@ -798,16 +861,28 @@ export const exportBookingReportPdf = (payload: BookingExportPayload) => {
 };
 
 export const exportBookingReportExcel = (payload: BookingExportPayload) => {
-  const { summaryData, bookingVolume, modalityPopularity, durationDistribution, completionRate, avgBookingValue, topHealersByCount } = payload;
+  const { 
+    summaryData, 
+    bookingVolume, 
+    avgBookingValue, 
+    modalityPopularity, 
+    durationDistribution, 
+    completionRate, 
+    formatBreakdown,
+    topHealersByCount,
+    topHealersByRevenue
+  } = payload;
   const wb = XLSX.utils.book_new();
 
   XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(summaryData), "Summary Metrics");
   XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(bookingVolume), "Booking Volume");
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(avgBookingValue), "Avg Booking Value");
   XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(modalityPopularity), "Modality Popularity");
-  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(durationDistribution), "Session Duration");
-  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(completionRate), "Lifecycle Completion");
-  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(avgBookingValue), "Avg Value Trend");
-  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(topHealersByCount), "Top Practitioners");
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(durationDistribution), "Length Distribution");
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(completionRate), "Completion Rate");
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(formatBreakdown), "Format Breakdown");
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(topHealersByCount), "Top Healers by Count");
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(topHealersByRevenue), "Top Healers by Revenue");
 
   XLSX.writeFile(wb, `Booking_Report_${new Date().getTime()}.xlsx`);
 };
@@ -828,7 +903,16 @@ export interface RetreatExportPayload {
 }
 
 export const exportRetreatReportPdf = (payload: RetreatExportPayload) => {
-  const { summaryData, retreatCountTrend, bookingRateTrend, retreatPerformanceData } = payload;
+  const { 
+    summaryData, 
+    retreatCountTrend, 
+    bookingRateTrend, 
+    revenueByEvent,
+    topLocations,
+    avgPriceTrend,
+    durationBreakdown,
+    retreatPerformanceData 
+  } = payload;
   const doc = new jsPDF('p', 'mm', 'a4');
 
   doc.setFontSize(22);
@@ -855,24 +939,92 @@ export const exportRetreatReportPdf = (payload: RetreatExportPayload) => {
 
   let currentY = (doc as any).lastAutoTable.finalY + 15;
 
-  // 2. Market Trends
-  doc.text("2. Market Trends (Listings & Booking Rate)", 14, currentY);
+  // 2. Active Retreats Trend
+  doc.text("2. Active Retreats Count Trend", 14, currentY);
   autoTable(doc, {
     startY: currentY + 5,
-    head: [['Period', 'Active Retreats', 'Booking Rate (%)']],
-    body: retreatCountTrend.map((t, i) => [
-      t.name, String(t.active), `${bookingRateTrend[i]?.rate || '-'}%`
-    ]),
+    head: [['Period', 'Active']],
+    body: retreatCountTrend.map(t => [t.name, String(t.active)]),
     theme: 'striped',
     headStyles: { fillColor: [67, 24, 255] },
     styles: { fontSize: 9 }
   });
 
   currentY = (doc as any).lastAutoTable.finalY + 15;
-  if (currentY > 160) { doc.addPage(); currentY = 20; }
+  if (currentY > 240) { doc.addPage(); currentY = 20; }
 
-  // 3. Event Performance
-  doc.text("3. Retreat Event Performance Overview", 14, currentY);
+  // 3. Booking Rate Trend
+  doc.text("3. Booking Rate over time (%)", 14, currentY);
+  autoTable(doc, {
+    startY: currentY + 5,
+    head: [['Period', 'Rate (%)']],
+    body: bookingRateTrend.map(t => [t.name, `${t.rate}%`]),
+    theme: 'striped',
+    headStyles: { fillColor: [1, 163, 180] },
+    styles: { fontSize: 9 }
+  });
+
+  currentY = (doc as any).lastAutoTable.finalY + 15;
+  if (currentY > 240) { doc.addPage(); currentY = 20; }
+
+  // 4. Revenue by Event
+  doc.text("4. Revenue by Retreat Event ($)", 14, currentY);
+  autoTable(doc, {
+    startY: currentY + 5,
+    head: [['Event', 'Revenue ($)']],
+    body: revenueByEvent.map(e => [e.event, `$${e.revenue.toLocaleString()}`]),
+    theme: 'striped',
+    headStyles: { fillColor: [67, 24, 255] },
+    styles: { fontSize: 9 }
+  });
+
+  currentY = (doc as any).lastAutoTable.finalY + 15;
+  if (currentY > 240) { doc.addPage(); currentY = 20; }
+
+  // 5. Top Destinations
+  doc.text("5. Top Destinations for Retreats", 14, currentY);
+  autoTable(doc, {
+    startY: currentY + 5,
+    head: [['Location', 'Count']],
+    body: topLocations.map(l => [l.location, String(l.count)]),
+    theme: 'striped',
+    headStyles: { fillColor: [1, 163, 180] },
+    styles: { fontSize: 9 }
+  });
+
+  currentY = (doc as any).lastAutoTable.finalY + 15;
+  if (currentY > 240) { doc.addPage(); currentY = 20; }
+
+  // 6. Average Price Trend
+  doc.text("6. Average Retreat Price per Person ($)", 14, currentY);
+  autoTable(doc, {
+    startY: currentY + 5,
+    head: [['Period', 'Price ($)']],
+    body: avgPriceTrend.map(t => [t.name, `$${t.price.toLocaleString()}`]),
+    theme: 'striped',
+    headStyles: { fillColor: [124, 58, 237] },
+    styles: { fontSize: 9 }
+  });
+
+  currentY = (doc as any).lastAutoTable.finalY + 15;
+  if (currentY > 240) { doc.addPage(); currentY = 20; }
+
+  // 7. Duration Breakdown
+  doc.text("7. Retreats by Duration", 14, currentY);
+  autoTable(doc, {
+    startY: currentY + 5,
+    head: [['Duration', 'Value (%)']],
+    body: durationBreakdown.map(d => [d.name, `${d.value}%`]),
+    theme: 'striped',
+    headStyles: { fillColor: [1, 163, 180] },
+    styles: { fontSize: 9 }
+  });
+
+  doc.addPage();
+  currentY = 20;
+
+  // 8. Performance Overview
+  doc.text("8. Retreat Event Performance Overview", 14, currentY);
   autoTable(doc, {
     startY: currentY + 5,
     head: [['Event Name', 'Revenue', 'Booked Rate', 'Avg Price']],
@@ -880,7 +1032,7 @@ export const exportRetreatReportPdf = (payload: RetreatExportPayload) => {
       e.event, `$${e.revenue.toLocaleString()}`, `${e.rate}%`, `$${e.price.toLocaleString()}`
     ]),
     theme: 'striped',
-    headStyles: { fillColor: [1, 163, 180] },
+    headStyles: { fillColor: [67, 24, 255] },
     styles: { fontSize: 9 }
   });
 

@@ -22,10 +22,11 @@ interface BaseAreaChartProps {
   data: any[];
   areas: AreaConfig[];
   yAxisTickFormatter?: (value: any) => string;
+  xAxisKey?: string;
   className?: string;
 }
 
-export function BaseAreaChart({ title, data, areas, yAxisTickFormatter, className }: BaseAreaChartProps) {
+export function BaseAreaChart({ title, data, areas, yAxisTickFormatter, xAxisKey = "name", className }: BaseAreaChartProps) {
   return (
     <Card className={`rounded-3xl border-none shadow-[0_10px_30px_0_rgba(11,20,55,0.06)] dark:bg-[#111C44] min-w-0 h-full flex flex-col ${className || ""}`}>
       <CardHeader className="shrink-0">
@@ -45,7 +46,7 @@ export function BaseAreaChart({ title, data, areas, yAxisTickFormatter, classNam
               </defs>
               <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E2E8F0" opacity={0.5} />
               <XAxis 
-                dataKey="name" 
+                dataKey={xAxisKey} 
                 axisLine={false} 
                 tickLine={false} 
                 tick={{ fill: '#A3AED0', fontSize: 12 }}

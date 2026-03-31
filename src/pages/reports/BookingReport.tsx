@@ -118,7 +118,7 @@ const columns: ColumnDef<any>[] = [
 ];
 
 export function BookingReport() {
-  const [dateRange, setDateRange] = useState("Last 30 Days");
+  const [dateRange, setDateRange] = useState("This Month");
   const [customStartDate, setCustomStartDate] = useState("");
   const [customEndDate, setCustomEndDate] = useState("");
   const [granularity, setGranularity] = useState("Daily");
@@ -142,9 +142,9 @@ export function BookingReport() {
         </div>
         <div className="flex flex-col sm:flex-row items-center gap-3">
           <GranularityTabs granularity={granularity} setGranularity={setGranularity} />
-          <DateRangePicker 
-            dateRange={dateRange} 
-            setDateRange={setDateRange} 
+          <DateRangePicker
+            dateRange={dateRange}
+            setDateRange={setDateRange}
             customStartDate={customStartDate}
             setCustomStartDate={setCustomStartDate}
             customEndDate={customEndDate}
@@ -154,20 +154,22 @@ export function BookingReport() {
             onExportExcel={() => exportBookingReportExcel({ 
               summaryData, 
               bookingVolume, 
+              avgBookingValue,
               modalityPopularity, 
               durationDistribution, 
               completionRate, 
-              avgBookingValue, 
+              formatBreakdown,
               topHealersByCount,
               topHealersByRevenue
             })} 
             onExportPdf={() => exportBookingReportPdf({ 
               summaryData, 
               bookingVolume, 
+              avgBookingValue,
               modalityPopularity, 
               durationDistribution, 
               completionRate, 
-              avgBookingValue, 
+              formatBreakdown,
               topHealersByCount,
               topHealersByRevenue
             })} 
@@ -185,9 +187,9 @@ export function BookingReport() {
             description={card.description}
             icon={
               card.title.includes("Total") ? <Calendar className="h-6 w-6 text-[#4318FF]" /> :
-              card.title.includes("Value") ? <DollarSign className="h-6 w-6 text-emerald-500" /> :
-              card.title.includes("Repeat") ? <Users className="h-6 w-6 text-[#01A3B4]" /> :
-              <CheckCircle2 className="h-6 w-6 text-amber-500" />
+                card.title.includes("Value") ? <DollarSign className="h-6 w-6 text-emerald-500" /> :
+                  card.title.includes("Repeat") ? <Users className="h-6 w-6 text-[#01A3B4]" /> :
+                    <CheckCircle2 className="h-6 w-6 text-amber-500" />
             }
           />
         ))}
@@ -219,6 +221,7 @@ export function BookingReport() {
         <BaseBarChart
           title="Session Length Distribution"
           data={durationDistribution}
+          xAxisKey="length"
           bars={[{ name: "Sessions", dataKey: "count", fill: "#01A3B4" }]}
         />
       </div>
@@ -228,6 +231,7 @@ export function BookingReport() {
         <BaseAreaChart
           title="Booking Lifecycle Completion Rate (%)"
           data={completionRate}
+          xAxisKey="status"
           areas={[{ name: "Success %", dataKey: "rate", stroke: "#7C3AED" }]}
         />
         <BasePieChart
@@ -263,7 +267,9 @@ export function BookingReport() {
             Top Performers
           </div>
         </div>
-        <DataTable columns={columns} data={topHealersByCount} />
+        <div className="overflow-x-auto -mx-6 px-6">
+          <DataTable columns={columns} data={topHealersByCount} />
+        </div>
       </div>
 
     </div>

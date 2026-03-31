@@ -26,8 +26,8 @@ export function ConfirmModal({
   return (
     <DialogPrimitive.Root open={isOpen} onOpenChange={onClose}>
       <DialogPrimitive.Portal>
-        <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm animate-in fade-in duration-200" />
-        <DialogPrimitive.Content className="fixed left-[50%] top-[50%] z-50 w-full max-w-md translate-x-[-50%] translate-y-[-50%] rounded-[24px] bg-white dark:bg-[#111C44] p-8 shadow-2xl animate-in zoom-in-95 duration-200 focus:outline-none border border-transparent dark:border-white/5">
+        <DialogPrimitive.Overlay className="fixed inset-0 z-[200] bg-black/40 backdrop-blur-sm animate-in fade-in duration-200" />
+        <DialogPrimitive.Content className="fixed left-[50%] top-[50%] z-[200] w-full max-w-md translate-x-[-50%] translate-y-[-50%] rounded-[24px] bg-white dark:bg-[#111C44] p-8 shadow-2xl animate-in zoom-in-95 duration-200 focus:outline-none border border-transparent dark:border-white/5">
           <div className="flex flex-col items-center text-center">
             <div className={`mb-6 flex h-16 w-16 items-center justify-center rounded-2xl ${
               variant === 'destructive' ? 'bg-red-50 text-red-500 dark:bg-red-900/20' : 'bg-blue-50 text-blue-500 dark:bg-blue-900/20'

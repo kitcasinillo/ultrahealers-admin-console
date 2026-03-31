@@ -82,7 +82,7 @@ export function UserReport() {
     const isToday = dateRange === "Today";
     const isWeek = dateRange === "This Week";
     const isCustom = dateRange === "Custom Range";
-    
+
     // Granularity multipliers
     const isWeekly = granularity === "Weekly";
     const isMonthly = granularity === "Monthly";
@@ -93,25 +93,25 @@ export function UserReport() {
 
     return {
       summary: [
-        { 
-          title: `New Healers (${granularity})`, 
-          value: isToday ? "+8" : isWeek ? "+42" : `+${Math.round(145 * granMult)}`, 
-          description: `Total for selected ${granularity.toLowerCase()} period` 
+        {
+          title: `New Healers (${granularity})`,
+          value: isToday ? "+8" : isWeek ? "+42" : `+${Math.round(145 * granMult)}`,
+          description: `Total for selected ${granularity.toLowerCase()} period`
         },
-        { 
-          title: "Conversion Rate", 
-          value: isToday ? "1.2%" : isWeek ? "2.5%" : `${(4.2 * granMult).toFixed(1)}%`, 
-          description: "Healer conversions" 
+        {
+          title: "Conversion Rate",
+          value: isToday ? "1.2%" : isWeek ? "2.5%" : `${(4.2 * granMult).toFixed(1)}%`,
+          description: "Healer conversions"
         },
-        { 
-          title: "At Risk Users", 
-          value: Math.round(450 / granMult).toString(), 
-          description: `Trends for ${granularity}` 
+        {
+          title: "At Risk Users",
+          value: Math.round(450 / granMult).toString(),
+          description: `Trends for ${granularity}`
         },
-        { 
-          title: "Avg. LTV", 
-          value: isToday ? "$150.00" : `$${(420.50 * granMult).toFixed(2)}`, 
-          description: "Estimated value" 
+        {
+          title: "Avg. LTV",
+          value: isToday ? "$150.00" : `$${(420.50 * granMult).toFixed(2)}`,
+          description: "Estimated value"
         },
       ],
       registration: isToday ? registrationTrend.slice(-1) : isWeek ? registrationTrend.slice(-3) : registrationTrend,
@@ -162,7 +162,8 @@ export function UserReport() {
               healerFunnel: currentHealerFunnel,
               seekerFunnel: currentSeekerFunnel,
               subscriptionCohort: currentSubscriptionCohort,
-              retentionData: currentRetentionData
+              retentionData: currentRetentionData,
+              granularity
             })}
             onExportPdf={() => exportGrowthPdf({
               summaryData,
@@ -171,7 +172,8 @@ export function UserReport() {
               healerFunnel: currentHealerFunnel,
               seekerFunnel: currentSeekerFunnel,
               subscriptionCohort: currentSubscriptionCohort,
-              retentionData: currentRetentionData
+              retentionData: currentRetentionData,
+              granularity
             })}
           />
         </div>

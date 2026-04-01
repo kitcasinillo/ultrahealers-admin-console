@@ -845,6 +845,7 @@ export const exportBookingReportPdf = (payload: BookingExportPayload) => {
     });
 
     currentY = (doc as any).lastAutoTable.finalY + 15;
+    if (currentY > 240) { doc.addPage(); currentY = 20; }
 
     // 9. Top Healers by Revenue
     doc.text("9. Top 10 Practitioners by Revenue ($)", 14, currentY);
@@ -854,6 +855,25 @@ export const exportBookingReportPdf = (payload: BookingExportPayload) => {
       body: topHealersByRevenue.map(h => [h.name, `$${h.revenue.toLocaleString()}`, `${h.rating}`]),
       theme: 'striped',
       headStyles: { fillColor: [1, 163, 180] },
+      styles: { fontSize: 9 }
+    });
+
+    currentY = (doc as any).lastAutoTable.finalY + 15;
+    if (currentY > 240) { doc.addPage(); currentY = 20; }
+
+    // 10. Practitioner Performance Summary
+    doc.text("10. Practitioner Performance Summary", 14, currentY);
+    autoTable(doc, {
+      startY: currentY + 5,
+      head: [['Practitioner', 'Bookings', 'Revenue ($)', 'Avg Rating']],
+      body: topHealersByCount.map(h => [
+        h.name, 
+        String(h.count), 
+        `$${h.revenue.toLocaleString()}`, 
+        `${h.rating} ★`
+      ]),
+      theme: 'grid',
+      headStyles: { fillColor: [67, 24, 255] },
       styles: { fontSize: 9 }
     });
 
@@ -874,15 +894,50 @@ export const exportBookingReportExcel = (payload: BookingExportPayload) => {
   } = payload;
   const wb = XLSX.utils.book_new();
 
-  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(summaryData), "Summary Metrics");
-  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(bookingVolume), "Booking Volume");
-  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(avgBookingValue), "Avg Booking Value");
-  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(modalityPopularity), "Modality Popularity");
-  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(durationDistribution), "Length Distribution");
-  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(completionRate), "Completion Rate");
-  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(formatBreakdown), "Format Breakdown");
-  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(topHealersByCount), "Top Healers by Count");
-  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(topHealersByRevenue), "Top Healers by Revenue");
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(
+    summaryData.map(s => ({ 'Metric': s.title, 'Value': s.value, 'Context': s.description || '-' }))
+  ), "Summary Metrics");
+
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(
+    bookingVolume.map(v => ({ 'Period': v.name, 'Total Bookings': v.bookings }))
+  ), "Booking Volume");
+
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(
+    avgBookingValue.map(v => ({ 'Period': v.name, 'Value ($)': v.value }))
+  ), "Avg Booking Value");
+
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(
+    modalityPopularity.map(m => ({ 'Modality': m.modality, 'Sessions Count': m.sessions }))
+  ), "Modality Popularity");
+
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(
+    durationDistribution.map(d => ({ 'Length': d.length, 'Count': d.count }))
+  ), "Length Distribution");
+
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(
+    completionRate.map(c => ({ 'Status': c.status, 'Rate (%)': c.rate }))
+  ), "Completion Rate");
+
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(
+    formatBreakdown.map(f => ({ 'Format': f.name, 'Value (%)': f.value }))
+  ), "Format Breakdown");
+
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(
+    topHealersByCount.map(h => ({ 'Practitioner': h.name, 'Bookings': h.count, 'Rating': h.rating }))
+  ), "Top Healers by Count");
+
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(
+    topHealersByRevenue.map(h => ({ 'Practitioner': h.name, 'Revenue ($)': h.revenue, 'Rating': h.rating }))
+  ), "Top Healers by Revenue");
+
+  // Practitioner Performance Summary (Table)
+  const performanceData = topHealersByCount.map(h => ({
+    'Practitioner': h.name,
+    'Bookings': h.count,
+    'Revenue ($)': h.revenue,
+    'Avg Rating': h.rating
+  }));
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(performanceData), "Practitioner Performance");
 
   XLSX.writeFile(wb, `Booking_Report_${new Date().getTime()}.xlsx`);
 };
@@ -1043,14 +1098,42 @@ export const exportRetreatReportExcel = (payload: RetreatExportPayload) => {
   const { summaryData, retreatCountTrend, bookingRateTrend, revenueByEvent, topLocations, avgPriceTrend, durationBreakdown, retreatPerformanceData } = payload;
   const wb = XLSX.utils.book_new();
 
-  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(summaryData), "Market Summary");
-  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(retreatCountTrend), "Active Listing Trend");
-  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(bookingRateTrend), "Booking Rate Trend");
-  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(revenueByEvent), "Revenue by Event");
-  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(topLocations), "Top Destinations");
-  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(avgPriceTrend), "Price Trends");
-  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(durationBreakdown), "Duration Breakdown");
-  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(retreatPerformanceData), "Performance Overview");
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(
+    summaryData.map(s => ({ 'Metric': s.title, 'Value': s.value, 'Context': s.description || '-' }))
+  ), "Market Summary");
+
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(
+    retreatCountTrend.map(t => ({ 'Period': t.name, 'Active': t.active }))
+  ), "Active Listing Trend");
+
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(
+    bookingRateTrend.map(t => ({ 'Period': t.name, 'Rate (%)': t.rate }))
+  ), "Booking Rate Trend");
+
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(
+    revenueByEvent.map(e => ({ 'Event': e.event, 'Revenue ($)': e.revenue }))
+  ), "Revenue by Event");
+
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(
+    topLocations.map(l => ({ 'Location': l.location, 'Count': l.count }))
+  ), "Top Destinations");
+
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(
+    avgPriceTrend.map(t => ({ 'Period': t.name, 'Price ($)': t.price }))
+  ), "Price Trends");
+
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(
+    durationBreakdown.map(d => ({ 'Duration': d.name, 'Value (%)': d.value }))
+  ), "Duration Breakdown");
+
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(
+    retreatPerformanceData.map(e => ({
+      'Event Name': e.event,
+      'Revenue': e.revenue,
+      'Booked Rate': e.rate,
+      'Avg Price': e.price
+    }))
+  ), "Performance Overview");
 
   XLSX.writeFile(wb, `Retreat_Report_${new Date().getTime()}.xlsx`);
 };

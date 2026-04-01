@@ -4,10 +4,15 @@ import { Send, Search, X } from "lucide-react";
 export function TestNotification() {
     const [searchQuery, setSearchQuery] = useState("");
     const [selectedUser, setSelectedUser] = useState<string | null>(null);
+    const [userType, setUserType] = useState<"healer" | "seeker">("healer");
 
-    const mockUsers = ["Robert Fox", "Jane Cooper", "Cameron Williamson", "Leslie Alexander"];
+    const mockData = {
+        healer: ["Robert Fox", "Jane Cooper", "Cameron Williamson", "Leslie Alexander"],
+        seeker: ["Emma Wilson", "Liam Smith", "Olivia Brown", "Noah Jones"]
+    };
+
     const filteredUsers = searchQuery.length > 0 
-        ? mockUsers.filter(u => u.toLowerCase().includes(searchQuery.toLowerCase()))
+        ? mockData[userType].filter(u => u.toLowerCase().includes(searchQuery.toLowerCase()))
         : [];
 
     return (
@@ -25,10 +30,30 @@ export function TestNotification() {
             <div className="space-y-5">
                 <div className="flex gap-4">
                     <label className="flex items-center gap-2 text-sm font-bold text-[#1b254b] dark:text-white cursor-pointer">
-                        <input type="radio" name="userType" defaultChecked className="text-[#4318FF] focus:ring-[#4318FF] cursor-pointer" /> Healer
+                        <input 
+                            type="radio" 
+                            name="userType" 
+                            checked={userType === "healer"}
+                            onChange={() => {
+                                setUserType("healer");
+                                setSearchQuery("");
+                                setSelectedUser(null);
+                            }}
+                            className="text-[#4318FF] focus:ring-[#4318FF] cursor-pointer" 
+                        /> Healer
                     </label>
                     <label className="flex items-center gap-2 text-sm font-bold text-[#1b254b] dark:text-white cursor-pointer">
-                        <input type="radio" name="userType" className="text-[#4318FF] focus:ring-[#4318FF] cursor-pointer" /> Seeker
+                        <input 
+                            type="radio" 
+                            name="userType" 
+                            checked={userType === "seeker"}
+                            onChange={() => {
+                                setUserType("seeker");
+                                setSearchQuery("");
+                                setSelectedUser(null);
+                            }}
+                            className="text-[#4318FF] focus:ring-[#4318FF] cursor-pointer" 
+                        /> Seeker
                     </label>
                 </div>
 

@@ -10,7 +10,7 @@ import {
     SelectTrigger, 
     SelectValue 
 } from "@/components/ui/select";
-import { Image as ImageIcon, Upload, Facebook, Twitter, Smartphone, Monitor, Share2 } from "lucide-react";
+import { Image as ImageIcon, Upload, Facebook, Twitter, Smartphone, Monitor, Share2, Trash2 } from "lucide-react";
 import { toast } from "react-hot-toast";
 
 export function SocialPreviews() {
@@ -25,12 +25,14 @@ export function SocialPreviews() {
         if (file) {
             if (file.size > 2 * 1024 * 1024) {
                  toast.error("File is too large. Limit is 2MB.");
+                 e.target.value = '';
                  return;
             }
             const url = URL.createObjectURL(file);
             setImagePreview(url);
             toast.success("Image preview loaded");
         }
+        e.target.value = '';
     };
 
     const handleUpdate = () => {
@@ -96,7 +98,22 @@ export function SocialPreviews() {
                             <Label className="text-[#1b254b] dark:text-white font-bold text-sm block">Banner Image (1200x630)</Label>
                             <label className="flex flex-col items-center justify-center p-6 border-2 border-dashed border-gray-200 dark:border-white/10 rounded-2xl bg-gray-50/50 dark:bg-white/5 group hover:border-[#4318FF]/50 transition-all h-40 cursor-pointer relative overflow-hidden">
                                 {imagePreview ? (
-                                    <img src={imagePreview} className="absolute inset-0 w-full h-full object-cover brightness-90 group-hover:brightness-100 transition-all" alt="OG Preview" />
+                                    <>
+                                        <img src={imagePreview} className="absolute inset-0 w-full h-full object-cover brightness-90 group-hover:brightness-100 transition-all" alt="OG Preview" />
+                                        <button 
+                                            type="button"
+                                            onClick={(e) => {
+                                                e.preventDefault();
+                                                e.stopPropagation();
+                                                setImagePreview(null);
+                                                toast.success("Image removed");
+                                            }}
+                                            className="absolute top-2 right-2 p-1.5 bg-red-500/90 hover:bg-red-600 text-white rounded-md opacity-0 group-hover:opacity-100 transition-all shadow-md z-20 cursor-pointer"
+                                            title="Remove image"
+                                        >
+                                            <Trash2 className="w-4 h-4" />
+                                        </button>
+                                    </>
                                 ) : (
                                     <div className="text-center">
                                         <div className="bg-white dark:bg-[#0B1437] p-3 rounded-full mb-3 shadow-md text-[#4318FF] inline-block">

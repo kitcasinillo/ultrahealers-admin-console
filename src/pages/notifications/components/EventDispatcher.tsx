@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { Code, Zap, CheckCircle2, X, XCircle, Search, ChevronDown, Copy, Terminal } from "lucide-react";
+import { Code, Zap, CheckCircle2, X, XCircle, Search, ChevronDown, Copy } from "lucide-react";
 
 export function EventDispatcher() {
     const [eventType, setEventType] = useState("booking.created");
@@ -47,9 +47,8 @@ export function EventDispatcher() {
                 </div>
                 <button 
                     onClick={() => setShowHistoryModal(true)}
-                    className="flex items-center gap-2 text-sm font-bold text-[#4318FF] dark:text-[#01A3B4] bg-[#F4F7FE] dark:bg-white/5 px-4 py-2 rounded-xl hover:bg-[#E2E8F0] dark:hover:bg-white/10 transition-all"
+                    className="flex items-center gap-2 text-sm font-bold text-[#4318FF] dark:text-[#01A3B4] bg-[#F4F7FE] dark:bg-white/5 px-4 py-2 rounded-xl hover:bg-[#E2E8F0] dark:hover:bg-white/10 transition-all cursor-pointer"
                 >
-                    <Terminal className="h-4 w-4" />
                     View History (Last 50)
                 </button>
             </div>
@@ -57,22 +56,25 @@ export function EventDispatcher() {
             <div className="grid md:grid-cols-2 gap-6">
                 <div className="space-y-4">
                     <div className="grid grid-cols-2 gap-4">
-                        <div>
+                        <div className="relative">
                             <label className="block text-sm font-bold text-[#1b254b] dark:text-white mb-2">Event Type</label>
-                            <select 
-                                value={eventType}
-                                onChange={(e) => setEventType(e.target.value)}
-                                className="w-full px-4 py-2.5 bg-[#F4F7FE] dark:bg-white/5 border-none rounded-xl text-sm font-medium text-[#1b254b] dark:text-white focus:ring-2 focus:ring-[#4318FF]"
-                            >
-                                <option value="booking.created">booking.created</option>
-                                <option value="dispute.created">dispute.created</option>
-                                <option value="dispute.resolved">dispute.resolved</option>
-                                <option value="dispute.updated">dispute.updated</option>
-                                <option value="healer.premium.activated">healer.premium.activated</option>
-                                <option value="retreat.booking">retreat.booking</option>
-                                <option value="system.ping">system.ping</option>
-                                <option value="custom">Custom (free-text)</option>
-                            </select>
+                            <div className="relative">
+                                <select 
+                                    value={eventType}
+                                    onChange={(e) => setEventType(e.target.value)}
+                                    className="w-full px-4 py-2.5 bg-[#F4F7FE] dark:bg-white/5 border-none rounded-xl text-sm font-medium text-[#1b254b] dark:text-white focus:ring-2 focus:ring-[#4318FF] appearance-none pr-10 cursor-pointer"
+                                >
+                                    <option value="booking.created">booking.created</option>
+                                    <option value="dispute.created">dispute.created</option>
+                                    <option value="dispute.resolved">dispute.resolved</option>
+                                    <option value="dispute.updated">dispute.updated</option>
+                                    <option value="healer.premium.activated">healer.premium.activated</option>
+                                    <option value="retreat.booking">retreat.booking</option>
+                                    <option value="system.ping">system.ping</option>
+                                    <option value="custom">Custom (free-text)</option>
+                                </select>
+                                <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 h-4 w-4 text-[#A3AED0] pointer-events-none" />
+                            </div>
                         </div>
                         {eventType === "custom" && (
                             <div>
@@ -97,7 +99,7 @@ export function EventDispatcher() {
                         />
                     </div>
                     
-                    <button className="flex items-center justify-center gap-2 bg-[#4318FF] text-white w-full py-3 rounded-xl font-bold hover:bg-opacity-90 transition-all text-sm shadow-md shadow-[#4318FF]/20">
+                    <button className="flex items-center justify-center gap-2 bg-[#4318FF] text-white w-full py-3 rounded-xl font-bold hover:bg-opacity-90 transition-all text-sm shadow-md shadow-[#4318FF]/20 cursor-pointer">
                         <Zap className="h-4 w-4" /> Dispatch Event
                     </button>
 
@@ -136,7 +138,7 @@ export function EventDispatcher() {
                     </div>
                     <button 
                         onClick={() => setShowHistoryModal(true)}
-                        className="mt-4 text-xs font-bold text-[#4318FF] dark:text-[#01A3B4] text-center w-full hover:underline"
+                        className="mt-4 text-xs font-bold text-[#4318FF] dark:text-[#01A3B4] text-center w-full hover:underline cursor-pointer"
                     >
                         View Full History
                     </button>
@@ -146,7 +148,7 @@ export function EventDispatcher() {
             {/* History Modal Overlay */}
             {showHistoryModal && (
                 <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6 md:p-10">
-                    <div className="absolute inset-0 bg-[#0b1437]/80 dark:bg-black/90 backdrop-blur-md" onClick={() => setShowHistoryModal(false)} />
+                    <div className="absolute inset-0 bg-[#0b1437]/80 dark:bg-black/90 backdrop-blur-md cursor-pointer" onClick={() => setShowHistoryModal(false)} />
                     
                     <div className="relative w-full max-w-4xl bg-white dark:bg-[#111C44] rounded-[32px] overflow-hidden shadow-[0_20px_50px_rgba(0,0,0,0.3)] flex flex-col max-h-[85vh] border border-gray-100 dark:border-white/5 animate-in fade-in zoom-in duration-200">
                         {/* Modal Header */}
@@ -163,7 +165,7 @@ export function EventDispatcher() {
                                 </div>
                                 <button 
                                     onClick={() => setShowHistoryModal(false)}
-                                    className="w-12 h-12 rounded-2xl bg-[#F4F7FE] dark:bg-white/5 flex items-center justify-center text-[#A3AED0] hover:text-white hover:bg-red-500 transition-all duration-200"
+                                    className="w-12 h-12 rounded-2xl bg-[#F4F7FE] dark:bg-white/5 flex items-center justify-center text-[#A3AED0] hover:text-white hover:bg-red-500 transition-all duration-200 cursor-pointer"
                                 >
                                     <X className="h-6 w-6" />
                                 </button>
@@ -190,7 +192,7 @@ export function EventDispatcher() {
                                         <button
                                             key={tab.id}
                                             onClick={() => setFilterStatus(tab.id as any)}
-                                            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all ${
+                                            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
                                                 filterStatus === tab.id 
                                                 ? 'bg-white dark:bg-white/10 text-[#1b254b] dark:text-white shadow-sm' 
                                                 : 'text-[#A3AED0] hover:text-[#1b254b] dark:hover:text-white'
@@ -248,7 +250,7 @@ export function EventDispatcher() {
                                                             e.stopPropagation();
                                                             navigator.clipboard.writeText(JSON.stringify(item.payload, null, 2));
                                                         }}
-                                                        className="hidden group-hover:flex items-center gap-1.5 px-3 py-1.5 bg-[#4318FF]/5 text-[#4318FF] dark:text-[#01A3B4] rounded-lg text-xs font-bold hover:bg-[#4318FF]/10"
+                                                        className="hidden group-hover:flex items-center gap-1.5 px-3 py-1.5 bg-[#4318FF]/5 text-[#4318FF] dark:text-[#01A3B4] rounded-lg text-xs font-bold hover:bg-[#4318FF]/10 cursor-pointer"
                                                     >
                                                         <Copy className="h-3 w-3" />
                                                         Copy
@@ -263,7 +265,6 @@ export function EventDispatcher() {
                                                 <div className="px-4 pb-4 animate-in slide-in-from-top-2 duration-200">
                                                     <div className="bg-[#1b254b] dark:bg-black/40 rounded-xl p-4 overflow-x-auto border border-[#4318FF]/10">
                                                         <div className="flex items-center gap-2 mb-3 pb-3 border-b border-white/5">
-                                                            <Terminal className="h-3 w-3 text-[#4318FF] dark:text-[#01A3B4]" />
                                                             <span className="text-[10px] font-bold text-[#A3AED0] uppercase tracking-widest">Payload Data</span>
                                                         </div>
                                                         <pre className="text-xs font-mono text-green-400">
@@ -283,7 +284,7 @@ export function EventDispatcher() {
                                         <p className="text-[#A3AED0] text-sm">Try adjusting your search or filter settings</p>
                                         <button 
                                             onClick={() => { setSearchTerm(""); setFilterStatus("all"); }}
-                                            className="mt-4 text-[#4318FF] dark:text-[#01A3B4] font-bold hover:underline py-2"
+                                            className="mt-4 text-[#4318FF] dark:text-[#01A3B4] font-bold hover:underline py-2 cursor-pointer"
                                         >
                                             Clear all filters
                                         </button>

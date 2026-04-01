@@ -1,4 +1,4 @@
-import { Search } from "lucide-react";
+import { Search, ChevronDown } from "lucide-react";
 
 export function EmailPreview() {
     return (
@@ -19,10 +19,13 @@ export function EmailPreview() {
                 <div className="space-y-4">
                     <div>
                         <label className="block text-sm font-bold text-[#1b254b] dark:text-white mb-2">Template</label>
-                        <select className="w-full px-4 py-2.5 bg-[#F4F7FE] dark:bg-white/5 border-none rounded-xl text-sm font-medium text-[#1b254b] dark:text-white focus:ring-2 focus:ring-[#4318FF]">
-                            <option value="healerEmail">healerEmail (Unread Messages)</option>
-                            <option value="seekerEmail">seekerEmail (Unread Messages)</option>
-                        </select>
+                        <div className="relative">
+                            <select className="w-full px-4 py-2.5 bg-[#F4F7FE] dark:bg-white/5 border-none rounded-xl text-sm font-medium text-[#1b254b] dark:text-white focus:ring-2 focus:ring-[#4318FF] appearance-none pr-10 cursor-pointer">
+                                <option value="healerEmail">healerEmail (Unread Messages)</option>
+                                <option value="seekerEmail">seekerEmail (Unread Messages)</option>
+                            </select>
+                            <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 h-4 w-4 text-[#A3AED0] pointer-events-none" />
+                        </div>
                     </div>
                     
                     <div>
@@ -34,7 +37,7 @@ export function EmailPreview() {
                         />
                     </div>
                     
-                    <button className="flex items-center justify-center gap-2 bg-[#F4F7FE] dark:bg-white/10 text-[#4318FF] dark:text-white w-full py-3 rounded-xl font-bold hover:bg-[#E2E8F0] dark:hover:bg-white/20 transition-all text-sm">
+                    <button className="flex items-center justify-center gap-2 bg-[#F4F7FE] dark:bg-white/10 text-[#4318FF] dark:text-white w-full py-3 rounded-xl font-bold hover:bg-[#E2E8F0] dark:hover:bg-white/20 transition-all text-sm cursor-pointer">
                         Render Preview
                     </button>
                 </div>

@@ -10,8 +10,16 @@ import {
     SelectTrigger, 
     SelectValue 
 } from "@/components/ui/select";
-import { Image as ImageIcon, Upload, Facebook, Twitter, Smartphone, Monitor, Share2, Trash2 } from "lucide-react";
+import { Image as ImageIcon, Upload, Facebook, Twitter, Smartphone, Monitor, Share2, Trash2, AlertTriangle } from "lucide-react";
 import { toast } from "react-hot-toast";
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from "@/components/ui/dialog";
 
 export function SocialPreviews() {
     const [entity, setEntity] = useState("global");
@@ -19,6 +27,7 @@ export function SocialPreviews() {
     const [description, setDescription] = useState("");
     const [imagePreview, setImagePreview] = useState<string | null>(null);
     const [previewPlatform, setPreviewPlatform] = useState<'facebook' | 'twitter'>('facebook');
+    const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
 
     const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
@@ -47,6 +56,7 @@ export function SocialPreviews() {
     };
 
     return (
+        <>
         <Card className="border border-gray-100 dark:border-white/5 shadow-sm bg-white dark:bg-[#111C44] rounded-xl overflow-hidden">
             <CardHeader className="bg-gray-50/50 dark:bg-white/[0.02] border-b border-gray-100 dark:border-white/5 pb-4">
                 <CardTitle className="text-lg font-bold text-[#1b254b] dark:text-white flex items-center gap-2">
@@ -105,8 +115,7 @@ export function SocialPreviews() {
                                             onClick={(e) => {
                                                 e.preventDefault();
                                                 e.stopPropagation();
-                                                setImagePreview(null);
-                                                toast.success("Image removed");
+                                                setIsDeleteDialogOpen(true);
                                             }}
                                             className="absolute top-2 right-2 p-1.5 bg-red-500/90 hover:bg-red-600 text-white rounded-md opacity-0 group-hover:opacity-100 transition-all shadow-md z-20 cursor-pointer"
                                             title="Remove image"
@@ -204,5 +213,36 @@ export function SocialPreviews() {
                 </div>
             </CardContent>
         </Card>
+
+        <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+            <DialogContent className="sm:max-w-[425px]">
+                <DialogHeader>
+                    <DialogTitle className="flex items-center gap-2 text-red-500">
+                        <AlertTriangle className="h-5 w-5" />
+                        Confirm Deletion
+                    </DialogTitle>
+                    <DialogDescription className="py-2">
+                        Are you sure you want to remove this banner image? This action cannot be undone.
+                    </DialogDescription>
+                </DialogHeader>
+                <DialogFooter className="pt-4 flex gap-2 sm:gap-0">
+                    <Button variant="outline" onClick={() => setIsDeleteDialogOpen(false)}>
+                        Cancel
+                    </Button>
+                    <Button 
+                        variant="destructive" 
+                        onClick={() => {
+                            setImagePreview(null);
+                            toast.success("Image removed");
+                            setIsDeleteDialogOpen(false);
+                        }} 
+                        className="bg-red-500 hover:bg-red-600 text-white"
+                    >
+                        Delete
+                    </Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+        </>
     );
 }

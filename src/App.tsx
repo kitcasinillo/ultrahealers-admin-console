@@ -16,6 +16,9 @@ import DisputeDetailPage from './pages/disputes/DisputeDetailPage';
 // import PayoutsPage from './pages/payouts/index';
 import { AdminAuthProvider } from "./contexts/AdminAuthContext";
 import { ToastProvider } from "./contexts/ToastContext";
+// import { AdminGuard } from "./components/AdminGuard";
+
+import { FinancialReport } from "./pages/reports/FinancialReport";
 
 function App() {
   return (
@@ -52,7 +55,12 @@ function App() {
 
             <Route path="finance" element={<div>Finance</div>} />
             <Route path="campaigns" element={<div>Campaigns</div>} />
-            <Route path="reports" element={<div>Reports</div>} />
+            
+            <Route path="reports">
+              <Route index element={<div>Reports</div>} />
+              <Route path="financial" element={<FinancialReport />} />
+            </Route>
+
             <Route path="modalities" element={<div>Modalities</div>} />
             <Route path="notifications" element={<div>Notifications</div>} />
             <Route path="settings" element={<div>Settings</div>} />

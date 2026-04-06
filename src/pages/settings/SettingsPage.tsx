@@ -10,14 +10,7 @@ import { useAdminAuth } from "../../contexts/AdminAuthContext";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Form } from "@/components/ui/form";
-import {
-    Dialog,
-    DialogContent,
-    DialogDescription,
-    DialogFooter,
-    DialogHeader,
-    DialogTitle,
-} from "@/components/ui/dialog";
+
 import { ConfirmModal } from "../../components/ConfirmModal";
 
 import { formSchema, defaultValues, type SettingsFormValues } from "./schema";

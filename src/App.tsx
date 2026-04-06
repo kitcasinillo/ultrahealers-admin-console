@@ -19,6 +19,7 @@ import { ToastProvider } from "./contexts/ToastContext";
 import { FinancialReport } from "./pages/reports/FinancialReport";
 import { CampaignReport } from "./pages/reports/CampaignReport";
 import { DisputeReport } from "./pages/reports/DisputeReport";
+import { UserReport } from "./pages/reports/UserReport";
 
 import { PlatformOverview } from "./pages/reports/PlatformOverview";
 import { Payments } from "./pages/payments/Payments";
@@ -85,6 +86,7 @@ function App() {
               <Route path="financial" element={<FinancialReport />} />
               <Route path="campaigns" element={<CampaignReport />} />
               <Route path="disputes" element={<DisputeReport />} />
+              <Route path="users" element={<UserReport />} />
             </Route>
             <Route path="modalities" element={<Modalities />} />
             <Route path="notifications" element={<Notifications />} />

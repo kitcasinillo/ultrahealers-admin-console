@@ -23,7 +23,7 @@ export function DateRangePicker({
   customEndDate,
   setCustomEndDate,
 }: DateRangePickerProps) {
-  const rangeOptions = ['Today', 'Last 7 Days', 'Last 30 Days', 'This Month'];
+  const rangeOptions = ['Today', 'This Week', 'This Month'];
 
   // Format date to a simpler, shorter format (e.g. "Feb 12")
   const formatShortDate = (dateStr: string) => {
@@ -40,7 +40,7 @@ export function DateRangePicker({
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <button className="flex justify-between sm:justify-start items-center gap-3 w-full sm:w-auto bg-white dark:bg-[#111C44] py-3 px-5 rounded-full border border-gray-200 dark:border-white/10 hover:bg-gray-50 dark:hover:bg-white/5 transition-all text-[#1b254b] dark:text-white font-bold text-sm shadow-sm">
+        <button className="flex justify-between sm:justify-start items-center gap-3 w-full sm:w-auto bg-white dark:bg-[#111C44] py-3 px-5 rounded-full border border-gray-200 dark:border-white/10 hover:bg-gray-50 dark:hover:bg-white/5 transition-all text-[#1b254b] dark:text-white font-bold text-sm shadow-sm cursor-pointer">
           <div className="flex items-center gap-2.5 overflow-hidden">
             <Calendar className="h-4 w-4 text-[#A3AED0] shrink-0" />
             <span className="truncate whitespace-nowrap text-ellipsis overflow-hidden">

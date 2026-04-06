@@ -272,6 +272,7 @@ export function CommissionTable() {
                 </Button>
             </div>
 
+
             <div className="bg-white dark:bg-[#111C44] rounded-[32px] p-2 shadow-[0_20px_50px_rgba(11,20,55,0.05)] border border-[#E9EDF7] dark:border-white/5 overflow-hidden">
                 <div className="overflow-x-auto">
                     {loading ? (

@@ -99,10 +99,42 @@ export const deleteRetreat = async (id: string) => {
     return response.data;
 };
 
-export const exportRetreats = async (filters: RetreatFilters) => {
-    const response = await api.get("/api/retreats/export", {
-        params: filters,
-        responseType: 'blob'
+export const exportRetreats = async (filters: RetreatFilters): Promise<Blob> => {
+    const { retreats } = await getRetreats(filters);
+    
+    const statusLabels: Record<string, string> = {
+        active: "Active",
+        inactive: "Inactive",
+        draft: "Draft",
+        full: "Full",
+        pending_review: "Pending Review"
+    };
+
+    const headers = [
+        'Host/Healer', 'Title', 'Location', 'Dates', 'Price', 'Cap.', 'Booked Spots', 'Status', 'Revenue'
+    ];
+    
+    const csvRows = [headers.join(',')];
+    
+    retreats.forEach((r: any) => {
+        const start = new Date(r.startDate);
+        const end = new Date(r.endDate);
+        const formatDate = (date: Date) => date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+        const dateRange = `${formatDate(start)} - ${formatDate(end)}, ${end.getFullYear()}`;
+
+        const row = [
+            `"${r.hostName}"`,
+            `"${r.title}"`,
+            `"${r.location}"`,
+            `"${dateRange}"`,
+            `"${new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(r.price || 0)}"`,
+            `"${r.capacity || 0}"`,
+            `" ${r.bookedSpots || 0} / ${r.capacity || 0}"`,
+            `"${statusLabels[r.status] || r.status}"`,
+            `"${new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(r.revenue || 0)}"`,
+        ];
+        csvRows.push(row.join(','));
     });
-    return response.data;
+    
+    return new Blob([csvRows.join('\n')], { type: 'text/csv' });
 };

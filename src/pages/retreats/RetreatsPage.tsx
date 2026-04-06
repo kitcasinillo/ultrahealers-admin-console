@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from "react"
+import { useToast } from "@/contexts/ToastContext"
 import { DataTable } from "../../components/DataTable"
 import { RetreatsFilters } from "./RetreatsFilters"
 import { getColumns, type Retreat } from "./columns"
@@ -10,11 +11,12 @@ import {
     exportRetreats
 } from "../../lib/retreats"
 import { ConfirmModal } from "../../components/ConfirmModal"
-import { DownloadCloud, Info } from "lucide-react"
+import { Info } from "lucide-react"
 import { Skeleton } from "../../components/ui/skeleton"
 
 
 export default function RetreatsPage() {
+    const { showToast } = useToast()
     const [data, setData] = useState<Retreat[]>([])
     const [isLoading, setIsLoading] = useState(true)
     const [filters, setFilters] = useState<any>({
@@ -55,10 +57,11 @@ export default function RetreatsPage() {
         try {
             setIsActionLoading(true)
             await approveRetreat(id)
+            showToast("Retreat approved successfully")
             fetchData()
-            // Toast success handled by context if wrapped
         } catch (error) {
             console.error("Failed to approve retreat:", error)
+            showToast("Failed to approve retreat", "error")
         } finally {
             setIsActionLoading(false)
         }
@@ -75,9 +78,11 @@ export default function RetreatsPage() {
             setIsActionLoading(true)
             await deleteRetreat(selectedRetreatId)
             setIsDeleteModalOpen(false)
+            showToast("Retreat deleted successfully")
             fetchData()
         } catch (error) {
             console.error("Failed to delete retreat:", error)
+            showToast("Failed to delete retreat", "error")
         } finally {
             setIsActionLoading(false)
         }
@@ -88,9 +93,11 @@ export default function RetreatsPage() {
         try {
             setIsActionLoading(true)
             await updateRetreatStatus(id, newStatus)
+            showToast(`Retreat status updated to ${newStatus}`)
             fetchData()
         } catch (error) {
             console.error("Failed to update status:", error)
+            showToast("Failed to update status", "error")
         } finally {
             setIsActionLoading(false)
         }
@@ -106,6 +113,7 @@ export default function RetreatsPage() {
             document.body.appendChild(link)
             link.click()
             link.remove()
+
         } catch (error) {
             console.error("Export failed:", error)
         }
@@ -131,10 +139,9 @@ export default function RetreatsPage() {
                 <div className="flex items-center gap-2">
                     <button
                         onClick={handleExport}
-                        className="flex items-center bg-[#F4F7FE] dark:bg-white/5 hover:bg-[#E2E8F0] dark:hover:bg-white/10 text-[#4318FF] dark:text-white font-semibold py-2.5 px-6 rounded-full transition-all text-sm shadow-sm"
+                        className="flex items-center bg-[#F4F7FE] dark:bg-white/5 hover:bg-[#E2E8F0] dark:hover:bg-white/10 text-[#4318FF] dark:text-white font-semibold py-2.5 px-5 rounded-full transition-all text-sm"
                     >
-                        <DownloadCloud className="mr-2 h-4 w-4" />
-                        Export to CSV
+                        Export CSV
                     </button>
                 </div>
             </div>

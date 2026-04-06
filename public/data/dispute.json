@@ -8,7 +8,7 @@
         "healerName": "Dr. Strange",
         "type": "safety",
         "severity": "safety",
-        "status": "open",
+        "status": "in_review",
         "requestedAmount": 200,
         "currency": "USD",
         "submittedAt": "2024-03-20T10:00:00Z",
@@ -61,6 +61,12 @@
         "currency": "USD",
         "submittedAt": "2024-03-10T12:00:00Z",
         "responseDueAt": "2024-03-12T12:00:00Z",
-        "description": "Accidental double booking. Need a refund for the second slot."
+        "description": "Accidental double booking. Need a refund for the second slot.",
+        "decision": {
+            "outcome": "full_refund",
+            "refundAmount": 100,
+            "notes": "Reviewed user request. Verified double booking on our end. Authorized full refund.",
+            "decidedAt": "2024-03-11T09:15:00Z"
+        }
     }
 ]

@@ -90,6 +90,10 @@ export default function DecisionForm({ dispute, onUpdate }: { dispute: DisputeDe
     );
   }
 
+  if (dispute.status !== 'in_review') {
+    return null;
+  }
+
   return (
     <>
       <div className="bg-white rounded-xl border-[3px] border-orange-300 shadow-md mb-6 overflow-hidden relative">

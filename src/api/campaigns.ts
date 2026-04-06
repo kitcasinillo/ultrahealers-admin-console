@@ -74,17 +74,17 @@ export const getCampaign = (id: string) =>
 export const createCampaign = (data: Record<string, unknown>) =>
   Promise.resolve({ data: { success: true, campaignId: "mock-id", campaign: { id: "mock-id", ...data } } })
 
-export const updateCampaign = (id: string, data: Record<string, unknown>) =>
-  Promise.resolve({ data: { success: true, message: "Mock Update" } })
+export const updateCampaign = (_id: string, data: Record<string, unknown>) =>
+  Promise.resolve({ data: { success: true, message: "Mock Update", _id, data } })
 
-export const deleteCampaign = (id: string) =>
-  Promise.resolve({ data: { success: true } })
+export const deleteCampaign = (_id: string) =>
+  Promise.resolve({ data: { success: true, _id } })
 
-export const sendCampaign = (id: string) =>
-  Promise.resolve({ data: { success: true } })
+export const sendCampaign = (_id: string) =>
+  Promise.resolve({ data: { success: true, _id } })
 
-export const sendTestEmail = (id: string, email: string) =>
-  Promise.resolve({ data: { success: true } })
+export const sendTestEmail = (_id: string, _email: string) =>
+  Promise.resolve({ data: { success: true, _id, _email } })
 
-export const getAudiencePreview = (filters: Record<string, unknown>) =>
-  Promise.resolve({ data: { count: 1250 } })
+export const getAudiencePreview = (_filters: Record<string, unknown>) =>
+  Promise.resolve({ data: { count: 1250, _filters } })

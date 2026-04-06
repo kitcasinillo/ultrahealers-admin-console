@@ -18,6 +18,7 @@ import {
     DialogHeader,
     DialogTitle,
 } from "@/components/ui/dialog";
+import { ConfirmModal } from "../../components/ConfirmModal";
 
 import { formSchema, defaultValues, type SettingsFormValues } from "./schema";
 import { GeneralSettings } from "./components/GeneralSettings";
@@ -225,20 +226,16 @@ export function SettingsPage() {
                 </form>
             </Form>
 
-            <Dialog open={isResetDialogOpen} onOpenChange={setIsResetDialogOpen}>
-                <DialogContent>
-                    <DialogHeader>
-                        <DialogTitle>Reset Platform Settings</DialogTitle>
-                        <DialogDescription>
-                            Are you sure you want to reset all settings to their default values? Make sure to click "Save Changes" afterwards to apply them.
-                        </DialogDescription>
-                    </DialogHeader>
-                    <DialogFooter>
-                        <Button variant="outline" onClick={() => setIsResetDialogOpen(false)}>Cancel</Button>
-                        <Button className="bg-red-600 hover:bg-red-700 text-white shadow-sm border border-transparent" onClick={confirmReset}>Confirm</Button>
-                    </DialogFooter>
-                </DialogContent>
-            </Dialog>
+            <ConfirmModal 
+                isOpen={isResetDialogOpen} 
+                onClose={() => setIsResetDialogOpen(false)}
+                onConfirm={confirmReset}
+                title="Reset Platform Settings"
+                description="Are you sure you want to reset all settings to their default values? Make sure to click 'Save Changes' afterwards to apply them."
+                confirmText="Confirm"
+                cancelText="Cancel"
+                variant="destructive"
+            />
         </div>
     );
 }

@@ -23,6 +23,7 @@ import { DisputeReport } from "./pages/reports/DisputeReport";
 import { PlatformOverview } from "./pages/reports/PlatformOverview";
 import { Payments } from "./pages/payments/Payments";
 import Modalities from "./pages/modalities/Modalities";
+import { Notifications } from "./pages/notifications/Notifications";
 import { SettingsPage } from "./pages/settings/SettingsPage";
 import SEOPage from "./pages/seo/SEOPage";
 import { Toaster } from "react-hot-toast";
@@ -72,7 +73,7 @@ function App() {
               <Route path="disputes" element={<DisputeReport />} />
             </Route>
             <Route path="modalities" element={<Modalities />} />
-            <Route path="notifications" element={<div>Notifications</div>} />
+            <Route path="notifications" element={<Notifications />} />
             <Route path="seo" element={<SEOPage />} />
             <Route path="settings" element={<SettingsPage />} />
           </Route>

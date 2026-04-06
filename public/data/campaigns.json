@@ -1,0 +1,36 @@
+{
+  "success": true,
+  "campaigns": [
+    {
+      "id": "1",
+      "title": "Welcome Email — Healers",
+      "subject": "Glad to have you here! 🌟",
+      "status": "sent",
+      "audience": "Healers",
+      "recipientCount": 1250,
+      "metrics": { "sent": 1250, "opens": 642, "clicks": 182 },
+      "createdAt": "2026-03-01T10:00:00Z"
+    },
+    {
+      "id": "2",
+      "title": "Monthly Wellness Newsletter",
+      "subject": "Your guide to March wellness",
+      "status": "draft",
+      "audience": "All Users",
+      "recipientCount": 5400,
+      "metrics": { "sent": 0, "opens": 0, "clicks": 0 },
+      "createdAt": "2026-03-15T15:30:00Z"
+    },
+    {
+      "id": "3",
+      "title": "Spring Promotion 2026",
+      "subject": "Spring into health with 20% off!",
+      "status": "scheduled",
+      "audience": "Free Healers",
+      "recipientCount": 850,
+      "metrics": { "sent": 0, "opens": 0, "clicks": 0 },
+      "scheduledAt": "2026-04-01T09:00:00Z",
+      "createdAt": "2026-03-20T08:00:00Z"
+    }
+  ]
+}

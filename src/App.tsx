@@ -26,6 +26,12 @@ import Modalities from "./pages/modalities/Modalities";
 import { Notifications } from "./pages/notifications/Notifications";
 import { SettingsPage } from "./pages/settings/SettingsPage";
 import SEOPage from "./pages/seo/SEOPage";
+import { CampaignList } from "./pages/campaigns/pages/CampaignList";
+import { CampaignEditor } from "./pages/campaigns/pages/CampaignEditor";
+import { CampaignDetail } from "./pages/campaigns/pages/CampaignDetail";    
+import { Templates } from "./pages/campaigns/pages/Templates";
+import { UnsubscribeList } from "./pages/campaigns/pages/UnsubscribeList";  
+import { UnsubscribePage } from "./pages/campaigns/pages/UnsubscribePage";  
 import { Toaster } from "react-hot-toast";
 
 function App() {
@@ -63,7 +69,15 @@ function App() {
             <Route path="disputes/:id" element={<DisputeDetailPage />} />
 
             <Route path="finance/*" element={<Payments />} />
-            <Route path="campaigns" element={<div>Campaigns</div>} />
+            
+            {/* Campaign Builder */}
+            <Route path="campaigns" element={<CampaignList />} />
+            <Route path="campaigns/new" element={<CampaignEditor />} />     
+            <Route path="campaigns/:id/edit" element={<CampaignEditor />} />
+            <Route path="campaigns/:id" element={<CampaignDetail />} />
+            <Route path="campaigns/templates" element={<Templates />} />
+            <Route path="campaigns/unsubscribes" element={<UnsubscribeList />} />
+            <Route path="unsubscribe" element={<UnsubscribePage />} />
             
             <Route path="reports">
               <Route index element={<Navigate to="overview" replace />} />

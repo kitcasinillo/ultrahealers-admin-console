@@ -135,3 +135,10 @@
     scrollbar-width: none;
   }
 }
+
+.prose blockquote {
+    @apply border-l-4 border-gray-300 pl-4 py-1 italic bg-gray-50 dark:bg-white/5 rounded-r-md;
+}
+.prose blockquote p {
+    @apply mb-0;
+}

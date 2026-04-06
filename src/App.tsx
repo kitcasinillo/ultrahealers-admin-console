@@ -22,11 +22,14 @@ import { DisputeReport } from "./pages/reports/DisputeReport";
 
 import { PlatformOverview } from "./pages/reports/PlatformOverview";
 import { Payments } from "./pages/payments/Payments";
+import { SettingsPage } from "./pages/settings/SettingsPage";
+import { Toaster } from "react-hot-toast";
 
 function App() {
   return (
     <ToastProvider>
       <AdminAuthProvider>
+        <Toaster position="top-right" />
       <BrowserRouter>
         <Routes>
           <Route path="/login" element={<Login />} />
@@ -68,7 +71,7 @@ function App() {
             </Route>
             <Route path="modalities" element={<div>Modalities</div>} />
             <Route path="notifications" element={<div>Notifications</div>} />
-            <Route path="settings" element={<div>Settings</div>} />
+            <Route path="settings" element={<SettingsPage />} />
           </Route>
           {/* </Route> */}
 

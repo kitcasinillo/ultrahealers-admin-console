@@ -1,0 +1,163 @@
+﻿diff --cc package-lock.json
+index 9e4e86d,a5a8a44..0000000
+--- a/package-lock.json
++++ b/package-lock.json
+diff --cc package.json
+index 9ba9b1a,fd1fe2b..0000000
+--- a/package.json
++++ b/package.json
+diff --cc src/App.tsx
+index fe0077c,2a59ca6..0000000
+--- a/src/App.tsx
++++ b/src/App.tsx
+@@@ -8,25 -8,15 +8,36 @@@ import { Seekers } from "./pages/users/
+  import { SeekerDetail } from "./pages/users/SeekerDetail";
+  import { Listings } from "./pages/listings/Listings";
+  import { ListingDetail } from "./pages/listings/ListingDetail";
+ +import RetreatsPage from "./pages/retreats/RetreatsPage";
+ +import RetreatDetail from "./pages/retreats/RetreatDetail";
+ +import DisputesPage from "./pages/disputes/DisputesPage";
+ +import DisputeDetailPage from './pages/disputes/DisputeDetailPage';
+ +// import ModalitiesPage from './pages/modalities';
+ +// import PayoutsPage from './pages/payouts/index';
+  import { AdminAuthProvider } from "./contexts/AdminAuthContext";
+++<<<<<<< HEAD
+ +import { ToastProvider } from "./contexts/ToastContext";
+ +import { FinancialReport } from "./pages/reports/FinancialReport";
+ +import { CampaignReport } from "./pages/reports/CampaignReport";
+ +import { DisputeReport } from "./pages/reports/DisputeReport";
+ +
+ +import { PlatformOverview } from "./pages/reports/PlatformOverview";
+ +import { Payments } from "./pages/payments/Payments";
+ +
+ +function App() {
+ +  return (
+ +    <ToastProvider>
+ +      <AdminAuthProvider>
+++=======
++ // import { AdminGuard } from "./components/AdminGuard";
++ import { SettingsPage } from "./pages/settings/SettingsPage";
++ import { Toaster } from "react-hot-toast";
++ 
++ function App() {
++   return (
++     <AdminAuthProvider>
++       <Toaster position="top-right" />
+++>>>>>>> origin/feature/module-13-feature-flags
+        <BrowserRouter>
+          <Routes>
+            <Route path="/login" element={<Login />} />
+@@@ -52,23 -40,13 +63,23 @@@
+              <Route path="bookings/sessions" element={<div>Session Bookings</div>} />
+              <Route path="bookings/retreats" element={<div>Retreat Bookings</div>} />
+  
+ -            <Route path="disputes" element={<div>Disputes</div>} />
+ -            <Route path="finance" element={<div>Finance</div>} />
+ +            {/* Disputes */}
+ +            <Route path="disputes" element={<DisputesPage />} />
+ +            <Route path="disputes/:id" element={<DisputeDetailPage />} />
+ +
+ +            <Route path="finance/*" element={<Payments />} />
+              <Route path="campaigns" element={<div>Campaigns</div>} />
+ -            <Route path="reports" element={<div>Reports</div>} />
+ +            
+ +            <Route path="reports">
+ +              <Route index element={<Navigate to="overview" replace />} />
+ +              <Route path="overview" element={<PlatformOverview />} />
+ +              <Route path="financial" element={<FinancialReport />} />
+ +              <Route path="campaigns" element={<CampaignReport />} />
+ +              <Route path="disputes" element={<DisputeReport />} />
+ +            </Route>
+              <Route path="modalities" element={<div>Modalities</div>} />
+              <Route path="notifications" element={<div>Notifications</div>} />
+-             <Route path="settings" element={<div>Settings</div>} />
++             <Route path="settings" element={<SettingsPage />} />
+            </Route>
+            {/* </Route> */}
+  
+diff --cc src/components/ui/dialog.tsx
+index c23630e,9dbeaa0..0000000
+--- a/src/components/ui/dialog.tsx
++++ b/src/components/ui/dialog.tsx
+diff --cc src/components/ui/select.tsx
+index 8e5130e,6e637f7..0000000
+--- a/src/components/ui/select.tsx
++++ b/src/components/ui/select.tsx
+@@@ -1,3 -1,5 +1,8 @@@
+++<<<<<<< HEAD
+++=======
++ "use client"
++ 
+++>>>>>>> origin/feature/module-13-feature-flags
+  import * as React from "react"
+  import * as SelectPrimitive from "@radix-ui/react-select"
+  import { Check, ChevronDown, ChevronUp } from "lucide-react"
+@@@ -17,7 -19,7 +22,11 @@@ const SelectTrigger = React.forwardRef
+    <SelectPrimitive.Trigger
+      ref={ref}
+      className={cn(
+++<<<<<<< HEAD
+ +      "flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 [&>span]:line-clamp-1",
+++=======
++       "flex h-9 w-full items-center justify-between whitespace-nowrap rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm ring-offset-background data-[placeholder]:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring disabled:cursor-not-allowed disabled:opacity-50 [&>span]:line-clamp-1",
+++>>>>>>> origin/feature/module-13-feature-flags
+        className
+      )}
+      {...props}
+@@@ -73,9 -75,9 +82,15 @@@ const SelectContent = React.forwardRef
+      <SelectPrimitive.Content
+        ref={ref}
+        className={cn(
+++<<<<<<< HEAD
+ +        "relative z-50 max-h-96 min-w-[8rem] overflow-hidden rounded-md border bg-popover text-popover-foreground shadow-md data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[state=top]:slide-in-from-bottom-2 data-[state=right]:slide-in-from-left-2 data-[state=bottom]:slide-in-from-top-2 data-[state=left]:slide-in-from-right-2",
+ +        position === "popper" &&
+ +          "data-[state=open]:translate-y-1 data-[state=top]:-translate-y-1 data-[state=right]:translate-x-1 data-[state=bottom]:translate-y-1 data-[state=left]:-translate-x-1",
+++=======
++         "relative z-50 max-h-[--radix-select-content-available-height] min-w-[8rem] overflow-y-auto overflow-x-hidden rounded-md border bg-popover text-popover-foreground shadow-md data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 origin-[--radix-select-content-transform-origin]",
++         position === "popper" &&
++           "data-[side=bottom]:translate-y-1 data-[side=left]:-translate-x-1 data-[side=right]:translate-x-1 data-[side=top]:-translate-y-1",
+++>>>>>>> origin/feature/module-13-feature-flags
+          className
+        )}
+        position={position}
+@@@ -103,7 -105,7 +118,11 @@@ const SelectLabel = React.forwardRef
+  >(({ className, ...props }, ref) => (
+    <SelectPrimitive.Label
+      ref={ref}
+++<<<<<<< HEAD
+ +    className={cn("py-1.5 pl-8 pr-2 text-sm font-semibold", className)}
+++=======
++     className={cn("px-2 py-1.5 text-sm font-semibold", className)}
+++>>>>>>> origin/feature/module-13-feature-flags
+      {...props}
+    />
+  ))
+@@@ -116,17 -118,16 +135,28 @@@ const SelectItem = React.forwardRef
+    <SelectPrimitive.Item
+      ref={ref}
+      className={cn(
+++<<<<<<< HEAD
+ +      "relative flex w-full cursor-default select-none items-center rounded-sm py-1.5 pl-8 pr-2 text-sm outline-none focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50",
+++=======
++       "relative flex w-full cursor-default select-none items-center rounded-sm py-1.5 pl-2 pr-8 text-sm outline-none focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50",
+++>>>>>>> origin/feature/module-13-feature-flags
+        className
+      )}
+      {...props}
+    >
+++<<<<<<< HEAD
+ +    <span className="absolute left-2 flex h-3.5 w-3.5 items-center justify-center">
+++=======
++     <span className="absolute right-2 flex h-3.5 w-3.5 items-center justify-center">
+++>>>>>>> origin/feature/module-13-feature-flags
+        <SelectPrimitive.ItemIndicator>
+          <Check className="h-4 w-4" />
+        </SelectPrimitive.ItemIndicator>
+      </span>
+++<<<<<<< HEAD
+ +
+++=======
+++>>>>>>> origin/feature/module-13-feature-flags
+      <SelectPrimitive.ItemText>{children}</SelectPrimitive.ItemText>
+    </SelectPrimitive.Item>
+  ))

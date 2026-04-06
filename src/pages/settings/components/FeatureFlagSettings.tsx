@@ -55,7 +55,7 @@ export function FeatureFlagSettings({ control }: FeatureFlagSettingsProps) {
             toast.error(`A flag with ID "${newFlag.id}" already exists.`);
             return;
         }
-        
+
         append({
             id: newFlag.id,
             label: newFlag.label,
@@ -63,7 +63,7 @@ export function FeatureFlagSettings({ control }: FeatureFlagSettingsProps) {
             tier: newFlag.tier,
             enabled: false,
         });
-        
+
         toast.success(`Custom flag "${newFlag.label}" created! Remember to save changes.`);
         setNewFlag({ id: "", label: "", description: "", tier: "free" });
         setIsDialogOpen(false);
@@ -84,7 +84,7 @@ export function FeatureFlagSettings({ control }: FeatureFlagSettingsProps) {
     const renderFlag = (index: number) => {
         const field = fields[index];
         const isDefault = isDefaultFlag(field.id);
-        
+
         return (
             <FormField
                 key={field.id}
@@ -138,7 +138,7 @@ export function FeatureFlagSettings({ control }: FeatureFlagSettingsProps) {
                     <h3 className="text-lg font-extrabold text-[#1b254b] dark:text-white">Feature Access Controls</h3>
                     <p className="text-sm text-[#A3AED0] dark:text-gray-400 font-medium mt-1">Dynamically gate modules and functionality based on active subscription tiers.</p>
                 </div>
-                
+
                 <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
                     <DialogTrigger asChild>
                         <Button className="bg-[#4318FF] hover:bg-[#3311CC] text-white font-bold rounded-xl px-5 h-10 shadow-[0_6px_14px_0_rgba(67,24,255,0.15)] transition-all shrink-0">
@@ -156,32 +156,32 @@ export function FeatureFlagSettings({ control }: FeatureFlagSettingsProps) {
                         <div className="space-y-4 py-4">
                             <div className="space-y-2">
                                 <Label>Identifier (ID)</Label>
-                                <Input 
-                                    placeholder="e.g. experimental_mode" 
-                                    value={newFlag.id} 
-                                    onChange={(e) => setNewFlag({...newFlag, id: e.target.value.toLowerCase().replace(/\s+/g, '_')})}
+                                <Input
+                                    placeholder="e.g. experimental_mode"
+                                    value={newFlag.id}
+                                    onChange={(e) => setNewFlag({ ...newFlag, id: e.target.value.toLowerCase().replace(/\s+/g, '_') })}
                                 />
                                 <p className="text-[10px] text-gray-500">Must be unique, lowercase, and no spaces.</p>
                             </div>
                             <div className="space-y-2">
                                 <Label>Display Label</Label>
-                                <Input 
-                                    placeholder="e.g. Experimental Mode" 
-                                    value={newFlag.label} 
-                                    onChange={(e) => setNewFlag({...newFlag, label: e.target.value})}
+                                <Input
+                                    placeholder="e.g. Experimental Mode"
+                                    value={newFlag.label}
+                                    onChange={(e) => setNewFlag({ ...newFlag, label: e.target.value })}
                                 />
                             </div>
                             <div className="space-y-2">
                                 <Label>Description</Label>
-                                <Input 
-                                    placeholder="Brief explanation of this feature" 
-                                    value={newFlag.description} 
-                                    onChange={(e) => setNewFlag({...newFlag, description: e.target.value})}
+                                <Input
+                                    placeholder="Brief explanation of this feature"
+                                    value={newFlag.description}
+                                    onChange={(e) => setNewFlag({ ...newFlag, description: e.target.value })}
                                 />
                             </div>
                             <div className="space-y-2">
                                 <Label>Target Tier</Label>
-                                <Select value={newFlag.tier} onValueChange={(val: "free"|"premium") => setNewFlag({...newFlag, tier: val})}>
+                                <Select value={newFlag.tier} onValueChange={(val: "free" | "premium") => setNewFlag({ ...newFlag, tier: val })}>
                                     <SelectTrigger>
                                         <SelectValue />
                                     </SelectTrigger>

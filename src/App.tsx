@@ -21,6 +21,7 @@ import { CampaignReport } from "./pages/reports/CampaignReport";
 import { DisputeReport } from "./pages/reports/DisputeReport";
 import { AdminGuard } from "./components/AdminGuard";
 import { PlatformOverview } from "./pages/reports/PlatformOverview";
+import { Payments } from "./pages/payments/Payments";
 
 function App() {
   return (
@@ -55,7 +56,7 @@ function App() {
             <Route path="disputes" element={<DisputesPage />} />
             <Route path="disputes/:id" element={<DisputeDetailPage />} />
 
-            <Route path="finance" element={<div>Finance</div>} />
+            <Route path="finance/*" element={<Payments />} />
             <Route path="campaigns" element={<div>Campaigns</div>} />
             
             <Route path="reports">

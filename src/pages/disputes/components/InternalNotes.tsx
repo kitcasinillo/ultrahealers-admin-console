@@ -2,8 +2,10 @@ import { useState } from "react";
 import { addInternalNote, type InternalNote } from "@/lib/disputes";
 import { format } from "date-fns";
 import { Lock, Loader2 } from "lucide-react";
+import { useToast } from "@/contexts/ToastContext";
 
 export default function InternalNotes({ disputeId, initialNotes }: { disputeId: string, initialNotes: InternalNote[] }) {
+  const { showToast } = useToast();
   const [notes, setNotes] = useState<InternalNote[]>(initialNotes);
   const [text, setText] = useState("");
   const [saving, setSaving] = useState(false);
@@ -16,9 +18,10 @@ export default function InternalNotes({ disputeId, initialNotes }: { disputeId: 
       const newNote = await addInternalNote(disputeId, text);
       setNotes(prev => [...prev, newNote]);
       setText("");
+      showToast("Internal note added successfully.", "success");
     } catch (err) {
       console.error(err);
-      alert("Failed to add note.");
+      showToast("Failed to add note.", "error");
     } finally {
       setSaving(false);
     }

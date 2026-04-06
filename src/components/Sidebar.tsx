@@ -1,5 +1,5 @@
 import { NavLink } from "react-router-dom";
-import { Users, LayoutDashboard, List, Activity, Settings, UserCircle, MessageSquareWarning, CreditCard, Mail, Calendar, BarChart3 } from "lucide-react";
+import { Users, LayoutDashboard, List, Activity, Settings, UserCircle, MessageSquareWarning, CreditCard, Mail, Calendar, BarChart3, Search } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export function Sidebar() {
@@ -276,6 +276,21 @@ export function Sidebar() {
                             )}
                         </NavLink>
                     </div>
+                    <NavLink
+                        to="/seo"
+                        className={({ isActive }) =>
+                            cn("flex items-center gap-4 px-8 py-3.5 text-[15px] font-semibold transition-all group relative",
+                                isActive ? "text-[#4318FF] dark:text-white" : "text-[#A3AED0] hover:text-[#4318FF] dark:hover:text-white")
+                        }
+                    >
+                        {({ isActive }) => (
+                            <>
+                                <Search className={cn("h-5 w-5 transition-colors", isActive ? "text-[#4318FF] dark:text-white" : "text-[#A3AED0] group-hover:text-[#4318FF] dark:group-hover:text-white")} />
+                                <span>SEO Controls</span>
+                                {isActive && <div className="absolute right-0 top-1/2 -translate-y-1/2 w-1.5 h-9 bg-[#4318FF] dark:bg-[#01A3B4] rounded-l-full" />}
+                            </>
+                        )}
+                    </NavLink>
                     <NavLink
                         to="/settings"
                         className={({ isActive }) =>

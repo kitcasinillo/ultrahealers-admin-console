@@ -25,13 +25,13 @@ interface BaseAreaChartProps {
   className?: string;
 }
 
-export function BaseAreaChart({ title, data, areas, yAxisTickFormatter }: BaseAreaChartProps) {
+export function BaseAreaChart({ title, data, areas, yAxisTickFormatter, className }: BaseAreaChartProps) {
   return (
-    <Card className="rounded-3xl border-none shadow-[0_10px_30px_0_rgba(11,20,55,0.06)] dark:bg-[#111C44] min-w-0">
-      <CardHeader>
+    <Card className={`rounded-3xl border-none shadow-[0_10px_30px_0_rgba(11,20,55,0.06)] dark:bg-[#111C44] min-w-0 h-full flex flex-col ${className || ""}`}>
+      <CardHeader className="shrink-0">
         <CardTitle className="text-lg font-bold text-[#1b254b] dark:text-white">{title}</CardTitle>
       </CardHeader>
-      <CardContent>
+      <CardContent className="flex-1">
         <div className="h-[250px] sm:h-[300px] w-full mt-4">
           <ResponsiveContainer width="100%" height="100%">
             <AreaChart data={data} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>

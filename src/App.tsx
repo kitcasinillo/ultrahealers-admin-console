@@ -20,6 +20,8 @@ import { FinancialReport } from "./pages/reports/FinancialReport";
 import { CampaignReport } from "./pages/reports/CampaignReport";
 import { DisputeReport } from "./pages/reports/DisputeReport";
 import { UserReport } from "./pages/reports/UserReport";
+import { BookingReport } from "./pages/reports/BookingReport";
+import { RetreatReport } from "./pages/reports/RetreatReport";
 
 import { PlatformOverview } from "./pages/reports/PlatformOverview";
 import { Payments } from "./pages/payments/Payments";
@@ -87,6 +89,8 @@ function App() {
               <Route path="campaigns" element={<CampaignReport />} />
               <Route path="disputes" element={<DisputeReport />} />
               <Route path="users" element={<UserReport />} />
+              <Route path="bookings" element={<BookingReport />} />
+              <Route path="retreats" element={<RetreatReport />} />
             </Route>
             <Route path="modalities" element={<Modalities />} />
             <Route path="notifications" element={<Notifications />} />

@@ -1058,3 +1058,447 @@ export const exportGrowthCsv = (payload: GrowthExportPayload) => {
   link.click();
   document.body.removeChild(link);
 };
+
+
+/**
+ * Booking Report Exports
+ */
+
+export interface BookingExportPayload {
+  summaryData: any[];
+  bookingVolume: any[];
+  avgBookingValue: any[];
+  modalityPopularity: any[];
+  durationDistribution: any[];
+  completionRate: any[];
+  formatBreakdown: any[];
+  topHealersByCount: any[];
+  topHealersByRevenue: any[];
+}
+
+export const exportBookingReportPdf = (payload: BookingExportPayload) => {
+  const { 
+    summaryData, 
+    bookingVolume, 
+    avgBookingValue, 
+    modalityPopularity, 
+    durationDistribution, 
+    completionRate, 
+    formatBreakdown,
+    topHealersByCount,
+    topHealersByRevenue
+  } = payload;
+  const doc = new jsPDF('p', 'mm', 'a4');
+
+  doc.setFontSize(22);
+  doc.setTextColor(27, 37, 75);
+  doc.text("Booking & Session Report", 14, 20);
+
+  doc.setFontSize(10);
+  doc.setTextColor(163, 174, 208);
+  doc.text(`Generated on: ${new Date().toLocaleString()}`, 14, 28);
+
+    // 1. Summary Metrics
+    doc.setFontSize(14);
+    doc.setTextColor(27, 37, 75);
+    doc.text("1. Key Performance Summary", 14, 40);
+
+    autoTable(doc, {
+      startY: 45,
+      head: [['Metric', 'Value', 'Context']],
+      body: summaryData.map(s => [s.title, s.value, s.description || '-']),
+      theme: 'grid',
+      headStyles: { fillColor: [67, 24, 255] },
+      styles: { fontSize: 9 }
+    });
+
+    let currentY = (doc as any).lastAutoTable.finalY + 15;
+
+    // 2. Booking Volume
+    doc.text("2. Booking Volume", 14, currentY);
+    autoTable(doc, {
+      startY: currentY + 5,
+      head: [['Period', 'Total Bookings']],
+      body: bookingVolume.map(v => [v.name, String(v.bookings)]),
+      theme: 'striped',
+      headStyles: { fillColor: [67, 24, 255] },
+      styles: { fontSize: 9 }
+    });
+
+    currentY = (doc as any).lastAutoTable.finalY + 15;
+    if (currentY > 240) { doc.addPage(); currentY = 20; }
+
+    // 3. Avg Booking Value
+    doc.text("3. Average Booking Value ($)", 14, currentY);
+    autoTable(doc, {
+      startY: currentY + 5,
+      head: [['Period', 'Value ($)']],
+      body: avgBookingValue.map(v => [v.name, `$${v.value}`]),
+      theme: 'striped',
+      headStyles: { fillColor: [1, 163, 180] },
+      styles: { fontSize: 9 }
+    });
+
+    currentY = (doc as any).lastAutoTable.finalY + 15;
+    if (currentY > 240) { doc.addPage(); currentY = 20; }
+
+    // 4. Modality Popularity
+    doc.text("4. Modality Popularity", 14, currentY);
+    autoTable(doc, {
+      startY: currentY + 5,
+      head: [['Modality', 'Sessions Count']],
+      body: modalityPopularity.map(m => [m.modality, String(m.sessions)]),
+      theme: 'striped',
+      headStyles: { fillColor: [67, 24, 255] },
+      styles: { fontSize: 9 }
+    });
+
+    currentY = (doc as any).lastAutoTable.finalY + 15;
+    if (currentY > 240) { doc.addPage(); currentY = 20; }
+
+    // 5. Session Length Distribution
+    doc.text("5. Session Length Distribution", 14, currentY);
+    autoTable(doc, {
+      startY: currentY + 5,
+      head: [['Length', 'Count']],
+      body: durationDistribution.map(d => [d.length, String(d.count)]),
+      theme: 'striped',
+      headStyles: { fillColor: [1, 163, 180] },
+      styles: { fontSize: 9 }
+    });
+
+    currentY = (doc as any).lastAutoTable.finalY + 15;
+    if (currentY > 240) { doc.addPage(); currentY = 20; }
+
+    // 6. Completion Rate
+    doc.text("6. Booking Lifecycle Completion Rate (%)", 14, currentY);
+    autoTable(doc, {
+      startY: currentY + 5,
+      head: [['Status', 'Rate (%)']],
+      body: completionRate.map(c => [c.status, `${c.rate}%`]),
+      theme: 'striped',
+      headStyles: { fillColor: [124, 58, 237] },
+      styles: { fontSize: 9 }
+    });
+
+    currentY = (doc as any).lastAutoTable.finalY + 15;
+    if (currentY > 240) { doc.addPage(); currentY = 20; }
+
+    // 7. Format Breakdown
+    doc.text("7. Format Breakdown (Remote vs In-Person)", 14, currentY);
+    autoTable(doc, {
+      startY: currentY + 5,
+      head: [['Format', 'Value (%)']],
+      body: formatBreakdown.map(f => [f.name, `${f.value}%`]),
+      theme: 'striped',
+      headStyles: { fillColor: [1, 163, 180] },
+      styles: { fontSize: 9 }
+    });
+
+    doc.addPage();
+    currentY = 20;
+
+    // 8. Top Healers by Count
+    doc.text("8. Top 10 Practitioners by Booking Count", 14, currentY);
+    autoTable(doc, {
+      startY: currentY + 5,
+      head: [['Practitioner', 'Bookings', 'Rating']],
+      body: topHealersByCount.map(h => [h.name, String(h.count), `${h.rating}`]),
+      theme: 'striped',
+      headStyles: { fillColor: [67, 24, 255] },
+      styles: { fontSize: 9 }
+    });
+
+    currentY = (doc as any).lastAutoTable.finalY + 15;
+    if (currentY > 240) { doc.addPage(); currentY = 20; }
+
+    // 9. Top Healers by Revenue
+    doc.text("9. Top 10 Practitioners by Revenue ($)", 14, currentY);
+    autoTable(doc, {
+      startY: currentY + 5,
+      head: [['Practitioner', 'Revenue ($)', 'Rating']],
+      body: topHealersByRevenue.map(h => [h.name, `$${h.revenue.toLocaleString()}`, `${h.rating}`]),
+      theme: 'striped',
+      headStyles: { fillColor: [1, 163, 180] },
+      styles: { fontSize: 9 }
+    });
+
+    currentY = (doc as any).lastAutoTable.finalY + 15;
+    if (currentY > 240) { doc.addPage(); currentY = 20; }
+
+    // 10. Practitioner Performance Summary
+    doc.text("10. Practitioner Performance Summary", 14, currentY);
+    autoTable(doc, {
+      startY: currentY + 5,
+      head: [['Practitioner', 'Bookings', 'Revenue ($)', 'Avg Rating']],
+      body: topHealersByCount.map(h => [
+        h.name, 
+        String(h.count), 
+        `$${h.revenue.toLocaleString()}`, 
+        `${h.rating} ★`
+      ]),
+      theme: 'grid',
+      headStyles: { fillColor: [67, 24, 255] },
+      styles: { fontSize: 9 }
+    });
+
+    doc.save(`Booking_Report_${new Date().getTime()}.pdf`);
+};
+
+export const exportBookingReportExcel = (payload: BookingExportPayload) => {
+  const { 
+    summaryData, 
+    bookingVolume, 
+    avgBookingValue, 
+    modalityPopularity, 
+    durationDistribution, 
+    completionRate, 
+    formatBreakdown,
+    topHealersByCount,
+    topHealersByRevenue
+  } = payload;
+  const wb = XLSX.utils.book_new();
+
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(
+    summaryData.map(s => ({ 'Metric': s.title, 'Value': s.value, 'Context': s.description || '-' }))
+  ), "Summary Metrics");
+
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(
+    bookingVolume.map(v => ({ 'Period': v.name, 'Total Bookings': v.bookings }))
+  ), "Booking Volume");
+
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(
+    avgBookingValue.map(v => ({ 'Period': v.name, 'Value ($)': v.value }))
+  ), "Avg Booking Value");
+
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(
+    modalityPopularity.map(m => ({ 'Modality': m.modality, 'Sessions Count': m.sessions }))
+  ), "Modality Popularity");
+
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(
+    durationDistribution.map(d => ({ 'Length': d.length, 'Count': d.count }))
+  ), "Length Distribution");
+
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(
+    completionRate.map(c => ({ 'Status': c.status, 'Rate (%)': c.rate }))
+  ), "Completion Rate");
+
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(
+    formatBreakdown.map(f => ({ 'Format': f.name, 'Value (%)': f.value }))
+  ), "Format Breakdown");
+
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(
+    topHealersByCount.map(h => ({ 'Practitioner': h.name, 'Bookings': h.count, 'Rating': h.rating }))
+  ), "Top Healers by Count");
+
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(
+    topHealersByRevenue.map(h => ({ 'Practitioner': h.name, 'Revenue ($)': h.revenue, 'Rating': h.rating }))
+  ), "Top Healers by Revenue");
+
+  // Practitioner Performance Summary (Table)
+  const performanceData = topHealersByCount.map(h => ({
+    'Practitioner': h.name,
+    'Bookings': h.count,
+    'Revenue ($)': h.revenue,
+    'Avg Rating': h.rating
+  }));
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(performanceData), "Practitioner Performance");
+
+  XLSX.writeFile(wb, `Booking_Report_${new Date().getTime()}.xlsx`);
+};
+
+/**
+ * Retreat Report Exports
+ */
+
+export interface RetreatExportPayload {
+  summaryData: any[];
+  retreatCountTrend: any[];
+  bookingRateTrend: any[];
+  revenueByEvent: any[];
+  topLocations: any[];
+  avgPriceTrend: any[];
+  durationBreakdown: any[];
+  retreatPerformanceData: any[];
+}
+
+export const exportRetreatReportPdf = (payload: RetreatExportPayload) => {
+  const { 
+    summaryData, 
+    retreatCountTrend, 
+    bookingRateTrend, 
+    revenueByEvent,
+    topLocations,
+    avgPriceTrend,
+    durationBreakdown,
+    retreatPerformanceData 
+  } = payload;
+  const doc = new jsPDF('p', 'mm', 'a4');
+
+  doc.setFontSize(22);
+  doc.setTextColor(27, 37, 75);
+  doc.text("Retreat Analysis Report", 14, 20);
+
+  doc.setFontSize(10);
+  doc.setTextColor(163, 174, 208);
+  doc.text(`Generated on: ${new Date().toLocaleString()}`, 14, 28);
+
+  // 1. Summary Metrics
+  doc.setFontSize(14);
+  doc.setTextColor(27, 37, 75);
+  doc.text("1. Retreat Market Summary", 14, 40);
+
+  autoTable(doc, {
+    startY: 45,
+    head: [['Metric', 'Value', 'Context']],
+    body: summaryData.map(s => [s.title, s.value, s.description || '-']),
+    theme: 'grid',
+    headStyles: { fillColor: [67, 24, 255] },
+    styles: { fontSize: 9 }
+  });
+
+  let currentY = (doc as any).lastAutoTable.finalY + 15;
+
+  // 2. Active Retreats Trend
+  doc.text("2. Active Retreats Count Trend", 14, currentY);
+  autoTable(doc, {
+    startY: currentY + 5,
+    head: [['Period', 'Active']],
+    body: retreatCountTrend.map(t => [t.name, String(t.active)]),
+    theme: 'striped',
+    headStyles: { fillColor: [67, 24, 255] },
+    styles: { fontSize: 9 }
+  });
+
+  currentY = (doc as any).lastAutoTable.finalY + 15;
+  if (currentY > 240) { doc.addPage(); currentY = 20; }
+
+  // 3. Booking Rate Trend
+  doc.text("3. Booking Rate over time (%)", 14, currentY);
+  autoTable(doc, {
+    startY: currentY + 5,
+    head: [['Period', 'Rate (%)']],
+    body: bookingRateTrend.map(t => [t.name, `${t.rate}%`]),
+    theme: 'striped',
+    headStyles: { fillColor: [1, 163, 180] },
+    styles: { fontSize: 9 }
+  });
+
+  currentY = (doc as any).lastAutoTable.finalY + 15;
+  if (currentY > 240) { doc.addPage(); currentY = 20; }
+
+  // 4. Revenue by Event
+  doc.text("4. Revenue by Retreat Event ($)", 14, currentY);
+  autoTable(doc, {
+    startY: currentY + 5,
+    head: [['Event', 'Revenue ($)']],
+    body: revenueByEvent.map(e => [e.event, `$${e.revenue.toLocaleString()}`]),
+    theme: 'striped',
+    headStyles: { fillColor: [67, 24, 255] },
+    styles: { fontSize: 9 }
+  });
+
+  currentY = (doc as any).lastAutoTable.finalY + 15;
+  if (currentY > 240) { doc.addPage(); currentY = 20; }
+
+  // 5. Top Destinations
+  doc.text("5. Top Destinations for Retreats", 14, currentY);
+  autoTable(doc, {
+    startY: currentY + 5,
+    head: [['Location', 'Count']],
+    body: topLocations.map(l => [l.location, String(l.count)]),
+    theme: 'striped',
+    headStyles: { fillColor: [1, 163, 180] },
+    styles: { fontSize: 9 }
+  });
+
+  currentY = (doc as any).lastAutoTable.finalY + 15;
+  if (currentY > 240) { doc.addPage(); currentY = 20; }
+
+  // 6. Average Price Trend
+  doc.text("6. Average Retreat Price per Person ($)", 14, currentY);
+  autoTable(doc, {
+    startY: currentY + 5,
+    head: [['Period', 'Price ($)']],
+    body: avgPriceTrend.map(t => [t.name, `$${t.price.toLocaleString()}`]),
+    theme: 'striped',
+    headStyles: { fillColor: [124, 58, 237] },
+    styles: { fontSize: 9 }
+  });
+
+  currentY = (doc as any).lastAutoTable.finalY + 15;
+  if (currentY > 240) { doc.addPage(); currentY = 20; }
+
+  // 7. Duration Breakdown
+  doc.text("7. Retreats by Duration", 14, currentY);
+  autoTable(doc, {
+    startY: currentY + 5,
+    head: [['Duration', 'Value (%)']],
+    body: durationBreakdown.map(d => [d.name, `${d.value}%`]),
+    theme: 'striped',
+    headStyles: { fillColor: [1, 163, 180] },
+    styles: { fontSize: 9 }
+  });
+
+  doc.addPage();
+  currentY = 20;
+
+  // 8. Performance Overview
+  doc.text("8. Retreat Event Performance Overview", 14, currentY);
+  autoTable(doc, {
+    startY: currentY + 5,
+    head: [['Event Name', 'Revenue', 'Booked Rate', 'Avg Price']],
+    body: retreatPerformanceData.map(e => [
+      e.event, `$${e.revenue.toLocaleString()}`, `${e.rate}%`, `$${e.price.toLocaleString()}`
+    ]),
+    theme: 'striped',
+    headStyles: { fillColor: [67, 24, 255] },
+    styles: { fontSize: 9 }
+  });
+
+  doc.save(`Retreat_Report_${new Date().getTime()}.pdf`);
+};
+
+export const exportRetreatReportExcel = (payload: RetreatExportPayload) => {
+  const { summaryData, retreatCountTrend, bookingRateTrend, revenueByEvent, topLocations, avgPriceTrend, durationBreakdown, retreatPerformanceData } = payload;
+  const wb = XLSX.utils.book_new();
+
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(
+    summaryData.map(s => ({ 'Metric': s.title, 'Value': s.value, 'Context': s.description || '-' }))
+  ), "Market Summary");
+
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(
+    retreatCountTrend.map(t => ({ 'Period': t.name, 'Active': t.active }))
+  ), "Active Listing Trend");
+
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(
+    bookingRateTrend.map(t => ({ 'Period': t.name, 'Rate (%)': t.rate }))
+  ), "Booking Rate Trend");
+
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(
+    revenueByEvent.map(e => ({ 'Event': e.event, 'Revenue ($)': e.revenue }))
+  ), "Revenue by Event");
+
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(
+    topLocations.map(l => ({ 'Location': l.location, 'Count': l.count }))
+  ), "Top Destinations");
+
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(
+    avgPriceTrend.map(t => ({ 'Period': t.name, 'Price ($)': t.price }))
+  ), "Price Trends");
+
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(
+    durationBreakdown.map(d => ({ 'Duration': d.name, 'Value (%)': d.value }))
+  ), "Duration Breakdown");
+
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(
+    retreatPerformanceData.map(e => ({
+      'Event Name': e.event,
+      'Revenue': e.revenue,
+      'Booked Rate': e.rate,
+      'Avg Price': e.price
+    }))
+  ), "Performance Overview");
+
+  XLSX.writeFile(wb, `Retreat_Report_${new Date().getTime()}.xlsx`);
+};

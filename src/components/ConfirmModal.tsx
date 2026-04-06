@@ -32,7 +32,7 @@ export function ConfirmModal({
     isLoading = false
 }: ConfirmModalProps) {
     return (
-        <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
+        <Dialog open={isOpen} onOpenChange={(open: boolean) => !open && onClose()}>
             <DialogContent className="sm:max-w-[425px] rounded-[24px]">
                 <DialogHeader>
                     <DialogTitle className="text-xl font-bold">{title}</DialogTitle>

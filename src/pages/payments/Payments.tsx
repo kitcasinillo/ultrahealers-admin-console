@@ -8,7 +8,6 @@ import {
     ArrowUpRight,
     Calendar,
     ChevronDown,
-    Activity,
     PieChart as PieChartIcon
 } from "lucide-react";
 import {

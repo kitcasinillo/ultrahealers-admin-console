@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import { useState, useMemo } from 'react';
 import {
     Search,
     Calendar as CalendarIcon,
@@ -320,11 +320,11 @@ export function PayoutsTable() {
                                     <div className="mt-2 px-4 py-3 border-t border-[#E9EDF7] dark:border-white/5 space-y-2.5">
                                         <div className="space-y-1">
                                             <span className="text-[10px] font-bold text-[#A3AED0] uppercase">From</span>
-                                            <input type="date" className="w-full bg-[#F4F7FE] dark:bg-white/5 border-none rounded-lg p-2 text-xs font-semibold text-[#1b254b] dark:text-white" value={customDates.start} onChange={(e) => setCustomDates(prev => ({ ...prev, start: e.target.value }))} />
+                                            <input type="date" className="w-full bg-[#F4F7FE] dark:bg-white/5 border-none rounded-lg p-2 text-xs font-semibold text-[#1b254b] dark:text-white" value={customDates.start} onChange={(e: any) => setCustomDates((prev: any) => ({ ...prev, start: e.target.value }))} />
                                         </div>
                                         <div className="space-y-1">
                                             <span className="text-[10px] font-bold text-[#A3AED0] uppercase">To</span>
-                                            <input type="date" className="w-full bg-[#F4F7FE] dark:bg-white/5 border-none rounded-lg p-2 text-xs font-semibold text-[#1b254b] dark:text-white" value={customDates.end} onChange={(e) => setCustomDates(prev => ({ ...prev, end: e.target.value }))} />
+                                            <input type="date" className="w-full bg-[#F4F7FE] dark:bg-white/5 border-none rounded-lg p-2 text-xs font-semibold text-[#1b254b] dark:text-white" value={customDates.end} onChange={(e: any) => setCustomDates((prev: any) => ({ ...prev, end: e.target.value }))} />
                                         </div>
                                         <Button size="sm" className="w-full bg-[#4318FF] text-white rounded-lg h-9" onClick={() => setIsDateDropdownOpen(false)}>Apply</Button>
                                     </div>

@@ -19,7 +19,7 @@ import { ToastProvider } from "./contexts/ToastContext";
 import { FinancialReport } from "./pages/reports/FinancialReport";
 import { CampaignReport } from "./pages/reports/CampaignReport";
 import { DisputeReport } from "./pages/reports/DisputeReport";
-import { AdminGuard } from "./components/AdminGuard";
+
 import { PlatformOverview } from "./pages/reports/PlatformOverview";
 import { Payments } from "./pages/payments/Payments";
 

@@ -135,7 +135,7 @@ export function DisputesFilters({ filters, setFilters, summary }: DisputesFilter
           </DropdownMenuContent>
         </DropdownMenu>
 
-        <Select value={filters.severity} onValueChange={(v) => setFilters(p => ({ ...p, severity: v }))}>
+        <Select value={filters.severity} onValueChange={(v: string) => setFilters(p => ({ ...p, severity: v }))}>
           <SelectTrigger className="w-[140px]">
             <SelectValue placeholder="Severity" />
           </SelectTrigger>

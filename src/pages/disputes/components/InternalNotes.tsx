@@ -33,7 +33,7 @@ export default function InternalNotes({ disputeId, initialNotes }: { disputeId: 
         <span className="bg-amber-100 text-amber-800 text-[9px] uppercase tracking-wider font-extrabold px-2 py-1 rounded shadow-sm border border-amber-200/50">Admins Only</span>
       </div>
 
-      <div className="p-4 bg-slate-50 border-b border-slate-100 flex-1 max-h-[350px] overflow-y-auto">
+      <div className="p-4 bg-slate-50 border-b border-slate-100 flex-1 h-auto">
         {notes.length === 0 ? (
           <p className="text-sm text-slate-500 font-medium italic text-center mt-6 mb-8 bg-white border border-slate-100 rounded-lg p-4 mx-2 border-dashed shadow-sm">No administrative notes yet.</p>
         ) : (

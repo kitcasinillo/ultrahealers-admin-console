@@ -83,11 +83,11 @@ export default function DisputeDetailPage() {
   const isResolved = dispute.status.startsWith('resolved_') || dispute.status === 'denied';
 
   return (
-    <div className="min-h-[calc(100vh-64px)] bg-slate-50 pb-20">
+    <div className="flex flex-col flex-1 bg-slate-50 overflow-y-auto">
 
-      {/* Alert Banners */}
+      {/* 1. Alert Banners */}
       {isResolved && (
-        <div className="bg-emerald-600 text-white px-6 py-3.5 flex items-center justify-center shadow-inner">
+        <div className="bg-emerald-600 text-white px-6 py-3.5 flex items-center justify-center shadow-inner shrink-0">
           <div className="flex items-center gap-2.5 font-bold text-sm tracking-wide">
             <CheckCircle2 className="w-5 h-5 opacity-90" />
             This dispute has been resolved — {dispute.decision?.outcome.replace('_', ' ') || 'Unknown'} on {dispute.decision?.renderedAt ? new Date(dispute.decision.renderedAt).toLocaleDateString() : 'Unknown date'}
@@ -95,7 +95,7 @@ export default function DisputeDetailPage() {
         </div>
       )}
       {!isResolved && isSafety && (
-        <div className="bg-red-600 text-white px-6 py-3.5 flex items-center justify-center shadow-inner">
+        <div className="bg-red-600 text-white px-6 py-3.5 flex items-center justify-center shadow-inner shrink-0">
           <div className="flex items-center gap-2.5 font-bold text-sm tracking-wide">
             <ShieldAlert className="w-5 h-5 opacity-90" />
             This is a Safety dispute. Handle with priority.
@@ -103,28 +103,32 @@ export default function DisputeDetailPage() {
         </div>
       )}
 
-      {/* Page Header */}
-      <div className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
-          <div>
-            <div className="flex items-center gap-2 text-sm font-bold text-slate-400 mb-2 tracking-wide uppercase">
-              <Link to="/disputes" className="hover:text-slate-800 transition-colors flex items-center gap-1.5 bg-slate-200/50 hover:bg-slate-200 px-2 py-0.5 rounded">
-                <ArrowLeft className="w-3.5 h-3.5" /> Disputes Back
-              </Link>
-              <span>/</span>
-              <span className="text-slate-600 tracking-tight">{dispute.id}</span>
+      {/* 2. Fixed Header Section */}
+      <div className="shrink-0 bg-white border-b border-slate-200 shadow-sm z-10 transition-all">
+        <div className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 py-5 w-full">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div>
+              <div className="flex items-center gap-2 text-sm font-bold text-slate-400 mb-2 tracking-wide uppercase">
+                <Link to="/disputes" className="hover:text-slate-800 transition-colors flex items-center gap-1.5 bg-slate-50 hover:bg-slate-100 px-2 py-0.5 rounded border border-slate-200">
+                  <ArrowLeft className="w-3.5 h-3.5" /> Disputes Back
+                </Link>
+                <span>/</span>
+                <span className="text-slate-600 tracking-tight">{dispute.id}</span>
+              </div>
+              <h1 className="text-2xl font-black text-slate-950 tracking-tight flex items-center gap-3">
+                Case #{dispute.id}
+              </h1>
             </div>
-            <h1 className="text-3xl font-black text-slate-950 tracking-tight flex items-center gap-3">
-              Case #{dispute.id}
-            </h1>
           </div>
         </div>
+      </div>
 
-        {/* Layout Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-[1fr_390px] xl:grid-cols-[1fr_420px] gap-8 items-start">
+      {/* 3. Dual Column Scrollable Content Area */}
+      <div className="px-4 sm:px-6 lg:px-8 max-w-[1440px] mx-auto w-full pt-6">
+        <div className="grid grid-cols-1 lg:grid-cols-[1fr_390px] xl:grid-cols-[1fr_420px] gap-8 h-full">
 
-          {/* Left Column - Flow Information */}
-          <div className="min-w-0 flex flex-col gap-1 w-full">
+          {/* Left Column Scrollable */}
+          <div className="sticky top-6 self-start h-[calc(100vh-230px)] overflow-y-auto custom-scrollbar pr-4 space-y-6 pb-24">
             <DisputeSummaryCard dispute={dispute} />
             <DisputeTimeline dispute={dispute} />
 
@@ -132,18 +136,51 @@ export default function DisputeDetailPage() {
               party="seeker"
               name={dispute.seekerName}
               userId={dispute.seekerId}
-              statement={dispute.seekerStatement}
-              evidence={dispute.seekerEvidence}
-              submittedAt={dispute.submittedAt}
+              entries={[
+                {
+                  statement: dispute.seekerStatement,
+                  evidence: dispute.seekerEvidence,
+                  submittedAt: dispute.submittedAt
+                },
+                {
+                  statement: "Example 2: The healer was unresponsive to my initial complaints and seemed indifferent to the technical issues I was facing. I expect better support when paying for a premium spiritual session. The connection issues were definitely on their side.",
+                  evidence: [],
+                  submittedAt: new Date(Date.now() - 3600000).toISOString()
+                },
+                {
+                  statement: "Example 3: Adding to my previous report: I also checked my internet connection during the session and it was perfectly stable on other sites. The healer's video was freezing every 2 minutes. This session should definitely be refunded.",
+                  evidence: [],
+                  submittedAt: new Date(Date.now() - 7200000).toISOString()
+                }
+              ]}
             />
 
             <StatementCard
               party="healer"
               name={dispute.healerName}
               userId={dispute.healerId}
-              statement={dispute.healerStatement}
-              evidence={dispute.healerEvidence}
-              responseDueAt={dispute.responseDueAt}
+              entries={[
+                {
+                  statement: dispute.healerStatement,
+                  evidence: dispute.healerEvidence,
+                  submittedAt: new Date().toISOString()
+                },
+                {
+                  statement: "Example 2: I have conducted over 500 sessions and never had this issue. I believe the seeker might be using an outdated browser or has some firewall settings blocking the video stream. I am happy to offer a 15-minute follow-up for free.",
+                  evidence: [],
+                  submittedAt: new Date(Date.now() - 43200000).toISOString()
+                },
+                {
+                  statement: "Example 3: Initial response was delayed because I was traveling. I was present 5 minutes before the session started. The seeker joined late and immediately started complaining about the quality before we even began the healing process.",
+                  evidence: [],
+                  submittedAt: new Date(Date.now() - 129600000).toISOString()
+                },
+                {
+                  statement: "Example 4: I have logs showing my upload speed was 50Mbps throughout. Any slowdown was certainly on the client side. I don't feel a refund is appropriate.",
+                  evidence: [],
+                  submittedAt: new Date(Date.now() - 172800000).toISOString()
+                }
+              ]}
             />
 
             <EvidenceGallery dispute={dispute} />
@@ -151,13 +188,12 @@ export default function DisputeDetailPage() {
             <BookingDetailsCard dispute={dispute} />
           </div>
 
-          {/* Right Column - Sticky Actions */}
-          <div className="bg-transparent lg:sticky lg:top-[30px] lg:self-start w-full">
-
+          {/* Right Column Scrollable */}
+          <div className="h-auto pr-2 space-y-6 pb-24">
             <DecisionForm dispute={dispute} onUpdate={setDispute} />
             <InternalNotes disputeId={dispute.id} initialNotes={dispute.internalNotes} />
 
-            {/* Quick Actions */}
+            {/* Quick Actions Card */}
             <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-5 space-y-3.5">
               <h3 className="text-[11.5px] font-bold text-slate-400 uppercase tracking-widest mb-4">Quick Shortcuts</h3>
 
@@ -198,7 +234,6 @@ export default function DisputeDetailPage() {
                 <ExternalLink className="w-4.5 h-4.5 text-indigo-400" />
               </a>
             </div>
-
           </div>
         </div>
       </div>

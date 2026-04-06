@@ -10,7 +10,7 @@ interface StatsCardProps {
 
 export function StatsCard({ title, value, description, icon }: StatsCardProps) {
     return (
-        <div className="flex items-center rounded-[30px] bg-white dark:bg-[#111C44] p-6 shadow-[0_10px_30px_0_rgba(11,20,55,0.06)] dark:shadow-none border border-transparent dark:border-white/5 transition-all hover:shadow-[0_20px_40px_0_rgba(11,20,55,0.1)] duration-300">
+        <div className="flex items-center rounded-2xl bg-white dark:bg-[#111C44] p-5 lg:p-6 shadow-[0_10px_30px_0_rgba(11,20,55,0.06)] dark:shadow-none border border-transparent dark:border-white/5 transition-transform hover:-translate-y-1 duration-300 h-full w-full">
             {icon && (
                 <div className={cn(
                     "flex h-[56px] w-[56px] items-center justify-center rounded-full mr-4 shrink-0 shadow-[0_10px_20px_rgba(0,0,0,0.05)]",

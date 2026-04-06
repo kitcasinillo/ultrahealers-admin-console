@@ -19,6 +19,8 @@ import { ToastProvider } from "./contexts/ToastContext";
 import { FinancialReport } from "./pages/reports/FinancialReport";
 import { CampaignReport } from "./pages/reports/CampaignReport";
 import { DisputeReport } from "./pages/reports/DisputeReport";
+import { AdminGuard } from "./components/AdminGuard";
+import { PlatformOverview } from "./pages/reports/PlatformOverview";
 
 function App() {
   return (
@@ -57,7 +59,8 @@ function App() {
             <Route path="campaigns" element={<div>Campaigns</div>} />
             
             <Route path="reports">
-              <Route index element={<div>Reports</div>} />
+              <Route index element={<Navigate to="overview" replace />} />
+              <Route path="overview" element={<PlatformOverview />} />
               <Route path="financial" element={<FinancialReport />} />
               <Route path="campaigns" element={<CampaignReport />} />
               <Route path="disputes" element={<DisputeReport />} />

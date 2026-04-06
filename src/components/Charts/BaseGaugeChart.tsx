@@ -15,10 +15,10 @@ interface BaseGaugeChartProps {
   subtitle: React.ReactNode;
 }
 
-export function BaseGaugeChart({ title, data, colors, score, statusBadge, subtitle, className }: BaseGaugeChartProps & { className?: string }) {
+export function BaseGaugeChart({ title, data, colors, score, statusBadge, subtitle }: BaseGaugeChartProps) {
   return (
-    <Card className={`rounded-3xl border-none shadow-[0_10px_30px_0_rgba(11,20,55,0.06)] dark:bg-[#111C44] min-w-0 h-full flex flex-col ${className || ""}`}>
-      <CardHeader className="flex flex-row items-center justify-between pb-0 shrink-0">
+    <Card className="rounded-3xl border-none shadow-[0_10px_30px_0_rgba(11,20,55,0.06)] dark:bg-[#111C44] min-w-0">
+      <CardHeader className="flex flex-row items-center justify-between pb-0">
         <CardTitle className="text-lg font-bold text-[#1b254b] dark:text-white">{title}</CardTitle>
         {statusBadge && (
           <div className={statusBadge.className}>
@@ -26,8 +26,8 @@ export function BaseGaugeChart({ title, data, colors, score, statusBadge, subtit
           </div>
         )}
       </CardHeader>
-      <CardContent className="flex flex-col items-center justify-center pt-0 flex-1">
-        <div className="h-[250px] sm:h-[300px] w-full relative flex items-center justify-center -mt-4">
+      <CardContent className="flex flex-col items-center justify-center pt-0">
+        <div className="h-[200px] sm:h-[250px] w-full relative flex items-center justify-center -mt-4">
           <ResponsiveContainer width="100%" height="100%">
             <PieChart>
               <Pie

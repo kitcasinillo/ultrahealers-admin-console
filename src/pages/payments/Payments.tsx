@@ -101,7 +101,7 @@ export function Payments() {
     };
 
     const ranges = [
-        { id: 'all-time', label: 'All Time' },
+        { id: 'all-time', label: 'All' },
         { id: 'month', label: 'This Month' },
         { id: 'week', label: 'This Week' },
         { id: 'custom', label: 'Custom Range' }

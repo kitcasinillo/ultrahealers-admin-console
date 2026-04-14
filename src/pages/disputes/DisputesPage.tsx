@@ -90,16 +90,14 @@ export default function DisputesPage() {
       setConfirmModal({
         isOpen: true,
         title: 'Mark as In Review',
-        description: 'Are you sure you want to mark this dispute as In Review?',
+        description: 'This action is not wired yet because the backend has no generic status update endpoint for disputes.',
         isLoading: false,
         onConfirm: async () => {
           setConfirmModal(p => ({ ...p, isLoading: true }));
           try {
             await updateDisputeStatus(id, 'in_review');
-            showToast('Dispute marked as In Review');
-            fetchDisputes();
-          } catch (e) {
-            showToast('Failed to update status', 'error');
+          } catch {
+            showToast('Backend support for marking disputes in review is not available yet.', 'error');
           } finally {
             setConfirmModal(p => ({ ...p, isOpen: false, isLoading: false }));
           }
@@ -110,16 +108,14 @@ export default function DisputesPage() {
       setConfirmModal({
         isOpen: true,
         title: 'Escalate to Safety',
-        description: 'Are you sure you want to escalate this dispute to Safety severity?',
+        description: 'This action is not wired yet because the backend has no dispute escalation endpoint.',
         isLoading: false,
         onConfirm: async () => {
           setConfirmModal(p => ({ ...p, isLoading: true }));
           try {
             await escalateDispute(id);
-            showToast('Dispute escalated to Safety');
-            fetchDisputes();
-          } catch (e) {
-            showToast('Failed to escalate dispute', 'error');
+          } catch {
+            showToast('Backend support for dispute escalation is not available yet.', 'error');
           } finally {
             setConfirmModal(p => ({ ...p, isOpen: false, isLoading: false }));
           }

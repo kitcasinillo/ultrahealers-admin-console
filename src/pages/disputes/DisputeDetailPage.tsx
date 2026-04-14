@@ -141,47 +141,24 @@ export default function DisputeDetailPage() {
                   statement: dispute.seekerStatement,
                   evidence: dispute.seekerEvidence,
                   submittedAt: dispute.submittedAt
-                },
-                {
-                  statement: "Example 2: The healer was unresponsive to my initial complaints and seemed indifferent to the technical issues I was facing. I expect better support when paying for a premium spiritual session. The connection issues were definitely on their side.",
-                  evidence: [],
-                  submittedAt: new Date(Date.now() - 3600000).toISOString()
-                },
-                {
-                  statement: "Example 3: Adding to my previous report: I also checked my internet connection during the session and it was perfectly stable on other sites. The healer's video was freezing every 2 minutes. This session should definitely be refunded.",
-                  evidence: [],
-                  submittedAt: new Date(Date.now() - 7200000).toISOString()
                 }
               ]}
             />
 
-            <StatementCard
-              party="healer"
-              name={dispute.healerName}
-              userId={dispute.healerId}
-              entries={[
-                {
-                  statement: dispute.healerStatement,
-                  evidence: dispute.healerEvidence,
-                  submittedAt: new Date().toISOString()
-                },
-                {
-                  statement: "Example 2: I have conducted over 500 sessions and never had this issue. I believe the seeker might be using an outdated browser or has some firewall settings blocking the video stream. I am happy to offer a 15-minute follow-up for free.",
-                  evidence: [],
-                  submittedAt: new Date(Date.now() - 43200000).toISOString()
-                },
-                {
-                  statement: "Example 3: Initial response was delayed because I was traveling. I was present 5 minutes before the session started. The seeker joined late and immediately started complaining about the quality before we even began the healing process.",
-                  evidence: [],
-                  submittedAt: new Date(Date.now() - 129600000).toISOString()
-                },
-                {
-                  statement: "Example 4: I have logs showing my upload speed was 50Mbps throughout. Any slowdown was certainly on the client side. I don't feel a refund is appropriate.",
-                  evidence: [],
-                  submittedAt: new Date(Date.now() - 172800000).toISOString()
-                }
-              ]}
-            />
+            {dispute.healerStatement && (
+              <StatementCard
+                party="healer"
+                name={dispute.healerName}
+                userId={dispute.healerId}
+                entries={[
+                  {
+                    statement: dispute.healerStatement,
+                    evidence: dispute.healerEvidence,
+                    submittedAt: dispute.timeline.find((item) => item.step === 'healer_responded')?.completedAt || dispute.submittedAt
+                  }
+                ]}
+              />
+            )}
 
             <EvidenceGallery dispute={dispute} />
             <ChatTranscript bookingId={dispute.bookingId} />

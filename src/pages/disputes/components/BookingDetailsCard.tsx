@@ -38,9 +38,13 @@ export default function BookingDetailsCard({ dispute }: { dispute: DisputeDetail
 
            <div className="grid grid-cols-[1fr_2fr] text-sm">
              <span className="text-slate-500 font-medium">Listing</span>
-             <Link to={`/listings/${b.listingId}`} className="text-blue-600 hover:text-blue-800 hover:underline text-right font-medium truncate ml-auto inline-block max-w-[200px]" title={b.listingTitle}>
-               {b.listingTitle}
-             </Link>
+             {b.listingId ? (
+               <Link to={`/listings/${b.listingId}`} className="text-blue-600 hover:text-blue-800 hover:underline text-right font-medium truncate ml-auto inline-block max-w-[200px]" title={b.listingTitle}>
+                 {b.listingTitle}
+               </Link>
+             ) : (
+               <span className="text-slate-500 text-right font-medium">{b.listingTitle}</span>
+             )}
            </div>
            
            <div className="grid grid-cols-2 text-sm border-b border-slate-100 pb-4">

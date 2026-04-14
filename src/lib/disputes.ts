@@ -109,48 +109,67 @@ export interface GetDisputesResponse {
 
 export const getDisputes = async (filters: GetDisputesFilters): Promise<GetDisputesResponse> => {
   try {
-    // Fetch from the mock JSON file in the public folder
-    const response = await fetch("/data/dispute.json");
-    const mockDisputes = await response.json();
-    
-    let items: Dispute[] = [...mockDisputes];
-
-    // Apply Overdue logic to ALL items before filtering (for correct sumary counts)
-    items = items.map(d => {
-      let isOverdue = false;
-      if (d.responseDueAt && (d.status === 'open' || d.status === 'in_review')) {
-        isOverdue = new Date(d.responseDueAt).getTime() < Date.now();
-      }
-      return { ...d, isOverdue };
-    });
-
-    // Summary logic for dashboard badges (Calculated from FULL dataset)
-    const summary = {
-      open: items.filter(d => d.status === 'open').length,
-      safety: items.filter(d => d.severity === 'safety').length,
-      overdue: items.filter(d => d.isOverdue).length,
-      inReview: items.filter(d => d.status === 'in_review').length,
-    };
-
-    // --- APPLY FILTERS ---
+    const params = new URLSearchParams();
     if (filters.status && filters.status !== 'all') {
       const statuses = filters.status.split(',').filter(Boolean);
-      items = items.filter(d => statuses.includes(d.status));
+      if (statuses.length === 1) params.set('status', statuses[0]);
+    }
+    if (filters.type && filters.type !== 'all') {
+      const types = filters.type.split(',').filter(Boolean);
+      if (types.length === 1) params.set('type', types[0]);
+    }
+    if (filters.healerId) params.set('healerId', filters.healerId);
+    if (filters.seekerId) params.set('seekerId', filters.seekerId);
+
+    const endpoint = params.toString() ? `/api/disputes?${params.toString()}` : '/api/disputes';
+    const response = await api.get<{ success: boolean; disputes: Array<Record<string, unknown>> }>(endpoint);
+    let items: Dispute[] = (response.data.disputes || []).map((item) => {
+      const submittedAt = typeof item.submittedAt === 'string' ? item.submittedAt : new Date().toISOString();
+      const responseDueAt = typeof item.responseDueAt === 'string' ? item.responseDueAt : submittedAt;
+      const status = (item.status as DisputeStatus) || 'open';
+      const type = (item.type as DisputeType) || 'other';
+      const severity = (item.severity as DisputeSeverity) || (type === 'safety' ? 'safety' : 'normal');
+      const seekerName = typeof item.seekerName === 'string' ? item.seekerName : '';
+      const healerName = typeof item.healerName === 'string' ? item.healerName : '';
+      const isOverdue = (status === 'open' || status === 'in_review') && new Date(responseDueAt).getTime() < Date.now();
+
+      return {
+        id: String(item.id || ''),
+        bookingId: String(item.bookingId || ''),
+        seekerId: String(item.seekerId || ''),
+        seekerName,
+        healerId: String(item.healerId || ''),
+        healerName,
+        type,
+        severity,
+        status,
+        requestedAmount: Number(item.requestedAmount || 0),
+        currency: String(item.currency || 'USD'),
+        submittedAt,
+        responseDueAt,
+        isOverdue,
+        description: typeof item.description === 'string' ? item.description : undefined,
+      };
+    });
+
+    if (filters.search) {
+      const s = filters.search.toLowerCase();
+      items = items.filter(d =>
+        (d.id || '').toLowerCase().includes(s) ||
+        (d.seekerName || '').toLowerCase().includes(s) ||
+        (d.healerName || '').toLowerCase().includes(s) ||
+        (d.description || '').toLowerCase().includes(s)
+      );
+    }
+
+    if (filters.status && filters.status !== 'all') {
+      const statuses = filters.status.split(',').filter(Boolean);
+      if (statuses.length > 1) items = items.filter(d => statuses.includes(d.status));
     }
 
     if (filters.type && filters.type !== 'all') {
       const types = filters.type.split(',').filter(Boolean);
-      items = items.filter(d => types.includes(d.type));
-    }
-
-    if (filters.search) {
-      const s = filters.search.toLowerCase();
-      items = items.filter(d => 
-        (d.id || '').toLowerCase().includes(s) || 
-        (d.seekerName || '').toLowerCase().includes(s) || 
-        (d.healerName || '').toLowerCase().includes(s) ||
-        (d.description || '').toLowerCase().includes(s)
-      );
+      if (types.length > 1) items = items.filter(d => types.includes(d.type));
     }
 
     if (filters.severity && filters.severity !== 'all') {
@@ -161,23 +180,6 @@ export const getDisputes = async (filters: GetDisputesFilters): Promise<GetDispu
       items = items.filter(d => d.isOverdue);
     }
 
-    if (filters.healerId) {
-      const s = filters.healerId.toLowerCase();
-      items = items.filter(d => 
-        (d.healerId || '').toLowerCase().includes(s) || 
-        (d.healerName || '').toLowerCase().includes(s)
-      );
-    }
-
-    if (filters.seekerId) {
-      const s = filters.seekerId.toLowerCase();
-      items = items.filter(d => 
-        (d.seekerId || '').toLowerCase().includes(s) || 
-        (d.seekerName || '').toLowerCase().includes(s)
-      );
-    }
-
-    // Apply Date Range (Only if BOTH are provided)
     if (filters.dateFrom && filters.dateTo) {
       const from = new Date(filters.dateFrom);
       const to = new Date(filters.dateTo);
@@ -188,36 +190,32 @@ export const getDisputes = async (filters: GetDisputesFilters): Promise<GetDispu
       });
     }
 
-    // Pagination (Simple local implementation)
+    const summary = {
+      open: items.filter(d => d.status === 'open').length,
+      safety: items.filter(d => d.severity === 'safety').length,
+      overdue: items.filter(d => d.isOverdue).length,
+      inReview: items.filter(d => d.status === 'in_review').length,
+    };
+
     const page = filters.page || 1;
     const limit = filters.limit || 50;
     const total = items.length;
     const startIndex = (page - 1) * limit;
     const paginatedItems = items.slice(startIndex, startIndex + limit);
 
-    return {
-      data: paginatedItems,
-      total,
-      page,
-      limit,
-      summary
-    };
+    return { data: paginatedItems, total, page, limit, summary };
   } catch (error) {
-    console.error("Failed to load mock disputes from dispute.json:", error);
+    console.error('Failed to load disputes from backend:', error);
     return { data: [], total: 0, page: 1, limit: 50, summary: { open: 0, safety: 0, overdue: 0, inReview: 0 } };
   }
 };
 
-export const updateDisputeStatus = async (id: string, status: DisputeStatus): Promise<Dispute> => {
-  // backend currently handles responses/decisions via specific endpoints (decide, respond)
-  // this generic status update is a placeholder for admin use
-  console.warn("Status update is local-only as backend doesn't have a generic patch endpoint.");
-  return { id, status } as Dispute;
+export const updateDisputeStatus = async (_id: string, _status: DisputeStatus): Promise<Dispute> => {
+  throw new Error('Generic dispute status updates are not supported by the current backend.');
 };
 
-export const escalateDispute = async (id: string): Promise<Dispute> => {
-  console.warn("Escalation is local-only for now.");
-  return { id, severity: 'safety' } as Dispute;
+export const escalateDispute = async (_id: string): Promise<Dispute> => {
+  throw new Error('Dispute escalation is not supported by the current backend.');
 };
 
 export const sendDisputeEmail = async (id: string): Promise<void> => {
@@ -284,89 +282,78 @@ export const exportDisputes = async (filters: GetDisputesFilters): Promise<Blob>
 };
 
 export const getDisputeById = async (id: string): Promise<DisputeDetail> => {
-  const res = await getDisputes({ limit: 1000 });
-  const baseDispute = res.data.find(d => d.id === id);
-  if (!baseDispute) throw new Error("Mock dispute not found");
-  const d = { ...baseDispute } as any;
+  const response = await api.get<{ success: boolean; dispute: Record<string, any> }>(`/api/disputes/${id}`);
+  const d = response.data.dispute || {};
 
-  d.isOverdue = false;
-  if (d.responseDueAt && (d.status === 'open' || d.status === 'in_review')) {
-    d.isOverdue = new Date(d.responseDueAt).getTime() < Date.now();
-  }
+  const submittedAt = typeof d.submittedAt === 'string' ? d.submittedAt : new Date().toISOString();
+  const responseDueAt = typeof d.responseDueAt === 'string' ? d.responseDueAt : submittedAt;
+  const status = (d.status as DisputeStatus) || 'open';
+  const type = (d.type as DisputeType) || 'other';
+  const severity = (d.severity as DisputeSeverity) || (type === 'safety' ? 'safety' : 'normal');
+  const isOverdue = (status === 'open' || status === 'in_review') && new Date(responseDueAt).getTime() < Date.now();
 
-  // --- MOCKING EXTENDED FIELDS for UI (as backend schema lacks relations) ---
-  const bookingData = {
-    id: d.bookingId || "B-UNKNOWN",
-    listingId: "L-101",
-    listingTitle: "Spiritual Healing Session",
-    sessionDate: new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString(),
-    baseAmount: d.requestedAmount || 150,
-    currency: d.currency || "USD",
-    paymentIntentId: "pi_1234567890"
-  };
+  const allEvidence: Evidence[] = Array.isArray(d.evidence)
+    ? d.evidence.map((ev: any, idx: number) => ({
+        id: String(ev.id || `ev-${idx}`),
+        url: ev.url || '',
+        filename: ev.filename || `evidence-${idx}`,
+        fileType: ev.fileType || 'other',
+        fileSize: Number(ev.fileSize || 0),
+        uploadedBy: ev.party === 'healer' ? 'healer' : 'seeker',
+        uploadedAt: ev.createdAt || submittedAt,
+      }))
+    : [];
+
+  const seekerEvidence = allEvidence.filter((ev) => ev.uploadedBy === 'seeker');
+  const healerEvidence = allEvidence.filter((ev) => ev.uploadedBy === 'healer');
 
   const timeline: TimelineEvent[] = [
-    { step: 'submitted', completedAt: d.submittedAt || new Date().toISOString(), label: 'Dispute Submitted' },
-    { step: 'healer_responded', completedAt: d.healerStatement ? new Date().toISOString() : null, label: 'Healer Responded' },
-    { step: 'in_review', completedAt: d.status === 'in_review' ? new Date().toISOString() : null, label: 'Moved to In Review' },
-    { step: 'decision_rendered', completedAt: d.decision ? (d.decision.decidedAt || new Date().toISOString()) : null, label: 'Decision Rendered' }
+    { step: 'submitted', completedAt: submittedAt, label: 'Dispute Submitted' },
+    { step: 'healer_responded', completedAt: d.healerStatement ? d.updatedAt || submittedAt : null, label: 'Healer Responded' },
+    { step: 'in_review', completedAt: status === 'in_review' || String(status).startsWith('resolved_') || status === 'denied' ? d.updatedAt || submittedAt : null, label: 'Moved to In Review' },
+    { step: 'decision_rendered', completedAt: d.decision?.decidedAt || null, label: 'Decision Rendered' }
   ];
 
-  let seekerEvidence: Evidence[] = [];
-  let healerEvidence: Evidence[] = [];
-  
-  if (Array.isArray(d.evidence) && d.evidence.length > 0) {
-     d.evidence.forEach((ev: any, idx: number) => {
-         const e = {
-             id: `ev-${idx}`,
-             url: ev.url || 'https://placehold.co/400',
-             filename: ev.filename || `evidence-${idx}.jpg`,
-             fileType: ev.fileType || 'image',
-             fileSize: ev.fileSize || 102400,
-             uploadedBy: ev.party || 'seeker',
-             uploadedAt: ev.createdAt || new Date().toISOString()
-         } as Evidence;
-         if (e.uploadedBy === 'seeker') seekerEvidence.push(e);
-         else healerEvidence.push(e);
-     });
-  } else {
-      // Mock Seeker Evidence if empty to demonstrate functionality natively
-      seekerEvidence.push({
-        id: "mock-ev-1", url: "https://placehold.co/600x400/FF5733/FFF?text=Evidence+A",
-        filename: "screenshot_chat.jpg", fileType: "image", fileSize: 450000, 
-        uploadedBy: "seeker", uploadedAt: d.submittedAt
-      });
-  }
-
-  const detail: DisputeDetail = {
-    ...d,
-    id: id,
-    seekerStatement: d.description || "I was very unhappy with the session. The healer did not show up on time and the connection was poor.",
+  return {
+    id,
+    bookingId: String(d.bookingId || ''),
+    seekerId: String(d.seekerId || ''),
+    seekerName: String(d.seekerName || d.seekerId || 'Unknown seeker'),
+    healerId: String(d.healerId || ''),
+    healerName: String(d.healerName || d.healerId || 'Unknown healer'),
+    type,
+    severity,
+    status,
+    requestedAmount: Number(d.requestedAmount || 0),
+    currency: String(d.currency || 'USD'),
+    submittedAt,
+    responseDueAt,
+    isOverdue,
+    description: typeof d.description === 'string' ? d.description : undefined,
+    seekerStatement: typeof d.description === 'string' && d.description.trim() ? d.description : 'No seeker statement was provided.',
     seekerEvidence,
-    healerStatement: d.healerStatement || null,
+    healerStatement: typeof d.healerStatement === 'string' && d.healerStatement.trim() ? d.healerStatement : null,
     healerEvidence,
     timeline,
-    internalNotes: [
-      {
-         id: "n1",
-         adminId: "A-001",
-         adminName: "System Admin",
-         note: "Reviewing the attached evidence. Will reach out to healer today.",
-         createdAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString()
-      }
-    ],
-    booking: bookingData,
+    internalNotes: [],
+    booking: {
+      id: String(d.bookingId || 'Unknown booking'),
+      listingId: String(d.bookingId || ''),
+      listingTitle: 'Booking record lookup not yet available from backend',
+      sessionDate: submittedAt,
+      baseAmount: Number(d.requestedAmount || 0),
+      currency: String(d.currency || 'USD'),
+      paymentIntentId: d.payments?.paymentIntentId || null,
+    },
     decision: d.decision ? {
-        outcome: d.decision.outcome || 'full_refund',
-        refundAmount: d.decision.refundAmount,
-        creditAmount: d.decision.creditAmount,
-        adminNotes: d.decision.notes,
-        renderedAt: d.decision.decidedAt || new Date().toISOString(),
-        renderedBy: "Admin User",
-    } : null
+      outcome: d.decision.outcome === 'refund' ? 'full_refund' : d.decision.outcome,
+      refundAmount: d.decision.refundAmount,
+      creditAmount: d.decision.creditAmount,
+      adminNotes: d.decision.notes,
+      renderedAt: d.decision.decidedAt || submittedAt,
+      renderedBy: 'Admin',
+    } : null,
   };
-
-  return detail;
 };
 
 export const renderDecision = async (id: string, payload: DecisionPayload): Promise<DisputeDetail> => {
@@ -379,16 +366,8 @@ export const renderDecision = async (id: string, payload: DecisionPayload): Prom
   return await getDisputeById(id);
 };
 
-export const addInternalNote = async (_id: string, note: string): Promise<InternalNote> => {
-  console.warn("Mocking addInternalNote: Route does not exist to adhere to user constraints.");
-  await new Promise(r => setTimeout(r, 600));
-  return {
-    id: "n-" + Math.random().toString(36).substring(7),
-    adminId: "A-CURRENT",
-    adminName: "Current Admin",
-    note,
-    createdAt: new Date().toISOString()
-  };
+export const addInternalNote = async (_id: string, _note: string): Promise<InternalNote> => {
+  throw new Error('Internal notes are not supported by the current backend.');
 };
 
 export const getChatTranscript = async (bookingId: string) => {

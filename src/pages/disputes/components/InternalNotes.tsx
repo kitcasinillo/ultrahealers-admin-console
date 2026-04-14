@@ -1,28 +1,10 @@
 import { useState } from "react";
-import { addInternalNote, type InternalNote } from "@/lib/disputes";
+import type { InternalNote } from "@/lib/disputes";
 import { format } from "date-fns";
-import { Lock, Loader2 } from "lucide-react";
+import { Lock, AlertTriangle } from "lucide-react";
 
-export default function InternalNotes({ disputeId, initialNotes }: { disputeId: string, initialNotes: InternalNote[] }) {
-  const [notes, setNotes] = useState<InternalNote[]>(initialNotes);
-  const [text, setText] = useState("");
-  const [saving, setSaving] = useState(false);
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!text.trim() || saving) return;
-    setSaving(true);
-    try {
-      const newNote = await addInternalNote(disputeId, text);
-      setNotes(prev => [...prev, newNote]);
-      setText("");
-    } catch (err) {
-      console.error(err);
-      alert("Failed to add note.");
-    } finally {
-      setSaving(false);
-    }
-  };
+export default function InternalNotes({ disputeId: _disputeId, initialNotes }: { disputeId: string, initialNotes: InternalNote[] }) {
+  const [notes] = useState<InternalNote[]>(initialNotes);
 
   return (
     <div className="bg-white rounded-xl border border-slate-200 shadow-sm mb-6 flex flex-col overflow-hidden">
@@ -51,23 +33,14 @@ export default function InternalNotes({ disputeId, initialNotes }: { disputeId: 
         )}
       </div>
 
-      <div className="p-4 bg-white">
-        <form onSubmit={handleSubmit}>
-          <textarea 
-            value={text}
-            onChange={(e) => setText(e.target.value)}
-            placeholder="Document internal investigation..."
-            className="w-full text-sm font-medium border border-slate-200 rounded-lg p-3 min-h-[90px] focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 resize-none shadow-sm placeholder:text-slate-400 transition-all outline-none"
-            disabled={saving}
-          />
-          <button 
-            type="submit" 
-            disabled={!text.trim() || saving}
-            className="mt-3 w-full bg-slate-900 hover:bg-black text-white font-bold text-sm py-2.5 px-4 rounded-lg transition-colors disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-sm shadow-slate-900/10"
-          >
-            {saving ? <><Loader2 className="w-4 h-4 animate-spin"/> Saving...</> : "Add Internal Note"}
-          </button>
-        </form>
+      <div className="p-4 bg-white border-t border-slate-100">
+        <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900 flex items-start gap-3">
+          <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0 text-amber-700" />
+          <div>
+            <div className="font-bold">Internal notes are read-only right now.</div>
+            <div className="mt-1 text-amber-800">The current backend does not expose an endpoint for creating dispute notes yet.</div>
+          </div>
+        </div>
       </div>
     </div>
   );

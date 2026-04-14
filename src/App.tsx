@@ -16,6 +16,7 @@ import DisputeDetailPage from './pages/disputes/DisputeDetailPage';
 // import PayoutsPage from './pages/payouts/index';
 import { AdminAuthProvider } from "./contexts/AdminAuthContext";
 import { ToastProvider } from "./contexts/ToastContext";
+import { AdminGuard } from "./components/AdminGuard";
 import { FinancialReport } from "./pages/reports/FinancialReport";
 import { CampaignReport } from "./pages/reports/CampaignReport";
 import { DisputeReport } from "./pages/reports/DisputeReport";
@@ -46,8 +47,7 @@ function App() {
         <Routes>
           <Route path="/login" element={<Login />} />
 
-          {/* Protected Admin Routes (Guard Disabled Temporarily) */}
-          {/* <Route path="/" element={<AdminGuard />}> */}
+          <Route path="/" element={<AdminGuard />}>
           <Route path="/" element={<AdminLayout />}>
             <Route index element={<Navigate to="/dashboard" replace />} />
             <Route path="dashboard" element={<Dashboard />} />
@@ -97,7 +97,7 @@ function App() {
             <Route path="seo" element={<SEOPage />} />
             <Route path="settings" element={<SettingsPage />} />
           </Route>
-          {/* </Route> */}
+          </Route>
 
           {/* Catch-all */}
           <Route path="*" element={<Navigate to="/dashboard" replace />} />

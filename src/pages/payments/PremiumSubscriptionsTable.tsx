@@ -71,17 +71,14 @@ export function PremiumSubscriptionsTable() {
                 const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5001';
                 const response = await fetch(`${apiUrl}/api/admin/finance/premium-subscriptions`);
                 const result = await response.json();
-                if (result.success && result.subscriptions && result.subscriptions.length > 0) {
-                    setData(result.subscriptions);
+                if (response.ok && result.success) {
+                    setData(result.subscriptions || []);
                 } else {
-                    setData([
-                        { id: '1', healerName: 'Dr. Sarah Smith', email: 'sarah@example.com', activatedAt: '2026-03-01', amountPaid: 120.00, stripeId: 'pi_3PjKsd...', status: 'Active' },
-                        { id: '2', healerName: 'Healer John', email: 'john@healer.com', activatedAt: '2026-02-15', amountPaid: 120.00, stripeId: 'pi_2AkLkd...', status: 'Revoked' },
-                        { id: '3', healerName: 'Aura Miller', email: 'aura@aura.com', activatedAt: '2026-03-10', amountPaid: 120.00, stripeId: 'pi_1Mn9ad...', status: 'Active' },
-                    ]);
+                    setData([]);
                 }
             } catch (error) {
                 console.error('Error fetching premium subscriptions:', error);
+                setData([]);
             } finally {
                 setLoading(false);
             }

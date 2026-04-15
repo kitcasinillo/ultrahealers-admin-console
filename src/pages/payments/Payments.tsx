@@ -74,11 +74,14 @@ export function Payments() {
                 });
                 const response = await fetch(`${apiUrl}/api/admin/finance/revenue-stats?${queryParams}`);
                 const data = await response.json();
-                if (data.success) {
+                if (response.ok && data.success) {
                     setStats(data.stats);
+                } else {
+                    setStats(null);
                 }
             } catch (error) {
                 console.error('Error fetching stats:', error);
+                setStats(null);
             } finally {
                 setLoading(false);
             }
@@ -198,6 +201,10 @@ export function Payments() {
                                 </div>
                             )}
                         </div>
+                    </div>
+
+                    <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-medium text-amber-900">
+                        Revenue overview, commission reports, and premium subscription reports are still waiting on missing backend finance endpoints. The payouts tab has stronger backend support than the rest of this module right now.
                     </div>
 
                     <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">

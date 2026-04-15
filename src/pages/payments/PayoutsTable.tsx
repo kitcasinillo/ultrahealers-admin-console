@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
     Search,
     Calendar as CalendarIcon,
@@ -12,6 +12,7 @@ import { DataTable } from "../../components/DataTable";
 import { Modal } from "../../components/Modal";
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
+import { searchAdminHealers, type AdminHealerSearchResult } from "@/lib/payouts";
 
 interface Payout {
     id: string;
@@ -89,6 +90,8 @@ const STATIC_PAYOUTS: Payout[] = [
 ];
 
 export function PayoutsTable() {
+    const [realHealerResults, setRealHealerResults] = useState<AdminHealerSearchResult[]>([]);
+    const [isSearchingHealers, setIsSearchingHealers] = useState(false);
     const [searchTerm, setSearchTerm] = useState("");
     const [statusFilter, setStatusFilter] = useState("all");
     const [dateRange, setDateRange] = useState("all-time");
@@ -99,7 +102,7 @@ export function PayoutsTable() {
 
     // Modal State
     const [healerSearch, setHealerSearch] = useState("");
-    const [selectedHealer, setSelectedHealer] = useState<Payout['healer'] | null>(null);
+    const [selectedHealer, setSelectedHealer] = useState<(Payout['healer'] & { id?: string; stripeAccountId?: string }) | null>(null);
     const [payoutAmount, setPayoutAmount] = useState<string>("");
     const [isHealerListOpen, setIsHealerListOpen] = useState(false);
 
@@ -252,13 +255,41 @@ export function PayoutsTable() {
         handleCloseModal();
     };
 
+    useEffect(() => {
+        const loadHealers = async () => {
+            if (!isManualPayoutModalOpen || !isHealerListOpen) return;
+
+            try {
+                setIsSearchingHealers(true);
+                const results = await searchAdminHealers(healerSearch);
+                setRealHealerResults(results);
+            } catch (error) {
+                console.error("Failed to search admin healers:", error);
+                setRealHealerResults([]);
+            } finally {
+                setIsSearchingHealers(false);
+            }
+        };
+
+        const timeout = window.setTimeout(loadHealers, 250);
+        return () => window.clearTimeout(timeout);
+    }, [healerSearch, isManualPayoutModalOpen, isHealerListOpen]);
+
     const suggestedHealers = useMemo(() => {
-        if (!healerSearch) return STATIC_PAYOUTS.map(p => p.healer).filter((val, idx, self) => self.findIndex(t => t.name === val.name) === idx);
+        if (realHealerResults.length > 0 || healerSearch) {
+            return realHealerResults;
+        }
+
         return STATIC_PAYOUTS
-            .map(p => p.healer)
-            .filter((val, idx, self) => self.findIndex(t => t.name === val.name) === idx)
-            .filter(h => h.name.toLowerCase().includes(healerSearch.toLowerCase()) || h.email.toLowerCase().includes(healerSearch.toLowerCase()));
-    }, [healerSearch]);
+            .map(p => ({
+                id: p.id,
+                name: p.healer.name,
+                email: p.healer.email,
+                stripeStatus: p.healer.stripeStatus,
+                stripeAccountId: p.stripeAccountId,
+            }))
+            .filter((val, idx, self) => self.findIndex(t => t.email === val.email) === idx);
+    }, [healerSearch, realHealerResults]);
 
     return (
         <div className="space-y-6 animate-in fade-in duration-500" onClick={() => {
@@ -434,13 +465,21 @@ export function PayoutsTable() {
                                 className="absolute top-full left-0 right-0 mt-2 bg-white dark:bg-[#1b254b] border border-[#e9edf7] dark:border-white/10 rounded-2xl shadow-2xl z-[60] py-2 max-h-64 overflow-y-auto"
                                 onClick={(e) => e.stopPropagation()}
                             >
-                                {suggestedHealers.length > 0 ? (
+                                {isSearchingHealers ? (
+                                    <div className="px-5 py-6 text-sm text-[#A3AED0] text-center font-medium">Searching real healers...</div>
+                                ) : suggestedHealers.length > 0 ? (
                                     suggestedHealers.map(h => (
                                         <button
                                             key={h.email}
                                             className="w-full flex items-center gap-4 px-5 py-3.5 hover:bg-[#f4f7fe] dark:hover:bg-white/5 transition-colors text-left"
                                             onClick={() => {
-                                                setSelectedHealer(h);
+                                                setSelectedHealer({
+                                                    id: h.id,
+                                                    name: h.name,
+                                                    email: h.email,
+                                                    stripeStatus: h.stripeStatus,
+                                                    stripeAccountId: h.stripeAccountId,
+                                                });
                                                 setHealerSearch("");
                                                 setIsHealerListOpen(false);
                                             }}
@@ -451,6 +490,7 @@ export function PayoutsTable() {
                                             <div className="min-w-0">
                                                 <div className="text-sm font-bold text-[#1b254b] dark:text-white leading-none truncate">{h.name}</div>
                                                 <div className="text-xs text-[#A3AED0] mt-1.5 truncate">{h.email}</div>
+                                                <div className="text-[10px] text-[#A3AED0] mt-1 truncate uppercase">Stripe: {h.stripeStatus}</div>
                                             </div>
                                         </button>
                                     ))

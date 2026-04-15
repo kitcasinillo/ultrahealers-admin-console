@@ -10,6 +10,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import type { SettingsFormValues } from "../schema";
+import { AdminBootstrapSettings } from "./AdminBootstrapSettings";
 
 interface GeneralSettingsProps {
     control: Control<SettingsFormValues>;
@@ -147,6 +148,8 @@ export function GeneralSettings({ control }: GeneralSettingsProps) {
                     </div>
                 </CardContent>
             </Card>
+
+            <AdminBootstrapSettings control={control} />
         </div>
     );
 }

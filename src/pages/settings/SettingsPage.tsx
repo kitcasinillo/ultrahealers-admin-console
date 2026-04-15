@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useForm, type Resolver, type Control, type UseFormWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "react-hot-toast";
-import { doc, getDoc, setDoc, addDoc, collection, serverTimestamp } from "firebase/firestore";
+import { addDoc, collection, serverTimestamp } from "firebase/firestore";
 import { Save, RefreshCcw, Mail, Link as LinkIcon, Shield, Image as ImageIcon } from "lucide-react";
 
 import { db } from "../../lib/firebase";
@@ -41,20 +41,53 @@ export function SettingsPage() {
     useEffect(() => {
         const fetchSettings = async () => {
             try {
-                const docRef = doc(db, "settings", "app_config");
-                const docSnap = await getDoc(docRef);
-                if (docSnap.exists()) {
-                    const data = docSnap.data();
-                    if (data.featureFlags && !Array.isArray(data.featureFlags)) {
-                        data.featureFlags = defaultValues.featureFlags;
-                    }
-                    form.reset({ ...defaultValues, ...data });
-                } else {
-                    form.reset(defaultValues);
+                const response = await fetch(`${import.meta.env.VITE_API_URL}/api/settings`);
+                const payload = await response.json();
+
+                if (!response.ok || !payload.success) {
+                    throw new Error(payload.error || "Failed to load settings");
                 }
+
+                const data = payload.data || {};
+                const featureFlags = Array.isArray(data.featureFlags) ? data.featureFlags : defaultValues.featureFlags;
+                const pricing = data.pricing || defaultValues.general.pricing;
+
+                form.reset({
+                    general: {
+                        listing_limit_free: data.listing_limit_free ?? defaultValues.general.listing_limit_free,
+                        listing_limit_premium: data.listing_limit_premium ?? defaultValues.general.listing_limit_premium,
+                        max_images_per_listing: data.max_images_per_listing ?? defaultValues.general.max_images_per_listing,
+                        max_file_size_mb: data.max_file_size_mb ?? defaultValues.general.max_file_size_mb,
+                        pricing: {
+                            free: {
+                                amount: pricing.free?.amount ?? defaultValues.general.pricing.free.amount,
+                            },
+                            premium: {
+                                amount: pricing.premium?.amount ?? defaultValues.general.pricing.premium.amount,
+                                currency: pricing.premium?.currency ?? defaultValues.general.pricing.premium.currency,
+                            },
+                        },
+                    },
+                    commission: {
+                        HEALER_COMMISSION_PERCENT: data.HEALER_COMMISSION_PERCENT ?? defaultValues.commission.HEALER_COMMISSION_PERCENT,
+                        SEEKER_FEE_PERCENT: data.SEEKER_FEE_PERCENT ?? defaultValues.commission.SEEKER_FEE_PERCENT,
+                        PROCESSING_FEE_PERCENT: data.PROCESSING_FEE_PERCENT ?? defaultValues.commission.PROCESSING_FEE_PERCENT,
+                        PROCESSING_FEE_FIXED: data.PROCESSING_FEE_FIXED ?? defaultValues.commission.PROCESSING_FEE_FIXED,
+                    },
+                    featureFlags,
+                    adminBootstrap: {
+                        enabled: data.admin_bootstrap?.enabled ?? defaultValues.adminBootstrap.enabled,
+                        email: data.admin_bootstrap?.email ?? defaultValues.adminBootstrap.email,
+                        password: data.admin_bootstrap?.password ?? defaultValues.adminBootstrap.password,
+                        display_name: data.admin_bootstrap?.display_name ?? defaultValues.adminBootstrap.display_name,
+                        super_admin: data.admin_bootstrap?.super_admin ?? defaultValues.adminBootstrap.super_admin,
+                        seeded_at: data.admin_bootstrap?.seeded_at ?? defaultValues.adminBootstrap.seeded_at,
+                        last_seed_error: data.admin_bootstrap?.last_seed_error ?? defaultValues.adminBootstrap.last_seed_error,
+                    },
+                });
             } catch (error) {
                 console.error("Fetch Error:", error);
-                toast.error("Failed to load settings from database.");
+                toast.error("Failed to load settings from backend.");
             } finally {
                 setIsLoading(false);
             }
@@ -65,8 +98,30 @@ export function SettingsPage() {
     const onSubmit = async (data: SettingsFormValues) => {
         setIsSaving(true);
         try {
-            const docRef = doc(db, "settings", "app_config");
-            await setDoc(docRef, data, { merge: true });
+            const response = await fetch(`${import.meta.env.VITE_API_URL}/api/settings`, {
+                method: "PUT",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                    listing_limit_free: data.general.listing_limit_free,
+                    listing_limit_premium: data.general.listing_limit_premium,
+                    max_images_per_listing: data.general.max_images_per_listing,
+                    max_file_size_mb: data.general.max_file_size_mb,
+                    pricing: data.general.pricing,
+                    HEALER_COMMISSION_PERCENT: data.commission.HEALER_COMMISSION_PERCENT,
+                    SEEKER_FEE_PERCENT: data.commission.SEEKER_FEE_PERCENT,
+                    PROCESSING_FEE_PERCENT: data.commission.PROCESSING_FEE_PERCENT,
+                    PROCESSING_FEE_FIXED: data.commission.PROCESSING_FEE_FIXED,
+                    featureFlags: data.featureFlags,
+                    admin_bootstrap: data.adminBootstrap,
+                }),
+            });
+
+            const payload = await response.json();
+            if (!response.ok || !payload.success) {
+                throw new Error(payload.error || "Failed to update settings");
+            }
             
             // Log the action for security and audit trail
             if (user) {
@@ -78,6 +133,11 @@ export function SettingsPage() {
                     changes: data,
                     timestamp: serverTimestamp(),
                 });
+            }
+
+            if (payload.data?.admin_bootstrap) {
+                form.setValue("adminBootstrap.seeded_at", payload.data.admin_bootstrap.seeded_at ?? null);
+                form.setValue("adminBootstrap.last_seed_error", payload.data.admin_bootstrap.last_seed_error ?? null);
             }
 
             toast.success("Platform settings updated successfully");

@@ -6,13 +6,14 @@ import {
     Filter,
     AlertCircle,
     Check,
+    Loader2,
 } from "lucide-react";
 import { type ColumnDef } from "@tanstack/react-table";
 import { DataTable } from "../../components/DataTable";
 import { Modal } from "../../components/Modal";
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
-import { searchAdminHealers, type AdminHealerSearchResult } from "@/lib/payouts";
+import { getHealerPayoutBalance, searchAdminHealers, type AdminHealerSearchResult, type PayoutBalanceResponse } from "@/lib/payouts";
 
 interface Payout {
     id: string;
@@ -105,6 +106,9 @@ export function PayoutsTable() {
     const [selectedHealer, setSelectedHealer] = useState<(Payout['healer'] & { id?: string; stripeAccountId?: string }) | null>(null);
     const [payoutAmount, setPayoutAmount] = useState<string>("");
     const [isHealerListOpen, setIsHealerListOpen] = useState(false);
+    const [selectedHealerBalance, setSelectedHealerBalance] = useState<PayoutBalanceResponse | null>(null);
+    const [isLoadingBalance, setIsLoadingBalance] = useState(false);
+    const [balanceError, setBalanceError] = useState<string | null>(null);
 
     const dateRanges = [
         { id: 'all-time', label: 'All' },
@@ -248,12 +252,39 @@ export function PayoutsTable() {
         setSelectedHealer(null);
         setPayoutAmount("");
         setIsHealerListOpen(false);
+        setSelectedHealerBalance(null);
+        setBalanceError(null);
     };
 
     const handleTriggerPayout = () => {
         console.log("Triggering payout for:", selectedHealer?.name, "Amount:", payoutAmount);
         handleCloseModal();
     };
+
+    useEffect(() => {
+        const loadBalance = async () => {
+            if (!selectedHealer?.id) {
+                setSelectedHealerBalance(null);
+                setBalanceError(null);
+                return;
+            }
+
+            try {
+                setIsLoadingBalance(true);
+                setBalanceError(null);
+                const balance = await getHealerPayoutBalance(selectedHealer.id);
+                setSelectedHealerBalance(balance);
+            } catch (error: any) {
+                console.error("Failed to load healer payout balance:", error);
+                setSelectedHealerBalance(null);
+                setBalanceError(error?.response?.data?.error || "Balance information is not available yet.");
+            } finally {
+                setIsLoadingBalance(false);
+            }
+        };
+
+        loadBalance();
+    }, [selectedHealer?.id]);
 
     useEffect(() => {
         const loadHealers = async () => {
@@ -426,7 +457,7 @@ export function PayoutsTable() {
                             Cancel
                         </Button>
                         <Button
-                            disabled={!selectedHealer || !payoutAmount}
+                            disabled={!selectedHealer || !payoutAmount || isLoadingBalance || !selectedHealerBalance?.payoutsEnabled}
                             onClick={handleTriggerPayout}
                             className="flex-1 bg-[#4318FF] hover:bg-[#3311CC] text-white rounded-xl h-12 font-bold text-sm disabled:opacity-50 shadow-lg shadow-[#4318FF]/20 transition-all"
                         >
@@ -502,6 +533,55 @@ export function PayoutsTable() {
                     </div>
 
                     {/* Amount Input */}
+                    {selectedHealer && (
+                        <div className="rounded-2xl border border-[#E9EDF7] dark:border-white/10 bg-[#F8FAFC] dark:bg-white/5 p-4 space-y-3">
+                            <div className="flex items-center justify-between gap-4">
+                                <div>
+                                    <div className="text-xs font-black text-[#A3AED0] uppercase tracking-wider">Selected Healer</div>
+                                    <div className="text-sm font-bold text-[#1b254b] dark:text-white mt-1">{selectedHealer.name}</div>
+                                    <div className="text-xs text-[#A3AED0] mt-1">{selectedHealer.email}</div>
+                                </div>
+                                {isLoadingBalance ? (
+                                    <div className="flex items-center gap-2 text-xs font-medium text-[#A3AED0]">
+                                        <Loader2 className="w-4 h-4 animate-spin" /> Loading balance...
+                                    </div>
+                                ) : selectedHealerBalance ? (
+                                    <div className="text-right">
+                                        <div className="text-[10px] font-black text-[#A3AED0] uppercase tracking-wider">Available USD</div>
+                                        <div className="text-lg font-black text-[#1b254b] dark:text-white">
+                                            ${((selectedHealerBalance.available?.usd || 0) / 100).toFixed(2)}
+                                        </div>
+                                    </div>
+                                ) : null}
+                            </div>
+
+                            {balanceError ? (
+                                <div className="text-xs font-medium text-amber-700 dark:text-amber-400">{balanceError}</div>
+                            ) : selectedHealerBalance ? (
+                                <div className="grid md:grid-cols-3 gap-3 text-xs">
+                                    <div className="rounded-xl bg-white dark:bg-[#111C44] border border-[#E9EDF7] dark:border-white/10 px-3 py-2">
+                                        <div className="text-[#A3AED0] uppercase font-black tracking-wider text-[10px]">Payouts</div>
+                                        <div className={`mt-1 font-bold ${selectedHealerBalance.payoutsEnabled ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-600 dark:text-amber-400'}`}>
+                                            {selectedHealerBalance.payoutsEnabled ? 'Enabled' : 'Not enabled'}
+                                        </div>
+                                    </div>
+                                    <div className="rounded-xl bg-white dark:bg-[#111C44] border border-[#E9EDF7] dark:border-white/10 px-3 py-2">
+                                        <div className="text-[#A3AED0] uppercase font-black tracking-wider text-[10px]">Charges</div>
+                                        <div className={`mt-1 font-bold ${selectedHealerBalance.chargesEnabled ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-600 dark:text-amber-400'}`}>
+                                            {selectedHealerBalance.chargesEnabled ? 'Enabled' : 'Not enabled'}
+                                        </div>
+                                    </div>
+                                    <div className="rounded-xl bg-white dark:bg-[#111C44] border border-[#E9EDF7] dark:border-white/10 px-3 py-2">
+                                        <div className="text-[#A3AED0] uppercase font-black tracking-wider text-[10px]">Details</div>
+                                        <div className={`mt-1 font-bold ${selectedHealerBalance.detailsSubmitted ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-600 dark:text-amber-400'}`}>
+                                            {selectedHealerBalance.detailsSubmitted ? 'Submitted' : 'Incomplete'}
+                                        </div>
+                                    </div>
+                                </div>
+                            ) : null}
+                        </div>
+                    )}
+
                     <div className="space-y-4">
                         <label className="text-xs font-bold text-[#A3AED0] uppercase ml-1 tracking-wider block text-center">Amount to Pay (USD)</label>
                         <div className="relative flex items-center justify-center bg-[#f4f7fe]/50 dark:bg-white/5 rounded-3xl py-8 px-6 border-2 border-dashed border-[#e9edf7] dark:border-white/10 group focus-within:border-[#4318FF] focus-within:border-solid transition-all">

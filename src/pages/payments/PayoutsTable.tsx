@@ -13,7 +13,9 @@ import { DataTable } from "../../components/DataTable";
 import { Modal } from "../../components/Modal";
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
-import { getHealerPayoutBalance, searchAdminHealers, type AdminHealerSearchResult, type PayoutBalanceResponse } from "@/lib/payouts";
+import { getHealerPayoutBalance, getHealerPayoutHistory, searchAdminHealers, type AdminHealerSearchResult, type PayoutBalanceResponse, type StripePayoutHistoryItem } from "@/lib/payouts";
+
+type PayoutStatus = 'succeeded' | 'pending' | 'failed' | 'in_transit';
 
 interface Payout {
     id: string;
@@ -27,7 +29,7 @@ interface Payout {
     amount: number;
     currency: string;
     dateInitiated: string;
-    status: 'succeeded' | 'pending' | 'failed' | 'in_transit';
+    status: PayoutStatus;
     stripePayoutId: string;
 }
 
@@ -109,6 +111,10 @@ export function PayoutsTable() {
     const [selectedHealerBalance, setSelectedHealerBalance] = useState<PayoutBalanceResponse | null>(null);
     const [isLoadingBalance, setIsLoadingBalance] = useState(false);
     const [balanceError, setBalanceError] = useState<string | null>(null);
+    const [historyHealer, setHistoryHealer] = useState<AdminHealerSearchResult | null>(null);
+    const [realPayoutHistory, setRealPayoutHistory] = useState<Payout[]>([]);
+    const [isLoadingHistory, setIsLoadingHistory] = useState(false);
+    const [historyError, setHistoryError] = useState<string | null>(null);
 
     const dateRanges = [
         { id: 'all-time', label: 'All' },
@@ -211,41 +217,6 @@ export function PayoutsTable() {
         }
     ];
 
-    const filteredData = useMemo(() => {
-        const now = new Date();
-        let startDate: Date | null = null;
-        let endDate: Date | null = null;
-
-        if (dateRange === 'month') {
-            startDate = new Date(now.getFullYear(), now.getMonth(), 1);
-        } else if (dateRange === 'week') {
-            const tempDate = new Date(now);
-            const dayOfWeek = tempDate.getDay();
-            const diff = tempDate.getDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1);
-            startDate = new Date(tempDate.setDate(diff));
-            startDate.setHours(0, 0, 0, 0);
-        } else if (dateRange === 'custom' && customDates.start) {
-            startDate = new Date(customDates.start);
-            startDate.setHours(0, 0, 0, 0);
-        }
-
-        if (dateRange === 'custom' && customDates.end) {
-            endDate = new Date(customDates.end);
-            endDate.setHours(23, 59, 59, 999);
-        }
-
-        return STATIC_PAYOUTS.filter(payout => {
-            const payoutDate = new Date(payout.dateInitiated);
-            const matchesSearch = payout.healer.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                payout.stripePayoutId.toLowerCase().includes(searchTerm.toLowerCase());
-            const matchesStatus = statusFilter === 'all' || payout.status === statusFilter;
-            const matchesStart = startDate ? payoutDate >= startDate : true;
-            const matchesEnd = endDate ? payoutDate <= endDate : true;
-
-            return matchesSearch && matchesStatus && matchesStart && matchesEnd;
-        });
-    }, [searchTerm, statusFilter, dateRange, customDates]);
-
     const handleCloseModal = () => {
         setIsManualPayoutModalOpen(false);
         setHealerSearch("");
@@ -287,6 +258,45 @@ export function PayoutsTable() {
     }, [selectedHealer?.id]);
 
     useEffect(() => {
+        const loadHistory = async () => {
+            if (!historyHealer?.id) {
+                setRealPayoutHistory([]);
+                setHistoryError(null);
+                return;
+            }
+
+            try {
+                setIsLoadingHistory(true);
+                setHistoryError(null);
+                const payouts = await getHealerPayoutHistory(historyHealer.id);
+                const normalized: Payout[] = payouts.map((payout: StripePayoutHistoryItem) => ({
+                    id: payout.id,
+                    healer: {
+                        name: historyHealer.name,
+                        email: historyHealer.email,
+                        stripeStatus: historyHealer.stripeStatus,
+                    },
+                    stripeAccountId: historyHealer.stripeAccountId || "—",
+                    amount: (payout.amount || 0) / 100,
+                    currency: (payout.currency || 'usd').toUpperCase(),
+                    dateInitiated: new Date(((payout.arrival_date || payout.created || 0) * 1000) || Date.now()).toISOString(),
+                    status: payout.status === 'paid' ? 'succeeded' : payout.status === 'canceled' ? 'failed' : payout.status,
+                    stripePayoutId: payout.id,
+                }));
+                setRealPayoutHistory(normalized);
+            } catch (error: any) {
+                console.error("Failed to load payout history:", error);
+                setRealPayoutHistory([]);
+                setHistoryError(error?.response?.data?.error || "Payout history is not available for this healer yet.");
+            } finally {
+                setIsLoadingHistory(false);
+            }
+        };
+
+        loadHistory();
+    }, [historyHealer]);
+
+    useEffect(() => {
         const loadHealers = async () => {
             if (!isManualPayoutModalOpen || !isHealerListOpen) return;
 
@@ -305,6 +315,45 @@ export function PayoutsTable() {
         const timeout = window.setTimeout(loadHealers, 250);
         return () => window.clearTimeout(timeout);
     }, [healerSearch, isManualPayoutModalOpen, isHealerListOpen]);
+
+    const tableData = useMemo(() => {
+        return historyHealer ? realPayoutHistory : STATIC_PAYOUTS;
+    }, [historyHealer, realPayoutHistory]);
+
+    const filteredData = useMemo(() => {
+        const now = new Date();
+        let startDate: Date | null = null;
+        let endDate: Date | null = null;
+
+        if (dateRange === 'month') {
+            startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+        } else if (dateRange === 'week') {
+            const tempDate = new Date(now);
+            const dayOfWeek = tempDate.getDay();
+            const diff = tempDate.getDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1);
+            startDate = new Date(tempDate.setDate(diff));
+            startDate.setHours(0, 0, 0, 0);
+        } else if (dateRange === 'custom' && customDates.start) {
+            startDate = new Date(customDates.start);
+            startDate.setHours(0, 0, 0, 0);
+        }
+
+        if (dateRange === 'custom' && customDates.end) {
+            endDate = new Date(customDates.end);
+            endDate.setHours(23, 59, 59, 999);
+        }
+
+        return tableData.filter(payout => {
+            const payoutDate = new Date(payout.dateInitiated);
+            const matchesSearch = payout.healer.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                payout.stripePayoutId.toLowerCase().includes(searchTerm.toLowerCase());
+            const matchesStatus = statusFilter === 'all' || payout.status === statusFilter;
+            const matchesStart = startDate ? payoutDate >= startDate : true;
+            const matchesEnd = endDate ? payoutDate <= endDate : true;
+
+            return matchesSearch && matchesStatus && matchesStart && matchesEnd;
+        });
+    }, [tableData, searchTerm, statusFilter, dateRange, customDates]);
 
     const suggestedHealers = useMemo(() => {
         if (realHealerResults.length > 0 || healerSearch) {
@@ -437,8 +486,49 @@ export function PayoutsTable() {
             </div>
 
             {/* Table Area */}
-            <div className="bg-white dark:bg-[#111C44] rounded-2xl p-2 shadow-sm border border-[#E9EDF7] dark:border-white/5 overflow-x-auto scrollbar-hide">
-                <DataTable columns={columns} data={filteredData} />
+            <div className="space-y-3">
+                {historyHealer && (
+                    <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-[#E9EDF7] dark:border-white/10 bg-[#F8FAFC] dark:bg-white/5 px-4 py-3">
+                        <div>
+                            <div className="text-[10px] font-black text-[#A3AED0] uppercase tracking-wider">History View</div>
+                            <div className="text-sm font-bold text-[#1b254b] dark:text-white mt-1">Showing real payout history for {historyHealer.name}</div>
+                            <div className="text-xs text-[#A3AED0] mt-1">{historyHealer.email}</div>
+                        </div>
+                        <Button
+                            variant="ghost"
+                            onClick={() => {
+                                setHistoryHealer(null);
+                                setRealPayoutHistory([]);
+                                setHistoryError(null);
+                            }}
+                            className="rounded-xl h-10 text-sm font-bold text-[#A3AED0] hover:bg-[#F4F7FE] dark:hover:bg-white/5"
+                        >
+                            Clear history filter
+                        </Button>
+                    </div>
+                )}
+
+                {isLoadingHistory && (
+                    <div className="rounded-2xl border border-[#E9EDF7] dark:border-white/10 bg-white dark:bg-[#111C44] px-4 py-3 text-sm text-[#A3AED0] flex items-center gap-2">
+                        <Loader2 className="w-4 h-4 animate-spin" /> Loading real payout history...
+                    </div>
+                )}
+
+                {historyError && (
+                    <div className="rounded-2xl border border-amber-500/20 bg-amber-500/[0.03] px-4 py-3 text-sm text-amber-700 dark:text-amber-400">
+                        {historyError}
+                    </div>
+                )}
+
+                {!historyHealer && (
+                    <div className="rounded-2xl border border-[#E9EDF7] dark:border-white/10 bg-[#F8FAFC] dark:bg-white/5 px-4 py-3 text-sm text-[#707EAE] dark:text-[#A3AED0]">
+                        Table currently shows sample payout records. To inspect real backend payout history, select a healer in the payout modal.
+                    </div>
+                )}
+
+                <div className="bg-white dark:bg-[#111C44] rounded-2xl p-2 shadow-sm border border-[#E9EDF7] dark:border-white/5 overflow-x-auto scrollbar-hide">
+                    <DataTable columns={columns} data={filteredData} />
+                </div>
             </div>
 
             {/* Manual Payout Modal */}
@@ -511,6 +601,7 @@ export function PayoutsTable() {
                                                     stripeStatus: h.stripeStatus,
                                                     stripeAccountId: h.stripeAccountId,
                                                 });
+                                                setHistoryHealer(h);
                                                 setHealerSearch("");
                                                 setIsHealerListOpen(false);
                                             }}

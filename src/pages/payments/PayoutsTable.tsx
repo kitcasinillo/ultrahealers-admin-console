@@ -244,6 +244,11 @@ export function PayoutsTable() {
             return;
         }
 
+        if (selectedHealerBalance && parsedAmount > availableUsd) {
+            setSubmitError(`Amount exceeds available USD balance of $${availableUsd.toFixed(2)}.`);
+            return;
+        }
+
         try {
             setIsSubmittingPayout(true);
             setSubmitError(null);
@@ -436,6 +441,18 @@ export function PayoutsTable() {
             .filter((val, idx, self) => self.findIndex(t => t.email === val.email) === idx);
     }, [healerSearch, realHealerResults]);
 
+    const parsedPayoutAmount = Number(payoutAmount);
+    const availableUsdCents = Number(selectedHealerBalance?.available?.usd || 0);
+    const availableUsd = availableUsdCents / 100;
+    const exceedsAvailableBalance = Number.isFinite(parsedPayoutAmount) && parsedPayoutAmount > availableUsd;
+    const payoutValidationMessage = !payoutAmount
+        ? null
+        : !Number.isFinite(parsedPayoutAmount) || parsedPayoutAmount <= 0
+            ? "Enter a valid payout amount."
+            : exceedsAvailableBalance
+                ? `Amount exceeds available USD balance of $${availableUsd.toFixed(2)}.`
+                : null;
+
     return (
         <div className="space-y-6 animate-in fade-in duration-500" onClick={() => {
             setIsDateDropdownOpen(false);
@@ -612,7 +629,7 @@ export function PayoutsTable() {
                             Cancel
                         </Button>
                         <Button
-                            disabled={!selectedHealer || !payoutAmount || isLoadingBalance || isSubmittingPayout || !selectedHealerBalance?.payoutsEnabled}
+                            disabled={!selectedHealer || !payoutAmount || isLoadingBalance || isSubmittingPayout || !selectedHealerBalance?.payoutsEnabled || !!payoutValidationMessage}
                             onClick={handleTriggerPayout}
                             className="flex-1 bg-[#4318FF] hover:bg-[#3311CC] text-white rounded-xl h-12 font-bold text-sm disabled:opacity-50 shadow-lg shadow-[#4318FF]/20 transition-all"
                         >
@@ -754,7 +771,7 @@ export function PayoutsTable() {
 
                     <div className="space-y-4">
                         <label className="text-xs font-bold text-[#A3AED0] uppercase ml-1 tracking-wider block text-center">Amount to Pay (USD)</label>
-                        <div className="relative flex items-center justify-center bg-[#f4f7fe]/50 dark:bg-white/5 rounded-3xl py-8 px-6 border-2 border-dashed border-[#e9edf7] dark:border-white/10 group focus-within:border-[#4318FF] focus-within:border-solid transition-all">
+                        <div className={`relative flex items-center justify-center bg-[#f4f7fe]/50 dark:bg-white/5 rounded-3xl py-8 px-6 border-2 border-dashed group transition-all ${payoutValidationMessage ? 'border-red-300 dark:border-red-500/40 focus-within:border-red-500' : 'border-[#e9edf7] dark:border-white/10 focus-within:border-[#4318FF]'} focus-within:border-solid`}>
                             <div className="flex items-center gap-1 group-focus-within:scale-105 transition-transform duration-300">
                                 <span className="text-3xl font-bold text-[#4318FF] opacity-50">$</span>
                                 <input
@@ -771,6 +788,14 @@ export function PayoutsTable() {
                             </div>
                             <div className="absolute top-2 right-4 text-[10px] font-black text-[#A3AED0] uppercase tracking-widest opacity-50">Manual Override</div>
                         </div>
+                        {selectedHealerBalance && (
+                            <div className="text-center text-xs text-[#A3AED0]">
+                                Available to payout right now: <span className="font-bold text-[#1b254b] dark:text-white">${availableUsd.toFixed(2)}</span>
+                            </div>
+                        )}
+                        {payoutValidationMessage && (
+                            <div className="text-center text-xs font-medium text-red-600 dark:text-red-400">{payoutValidationMessage}</div>
+                        )}
                     </div>
 
                     <div className="flex items-center gap-4 text-[#707EAE] dark:text-amber-400/90 text-xs font-medium leading-relaxed bg-amber-500/[0.03] p-5 rounded-2xl border border-amber-500/10">

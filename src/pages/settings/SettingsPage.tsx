@@ -265,7 +265,15 @@ export function SettingsPage() {
                         </TabsContent>
 
                         <TabsContent value="system" className="mt-0 space-y-6 outline-none">
-                            <SystemSettings />
+                            <SystemSettings
+                                apiRoot={import.meta.env.VITE_API_URL || ""}
+                                corsOrigins={String(import.meta.env.VITE_CORS_ORIGINS || "")
+                                    .split(",")
+                                    .map((origin) => origin.trim())
+                                    .filter(Boolean)}
+                                runtimeMode={import.meta.env.MODE}
+                                firebaseProjectId={import.meta.env.VITE_FIREBASE_PROJECT_ID || null}
+                            />
                         </TabsContent>
 
                         <TabsContent value="audit_log" className="mt-0 space-y-6 outline-none">

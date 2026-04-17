@@ -13,7 +13,7 @@ import { DataTable } from "../../components/DataTable";
 import { Modal } from "../../components/Modal";
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
-import { getHealerPayoutBalance, getHealerPayoutHistory, searchAdminHealers, type AdminHealerSearchResult, type PayoutBalanceResponse, type StripePayoutHistoryItem } from "@/lib/payouts";
+import { createPayout, getHealerPayoutBalance, getHealerPayoutHistory, searchAdminHealers, type AdminHealerSearchResult, type PayoutBalanceResponse, type StripePayoutHistoryItem } from "@/lib/payouts";
 
 type PayoutStatus = 'succeeded' | 'pending' | 'failed' | 'in_transit';
 
@@ -115,6 +115,9 @@ export function PayoutsTable() {
     const [realPayoutHistory, setRealPayoutHistory] = useState<Payout[]>([]);
     const [isLoadingHistory, setIsLoadingHistory] = useState(false);
     const [historyError, setHistoryError] = useState<string | null>(null);
+    const [isSubmittingPayout, setIsSubmittingPayout] = useState(false);
+    const [submitError, setSubmitError] = useState<string | null>(null);
+    const [submitSuccess, setSubmitSuccess] = useState<string | null>(null);
 
     const dateRanges = [
         { id: 'all-time', label: 'All' },
@@ -225,11 +228,73 @@ export function PayoutsTable() {
         setIsHealerListOpen(false);
         setSelectedHealerBalance(null);
         setBalanceError(null);
+        setSubmitError(null);
+        setSubmitSuccess(null);
     };
 
-    const handleTriggerPayout = () => {
-        console.log("Triggering payout for:", selectedHealer?.name, "Amount:", payoutAmount);
-        handleCloseModal();
+    const handleTriggerPayout = async () => {
+        if (!selectedHealer?.id) {
+            setSubmitError("Select a healer before creating a payout.");
+            return;
+        }
+
+        const parsedAmount = Number(payoutAmount);
+        if (!Number.isFinite(parsedAmount) || parsedAmount <= 0) {
+            setSubmitError("Enter a valid payout amount.");
+            return;
+        }
+
+        try {
+            setIsSubmittingPayout(true);
+            setSubmitError(null);
+            setSubmitSuccess(null);
+
+            const result = await createPayout({
+                healerId: selectedHealer.id,
+                amountCents: Math.round(parsedAmount * 100),
+                currency: 'usd',
+            });
+
+            setSubmitSuccess(`Payout created successfully. Stripe payout ID: ${result.payoutId}`);
+            setPayoutAmount("");
+
+            if (selectedHealer.id) {
+                const [balance, payouts] = await Promise.all([
+                    getHealerPayoutBalance(selectedHealer.id),
+                    getHealerPayoutHistory(selectedHealer.id),
+                ]);
+                setSelectedHealerBalance(balance);
+                const healerForHistory = historyHealer ?? {
+                    id: selectedHealer.id,
+                    name: selectedHealer.name,
+                    email: selectedHealer.email,
+                    stripeStatus: selectedHealer.stripeStatus,
+                    stripeAccountId: selectedHealer.stripeAccountId || balance.accountId,
+                };
+                setHistoryHealer(healerForHistory);
+                setRealPayoutHistory(
+                    payouts.map((payout: StripePayoutHistoryItem) => ({
+                        id: payout.id,
+                        healer: {
+                            name: healerForHistory.name,
+                            email: healerForHistory.email,
+                            stripeStatus: healerForHistory.stripeStatus,
+                        },
+                        stripeAccountId: healerForHistory.stripeAccountId || balance.accountId || "—",
+                        amount: (payout.amount || 0) / 100,
+                        currency: (payout.currency || 'usd').toUpperCase(),
+                        dateInitiated: new Date(((payout.arrival_date || payout.created || 0) * 1000) || Date.now()).toISOString(),
+                        status: payout.status === 'paid' ? 'succeeded' : payout.status === 'canceled' ? 'failed' : payout.status,
+                        stripePayoutId: payout.id,
+                    }))
+                );
+            }
+        } catch (error: any) {
+            console.error("Failed to create payout:", error);
+            setSubmitError(error?.response?.data?.error || "Failed to create payout.");
+        } finally {
+            setIsSubmittingPayout(false);
+        }
     };
 
     useEffect(() => {
@@ -547,11 +612,13 @@ export function PayoutsTable() {
                             Cancel
                         </Button>
                         <Button
-                            disabled={!selectedHealer || !payoutAmount || isLoadingBalance || !selectedHealerBalance?.payoutsEnabled}
+                            disabled={!selectedHealer || !payoutAmount || isLoadingBalance || isSubmittingPayout || !selectedHealerBalance?.payoutsEnabled}
                             onClick={handleTriggerPayout}
                             className="flex-1 bg-[#4318FF] hover:bg-[#3311CC] text-white rounded-xl h-12 font-bold text-sm disabled:opacity-50 shadow-lg shadow-[#4318FF]/20 transition-all"
                         >
-                            Confirm
+                            {isSubmittingPayout ? (
+                                <><Loader2 className="w-4 h-4 animate-spin" /> Processing...</>
+                            ) : 'Confirm'}
                         </Button>
                     </div>
                 }
@@ -670,6 +737,18 @@ export function PayoutsTable() {
                                     </div>
                                 </div>
                             ) : null}
+                        </div>
+                    )}
+
+                    {submitError && (
+                        <div className="rounded-2xl border border-red-500/20 bg-red-500/[0.03] px-4 py-3 text-sm text-red-700 dark:text-red-400">
+                            {submitError}
+                        </div>
+                    )}
+
+                    {submitSuccess && (
+                        <div className="rounded-2xl border border-emerald-500/20 bg-emerald-500/[0.03] px-4 py-3 text-sm text-emerald-700 dark:text-emerald-400">
+                            {submitSuccess}
                         </div>
                     )}
 

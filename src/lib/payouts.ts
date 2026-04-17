@@ -26,6 +26,17 @@ export interface StripePayoutHistoryItem {
   status: "paid" | "pending" | "in_transit" | "canceled" | "failed";
 }
 
+export interface CreatePayoutPayload {
+  healerId: string;
+  amountCents: number;
+  currency?: string;
+}
+
+export interface CreatePayoutResponse {
+  payoutId: string;
+  status: string;
+}
+
 export const searchAdminHealers = async (query: string): Promise<AdminHealerSearchResult[]> => {
   const response = await api.get<{ success: boolean; results: AdminHealerSearchResult[] }>("/api/healers/admin-search", {
     params: { q: query },
@@ -42,4 +53,9 @@ export const getHealerPayoutBalance = async (healerId: string): Promise<PayoutBa
 export const getHealerPayoutHistory = async (healerId: string): Promise<StripePayoutHistoryItem[]> => {
   const response = await api.get<{ success: boolean; payouts: StripePayoutHistoryItem[] }>(`/api/payouts/history/${healerId}`);
   return response.data.payouts || [];
+};
+
+export const createPayout = async (payload: CreatePayoutPayload): Promise<CreatePayoutResponse> => {
+  const response = await api.post<{ success: boolean } & CreatePayoutResponse>("/api/payouts/create", payload);
+  return response.data;
 };

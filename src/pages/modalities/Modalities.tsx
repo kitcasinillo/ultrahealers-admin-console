@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   Plus,
   RefreshCw,
@@ -29,10 +29,11 @@ import { SortableRow } from "./modules/SortableRow";
 import { AddModalityModal } from "../../components/modals/AddModalityModal";
 import { EditModalityModal } from "../../components/modals/EditModalityModal";
 
-import { type Modality, mockModalities, initializeModalitiesIfEmpty } from "../../lib/modalities";
+import { fetchModalities, type Modality } from "../../lib/modalities";
 
 export default function Modalities() {
-  const [modalities, setModalities] = useState<Modality[]>(mockModalities);
+  const [modalities, setModalities] = useState<Modality[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isConfirmDeleteOpen, setIsConfirmDeleteOpen] = useState(false);
@@ -49,6 +50,23 @@ export default function Modalities() {
       coordinateGetter: sortableKeyboardCoordinates,
     })
   );
+
+  useEffect(() => {
+    const loadModalities = async () => {
+      try {
+        setIsLoading(true);
+        const items = await fetchModalities();
+        setModalities(items.sort((a, b) => a.order - b.order || a.name.localeCompare(b.name)));
+      } catch (error) {
+        console.error("Failed to load modalities:", error);
+        toast.error("Failed to load modalities from backend.");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadModalities();
+  }, []);
 
   const filteredModalities = useMemo(() => {
     return modalities.filter(m =>
@@ -78,10 +96,8 @@ export default function Modalities() {
 
   const handleToggleActive = (id: string, active: boolean) => {
     const modality = modalities.find(m => m.id === id);
-    if (modality) {
-      toast.success(`"${modality.name}" has been ${active ? 'enabled' : 'disabled'}.`);
-    }
     setModalities(prev => prev.map(m => m.id === id ? { ...m, active } : m));
+    toast.error(`Backend support for changing modality status is not available yet${modality ? ` for "${modality.name}"` : ""}.`);
   };
 
   const handleAdd = () => {
@@ -92,31 +108,14 @@ export default function Modalities() {
       return;
     }
 
-    if (modalities.some(m => m.name.toLowerCase() === trimmedName.toLowerCase())) {
-      toast.error(`A modality named "${trimmedName}" already exists.`);
-      return;
-    }
-
-    const newModality: Modality = {
-      id: Math.random().toString(36).substr(2, 9),
-      name: trimmedName,
-      icon: formData.icon || "✨",
-      listingsCount: 0,
-      active: true,
-      order: modalities.length,
-      createdAt: new Date().toISOString()
-    };
-    
-    setModalities([...modalities, newModality]);
-    toast.success(`"${trimmedName}" has been created.`);
+    toast.error("Backend support for creating modalities is not available yet.");
     setIsAddModalOpen(false);
     setFormData({ name: "", icon: "" });
   };
 
   const handleEdit = () => {
     if (!currentModality) return;
-    setModalities(prev => prev.map(m => m.id === currentModality.id ? { ...m, name: formData.name, icon: formData.icon } : m));
-    toast.success(`"${formData.name}" has been updated.`);
+    toast.error(`Backend support for editing "${currentModality.name}" is not available yet.`);
     setIsEditModalOpen(false);
     setCurrentModality(null);
     setFormData({ name: "", icon: "" });
@@ -124,15 +123,13 @@ export default function Modalities() {
 
   const handleDelete = () => {
     if (!currentModality) return;
-    setModalities(prev => prev.filter(m => m.id !== currentModality.id));
-    toast.success(`"${currentModality.name}" has been deleted.`);
+    toast.error(`Backend support for deleting "${currentModality.name}" is not available yet.`);
     setIsConfirmDeleteOpen(false);
     setCurrentModality(null);
   };
 
   const handleReseed = () => {
-    const defaultData = initializeModalitiesIfEmpty();
-    setModalities(defaultData);
+    toast.error("Backend support for reseeding modalities is not available yet.");
   };
 
   return (
@@ -175,70 +172,85 @@ export default function Modalities() {
               </div>
             </div>
 
-            <div className="overflow-x-auto">
-              <DndContext
-                sensors={sensors}
-                collisionDetection={closestCenter}
-                onDragEnd={handleDragEnd}
-              >
-                <table className="w-full">
-                  <thead>
-                    <tr className="border-b border-gray-100 dark:border-white/5">
-                      <th className="p-4 text-left text-xs font-bold uppercase tracking-wide text-[#A3AED0] w-10"></th>
-                      <th className="p-4 text-left text-xs font-bold uppercase tracking-wide text-[#A3AED0]">Name</th>
-                      <th className="p-4 text-left text-xs font-bold uppercase tracking-wide text-[#A3AED0]">Icon/Emoji</th>
-                      <th className="p-4 text-left text-xs font-bold uppercase tracking-wide text-[#A3AED0]">Listings</th>
-                      <th className="p-4 text-left text-xs font-bold uppercase tracking-wide text-[#A3AED0]">Active</th>
-                      <th className="p-4 text-left text-xs font-bold uppercase tracking-wide text-[#A3AED0]">Created</th>
-                      <th className="p-4 text-left text-xs font-bold uppercase tracking-wide text-[#A3AED0]">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-100 dark:divide-white/5">
-                    <SortableContext
-                      items={paginatedModalities.map(m => m.id)}
-                      strategy={verticalListSortingStrategy}
-                    >
-                      {paginatedModalities.map((modality) => (
-                        <SortableRow
-                          key={modality.id}
-                          modality={modality}
-                          onEdit={(m) => {
-                            setCurrentModality(m);
-                            setFormData({ name: m.name, icon: m.icon });
-                            setIsEditModalOpen(true);
-                          }}
-                          onDelete={(m) => {
-                            setCurrentModality(m);
-                            setIsConfirmDeleteOpen(true);
-                          }}
-                          onToggleActive={handleToggleActive}
-                        />
-                      ))}
-                    </SortableContext>
-                  </tbody>
-                </table>
-              </DndContext>
-            </div>
-
-            <div className="flex items-center justify-end space-x-2 pt-6 pb-2">
-              <button
-                className="flex items-center bg-[#F4F7FE] dark:bg-white/5 hover:bg-[#E2E8F0] dark:hover:bg-white/10 text-[#4318FF] dark:text-white font-bold py-2 px-4 rounded-xl transition-all text-sm disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
-                onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-                disabled={currentPage === 1}
-              >
-                Previous
-              </button>
-              <div className="text-sm font-medium text-[#A3AED0] px-2 flex items-center">
-                Page {currentPage} of {totalPages || 1}
+            {isLoading ? (
+              <div className="flex items-center justify-center py-16">
+                <div className="h-10 w-10 animate-spin rounded-full border-4 border-[#4318FF] border-t-transparent" />
               </div>
-              <button
-                className="flex items-center bg-[#F4F7FE] dark:bg-white/5 hover:bg-[#E2E8F0] dark:hover:bg-white/10 text-[#4318FF] dark:text-white font-bold py-2 px-4 rounded-xl transition-all text-sm disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
-                onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-                disabled={currentPage >= totalPages}
-              >
-                Next
-              </button>
-            </div>
+            ) : modalities.length === 0 ? (
+              <div className="rounded-2xl border border-dashed border-gray-200 dark:border-white/10 py-16 text-center text-sm font-medium text-[#A3AED0]">
+                No modalities were returned by the backend.
+              </div>
+            ) : (
+              <>
+                <div className="overflow-x-auto">
+                  <DndContext
+                    sensors={sensors}
+                    collisionDetection={closestCenter}
+                    onDragEnd={handleDragEnd}
+                  >
+                    <table className="w-full">
+                      <thead>
+                        <tr className="border-b border-gray-100 dark:border-white/5">
+                          <th className="p-4 text-left text-xs font-bold uppercase tracking-wide text-[#A3AED0] w-10"></th>
+                          <th className="p-4 text-left text-xs font-bold uppercase tracking-wide text-[#A3AED0]">Name</th>
+                          <th className="p-4 text-left text-xs font-bold uppercase tracking-wide text-[#A3AED0]">Icon/Emoji</th>
+                          <th className="p-4 text-left text-xs font-bold uppercase tracking-wide text-[#A3AED0]">Listings</th>
+                          <th className="p-4 text-left text-xs font-bold uppercase tracking-wide text-[#A3AED0]">Active</th>
+                          <th className="p-4 text-left text-xs font-bold uppercase tracking-wide text-[#A3AED0]">Created</th>
+                          <th className="p-4 text-left text-xs font-bold uppercase tracking-wide text-[#A3AED0]">Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-100 dark:divide-white/5">
+                        <SortableContext
+                          items={paginatedModalities.map(m => m.id)}
+                          strategy={verticalListSortingStrategy}
+                        >
+                          {paginatedModalities.map((modality) => (
+                            <SortableRow
+                              key={modality.id}
+                              modality={modality}
+                              onEdit={(m) => {
+                                setCurrentModality(m);
+                                setFormData({ name: m.name, icon: m.icon });
+                                setIsEditModalOpen(true);
+                              }}
+                              onDelete={(m) => {
+                                setCurrentModality(m);
+                                setIsConfirmDeleteOpen(true);
+                              }}
+                              onToggleActive={handleToggleActive}
+                            />
+                          ))}
+                        </SortableContext>
+                      </tbody>
+                    </table>
+                  </DndContext>
+                </div>
+
+                <div className="flex items-center justify-end space-x-2 pt-6 pb-2">
+                  <div className="mr-auto text-xs font-medium text-[#A3AED0]">
+                    Drag, add, edit, delete, and reseed actions are still UI-only until backend write endpoints exist.
+                  </div>
+                  <button
+                    className="flex items-center bg-[#F4F7FE] dark:bg-white/5 hover:bg-[#E2E8F0] dark:hover:bg-white/10 text-[#4318FF] dark:text-white font-bold py-2 px-4 rounded-xl transition-all text-sm disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                    onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                    disabled={currentPage === 1}
+                  >
+                    Previous
+                  </button>
+                  <div className="text-sm font-medium text-[#A3AED0] px-2 flex items-center">
+                    Page {currentPage} of {totalPages || 1}
+                  </div>
+                  <button
+                    className="flex items-center bg-[#F4F7FE] dark:bg-white/5 hover:bg-[#E2E8F0] dark:hover:bg-white/10 text-[#4318FF] dark:text-white font-bold py-2 px-4 rounded-xl transition-all text-sm disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                    onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                    disabled={currentPage >= totalPages}
+                  >
+                    Next
+                  </button>
+                </div>
+              </>
+            )}
           </div>
       </div>
 

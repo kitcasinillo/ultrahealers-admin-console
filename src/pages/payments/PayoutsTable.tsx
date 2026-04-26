@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
     Search,
     Calendar as CalendarIcon,
@@ -6,12 +6,16 @@ import {
     Filter,
     AlertCircle,
     Check,
+    Loader2,
 } from "lucide-react";
 import { type ColumnDef } from "@tanstack/react-table";
 import { DataTable } from "../../components/DataTable";
 import { Modal } from "../../components/Modal";
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
+import { createPayout, getHealerPayoutBalance, getHealerPayoutHistory, searchAdminHealers, type AdminHealerSearchResult, type PayoutBalanceResponse, type StripePayoutHistoryItem } from "@/lib/payouts";
+
+type PayoutStatus = 'succeeded' | 'pending' | 'failed' | 'in_transit';
 
 interface Payout {
     id: string;
@@ -25,7 +29,7 @@ interface Payout {
     amount: number;
     currency: string;
     dateInitiated: string;
-    status: 'succeeded' | 'pending' | 'failed' | 'in_transit';
+    status: PayoutStatus;
     stripePayoutId: string;
 }
 
@@ -89,6 +93,8 @@ const STATIC_PAYOUTS: Payout[] = [
 ];
 
 export function PayoutsTable() {
+    const [realHealerResults, setRealHealerResults] = useState<AdminHealerSearchResult[]>([]);
+    const [isSearchingHealers, setIsSearchingHealers] = useState(false);
     const [searchTerm, setSearchTerm] = useState("");
     const [statusFilter, setStatusFilter] = useState("all");
     const [dateRange, setDateRange] = useState("all-time");
@@ -99,9 +105,19 @@ export function PayoutsTable() {
 
     // Modal State
     const [healerSearch, setHealerSearch] = useState("");
-    const [selectedHealer, setSelectedHealer] = useState<Payout['healer'] | null>(null);
+    const [selectedHealer, setSelectedHealer] = useState<(Payout['healer'] & { id?: string; stripeAccountId?: string }) | null>(null);
     const [payoutAmount, setPayoutAmount] = useState<string>("");
     const [isHealerListOpen, setIsHealerListOpen] = useState(false);
+    const [selectedHealerBalance, setSelectedHealerBalance] = useState<PayoutBalanceResponse | null>(null);
+    const [isLoadingBalance, setIsLoadingBalance] = useState(false);
+    const [balanceError, setBalanceError] = useState<string | null>(null);
+    const [historyHealer, setHistoryHealer] = useState<AdminHealerSearchResult | null>(null);
+    const [realPayoutHistory, setRealPayoutHistory] = useState<Payout[]>([]);
+    const [isLoadingHistory, setIsLoadingHistory] = useState(false);
+    const [historyError, setHistoryError] = useState<string | null>(null);
+    const [isSubmittingPayout, setIsSubmittingPayout] = useState(false);
+    const [submitError, setSubmitError] = useState<string | null>(null);
+    const [submitSuccess, setSubmitSuccess] = useState<string | null>(null);
 
     const dateRanges = [
         { id: 'all-time', label: 'All' },
@@ -204,6 +220,176 @@ export function PayoutsTable() {
         }
     ];
 
+    const handleCloseModal = () => {
+        setIsManualPayoutModalOpen(false);
+        setHealerSearch("");
+        setSelectedHealer(null);
+        setPayoutAmount("");
+        setIsHealerListOpen(false);
+        setSelectedHealerBalance(null);
+        setBalanceError(null);
+        setSubmitError(null);
+        setSubmitSuccess(null);
+    };
+
+    const handleTriggerPayout = async () => {
+        if (!selectedHealer?.id) {
+            setSubmitError("Select a healer before creating a payout.");
+            return;
+        }
+
+        const parsedAmount = Number(payoutAmount);
+        if (!Number.isFinite(parsedAmount) || parsedAmount <= 0) {
+            setSubmitError("Enter a valid payout amount.");
+            return;
+        }
+
+        if (selectedHealerBalance && parsedAmount > availableUsd) {
+            setSubmitError(`Amount exceeds available USD balance of $${availableUsd.toFixed(2)}.`);
+            return;
+        }
+
+        try {
+            setIsSubmittingPayout(true);
+            setSubmitError(null);
+            setSubmitSuccess(null);
+
+            const result = await createPayout({
+                healerId: selectedHealer.id,
+                amountCents: Math.round(parsedAmount * 100),
+                currency: 'usd',
+            });
+
+            setSubmitSuccess(`Payout created successfully. Stripe payout ID: ${result.payoutId}`);
+            setPayoutAmount("");
+
+            if (selectedHealer.id) {
+                const [balance, payouts] = await Promise.all([
+                    getHealerPayoutBalance(selectedHealer.id),
+                    getHealerPayoutHistory(selectedHealer.id),
+                ]);
+                setSelectedHealerBalance(balance);
+                const healerForHistory = historyHealer ?? {
+                    id: selectedHealer.id,
+                    name: selectedHealer.name,
+                    email: selectedHealer.email,
+                    stripeStatus: selectedHealer.stripeStatus,
+                    stripeAccountId: selectedHealer.stripeAccountId || balance.accountId,
+                };
+                setHistoryHealer(healerForHistory);
+                setRealPayoutHistory(
+                    payouts.map((payout: StripePayoutHistoryItem) => ({
+                        id: payout.id,
+                        healer: {
+                            name: healerForHistory.name,
+                            email: healerForHistory.email,
+                            stripeStatus: healerForHistory.stripeStatus,
+                        },
+                        stripeAccountId: healerForHistory.stripeAccountId || balance.accountId || "—",
+                        amount: (payout.amount || 0) / 100,
+                        currency: (payout.currency || 'usd').toUpperCase(),
+                        dateInitiated: new Date(((payout.arrival_date || payout.created || 0) * 1000) || Date.now()).toISOString(),
+                        status: payout.status === 'paid' ? 'succeeded' : payout.status === 'canceled' ? 'failed' : payout.status,
+                        stripePayoutId: payout.id,
+                    }))
+                );
+            }
+        } catch (error: any) {
+            console.error("Failed to create payout:", error);
+            setSubmitError(error?.response?.data?.error || "Failed to create payout.");
+        } finally {
+            setIsSubmittingPayout(false);
+        }
+    };
+
+    useEffect(() => {
+        const loadBalance = async () => {
+            if (!selectedHealer?.id) {
+                setSelectedHealerBalance(null);
+                setBalanceError(null);
+                return;
+            }
+
+            try {
+                setIsLoadingBalance(true);
+                setBalanceError(null);
+                const balance = await getHealerPayoutBalance(selectedHealer.id);
+                setSelectedHealerBalance(balance);
+            } catch (error: any) {
+                console.error("Failed to load healer payout balance:", error);
+                setSelectedHealerBalance(null);
+                setBalanceError(error?.response?.data?.error || "Balance information is not available yet.");
+            } finally {
+                setIsLoadingBalance(false);
+            }
+        };
+
+        loadBalance();
+    }, [selectedHealer?.id]);
+
+    useEffect(() => {
+        const loadHistory = async () => {
+            if (!historyHealer?.id) {
+                setRealPayoutHistory([]);
+                setHistoryError(null);
+                return;
+            }
+
+            try {
+                setIsLoadingHistory(true);
+                setHistoryError(null);
+                const payouts = await getHealerPayoutHistory(historyHealer.id);
+                const normalized: Payout[] = payouts.map((payout: StripePayoutHistoryItem) => ({
+                    id: payout.id,
+                    healer: {
+                        name: historyHealer.name,
+                        email: historyHealer.email,
+                        stripeStatus: historyHealer.stripeStatus,
+                    },
+                    stripeAccountId: historyHealer.stripeAccountId || "—",
+                    amount: (payout.amount || 0) / 100,
+                    currency: (payout.currency || 'usd').toUpperCase(),
+                    dateInitiated: new Date(((payout.arrival_date || payout.created || 0) * 1000) || Date.now()).toISOString(),
+                    status: payout.status === 'paid' ? 'succeeded' : payout.status === 'canceled' ? 'failed' : payout.status,
+                    stripePayoutId: payout.id,
+                }));
+                setRealPayoutHistory(normalized);
+            } catch (error: any) {
+                console.error("Failed to load payout history:", error);
+                setRealPayoutHistory([]);
+                setHistoryError(error?.response?.data?.error || "Payout history is not available for this healer yet.");
+            } finally {
+                setIsLoadingHistory(false);
+            }
+        };
+
+        loadHistory();
+    }, [historyHealer]);
+
+    useEffect(() => {
+        const loadHealers = async () => {
+            if (!isManualPayoutModalOpen || !isHealerListOpen) return;
+
+            try {
+                setIsSearchingHealers(true);
+                const results = await searchAdminHealers(healerSearch);
+                setRealHealerResults(results);
+            } catch (error) {
+                console.error("Failed to search admin healers:", error);
+                setRealHealerResults([]);
+            } finally {
+                setIsSearchingHealers(false);
+            }
+        };
+
+        const timeout = window.setTimeout(loadHealers, 250);
+        return () => window.clearTimeout(timeout);
+    }, [healerSearch, isManualPayoutModalOpen, isHealerListOpen]);
+
+    const tableData = useMemo(() => {
+        return historyHealer ? realPayoutHistory : STATIC_PAYOUTS;
+    }, [historyHealer, realPayoutHistory]);
+
     const filteredData = useMemo(() => {
         const now = new Date();
         let startDate: Date | null = null;
@@ -227,7 +413,7 @@ export function PayoutsTable() {
             endDate.setHours(23, 59, 59, 999);
         }
 
-        return STATIC_PAYOUTS.filter(payout => {
+        return tableData.filter(payout => {
             const payoutDate = new Date(payout.dateInitiated);
             const matchesSearch = payout.healer.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                 payout.stripePayoutId.toLowerCase().includes(searchTerm.toLowerCase());
@@ -237,28 +423,35 @@ export function PayoutsTable() {
 
             return matchesSearch && matchesStatus && matchesStart && matchesEnd;
         });
-    }, [searchTerm, statusFilter, dateRange, customDates]);
-
-    const handleCloseModal = () => {
-        setIsManualPayoutModalOpen(false);
-        setHealerSearch("");
-        setSelectedHealer(null);
-        setPayoutAmount("");
-        setIsHealerListOpen(false);
-    };
-
-    const handleTriggerPayout = () => {
-        console.log("Triggering payout for:", selectedHealer?.name, "Amount:", payoutAmount);
-        handleCloseModal();
-    };
+    }, [tableData, searchTerm, statusFilter, dateRange, customDates]);
 
     const suggestedHealers = useMemo(() => {
-        if (!healerSearch) return STATIC_PAYOUTS.map(p => p.healer).filter((val, idx, self) => self.findIndex(t => t.name === val.name) === idx);
+        if (realHealerResults.length > 0 || healerSearch) {
+            return realHealerResults;
+        }
+
         return STATIC_PAYOUTS
-            .map(p => p.healer)
-            .filter((val, idx, self) => self.findIndex(t => t.name === val.name) === idx)
-            .filter(h => h.name.toLowerCase().includes(healerSearch.toLowerCase()) || h.email.toLowerCase().includes(healerSearch.toLowerCase()));
-    }, [healerSearch]);
+            .map(p => ({
+                id: p.id,
+                name: p.healer.name,
+                email: p.healer.email,
+                stripeStatus: p.healer.stripeStatus,
+                stripeAccountId: p.stripeAccountId,
+            }))
+            .filter((val, idx, self) => self.findIndex(t => t.email === val.email) === idx);
+    }, [healerSearch, realHealerResults]);
+
+    const parsedPayoutAmount = Number(payoutAmount);
+    const availableUsdCents = Number(selectedHealerBalance?.available?.usd || 0);
+    const availableUsd = availableUsdCents / 100;
+    const exceedsAvailableBalance = Number.isFinite(parsedPayoutAmount) && parsedPayoutAmount > availableUsd;
+    const payoutValidationMessage = !payoutAmount
+        ? null
+        : !Number.isFinite(parsedPayoutAmount) || parsedPayoutAmount <= 0
+            ? "Enter a valid payout amount."
+            : exceedsAvailableBalance
+                ? `Amount exceeds available USD balance of $${availableUsd.toFixed(2)}.`
+                : null;
 
     return (
         <div className="space-y-6 animate-in fade-in duration-500" onClick={() => {
@@ -375,8 +568,49 @@ export function PayoutsTable() {
             </div>
 
             {/* Table Area */}
-            <div className="bg-white dark:bg-[#111C44] rounded-2xl p-2 shadow-sm border border-[#E9EDF7] dark:border-white/5 overflow-x-auto scrollbar-hide">
-                <DataTable columns={columns} data={filteredData} />
+            <div className="space-y-3">
+                {historyHealer && (
+                    <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-[#E9EDF7] dark:border-white/10 bg-[#F8FAFC] dark:bg-white/5 px-4 py-3">
+                        <div>
+                            <div className="text-[10px] font-black text-[#A3AED0] uppercase tracking-wider">History View</div>
+                            <div className="text-sm font-bold text-[#1b254b] dark:text-white mt-1">Showing real payout history for {historyHealer.name}</div>
+                            <div className="text-xs text-[#A3AED0] mt-1">{historyHealer.email}</div>
+                        </div>
+                        <Button
+                            variant="ghost"
+                            onClick={() => {
+                                setHistoryHealer(null);
+                                setRealPayoutHistory([]);
+                                setHistoryError(null);
+                            }}
+                            className="rounded-xl h-10 text-sm font-bold text-[#A3AED0] hover:bg-[#F4F7FE] dark:hover:bg-white/5"
+                        >
+                            Clear history filter
+                        </Button>
+                    </div>
+                )}
+
+                {isLoadingHistory && (
+                    <div className="rounded-2xl border border-[#E9EDF7] dark:border-white/10 bg-white dark:bg-[#111C44] px-4 py-3 text-sm text-[#A3AED0] flex items-center gap-2">
+                        <Loader2 className="w-4 h-4 animate-spin" /> Loading real payout history...
+                    </div>
+                )}
+
+                {historyError && (
+                    <div className="rounded-2xl border border-amber-500/20 bg-amber-500/[0.03] px-4 py-3 text-sm text-amber-700 dark:text-amber-400">
+                        {historyError}
+                    </div>
+                )}
+
+                {!historyHealer && (
+                    <div className="rounded-2xl border border-[#E9EDF7] dark:border-white/10 bg-[#F8FAFC] dark:bg-white/5 px-4 py-3 text-sm text-[#707EAE] dark:text-[#A3AED0]">
+                        Table currently shows sample payout records. To inspect real backend payout history, select a healer in the payout modal.
+                    </div>
+                )}
+
+                <div className="bg-white dark:bg-[#111C44] rounded-2xl p-2 shadow-sm border border-[#E9EDF7] dark:border-white/5 overflow-x-auto scrollbar-hide">
+                    <DataTable columns={columns} data={filteredData} />
+                </div>
             </div>
 
             {/* Manual Payout Modal */}
@@ -395,11 +629,13 @@ export function PayoutsTable() {
                             Cancel
                         </Button>
                         <Button
-                            disabled={!selectedHealer || !payoutAmount}
+                            disabled={!selectedHealer || !payoutAmount || isLoadingBalance || isSubmittingPayout || !selectedHealerBalance?.payoutsEnabled || !!payoutValidationMessage}
                             onClick={handleTriggerPayout}
                             className="flex-1 bg-[#4318FF] hover:bg-[#3311CC] text-white rounded-xl h-12 font-bold text-sm disabled:opacity-50 shadow-lg shadow-[#4318FF]/20 transition-all"
                         >
-                            Confirm
+                            {isSubmittingPayout ? (
+                                <><Loader2 className="w-4 h-4 animate-spin" /> Processing...</>
+                            ) : 'Confirm'}
                         </Button>
                     </div>
                 }
@@ -434,13 +670,22 @@ export function PayoutsTable() {
                                 className="absolute top-full left-0 right-0 mt-2 bg-white dark:bg-[#1b254b] border border-[#e9edf7] dark:border-white/10 rounded-2xl shadow-2xl z-[60] py-2 max-h-64 overflow-y-auto"
                                 onClick={(e) => e.stopPropagation()}
                             >
-                                {suggestedHealers.length > 0 ? (
+                                {isSearchingHealers ? (
+                                    <div className="px-5 py-6 text-sm text-[#A3AED0] text-center font-medium">Searching real healers...</div>
+                                ) : suggestedHealers.length > 0 ? (
                                     suggestedHealers.map(h => (
                                         <button
                                             key={h.email}
                                             className="w-full flex items-center gap-4 px-5 py-3.5 hover:bg-[#f4f7fe] dark:hover:bg-white/5 transition-colors text-left"
                                             onClick={() => {
-                                                setSelectedHealer(h);
+                                                setSelectedHealer({
+                                                    id: h.id,
+                                                    name: h.name,
+                                                    email: h.email,
+                                                    stripeStatus: h.stripeStatus,
+                                                    stripeAccountId: h.stripeAccountId,
+                                                });
+                                                setHistoryHealer(h);
                                                 setHealerSearch("");
                                                 setIsHealerListOpen(false);
                                             }}
@@ -451,6 +696,7 @@ export function PayoutsTable() {
                                             <div className="min-w-0">
                                                 <div className="text-sm font-bold text-[#1b254b] dark:text-white leading-none truncate">{h.name}</div>
                                                 <div className="text-xs text-[#A3AED0] mt-1.5 truncate">{h.email}</div>
+                                                <div className="text-[10px] text-[#A3AED0] mt-1 truncate uppercase">Stripe: {h.stripeStatus}</div>
                                             </div>
                                         </button>
                                     ))
@@ -462,9 +708,70 @@ export function PayoutsTable() {
                     </div>
 
                     {/* Amount Input */}
+                    {selectedHealer && (
+                        <div className="rounded-2xl border border-[#E9EDF7] dark:border-white/10 bg-[#F8FAFC] dark:bg-white/5 p-4 space-y-3">
+                            <div className="flex items-center justify-between gap-4">
+                                <div>
+                                    <div className="text-xs font-black text-[#A3AED0] uppercase tracking-wider">Selected Healer</div>
+                                    <div className="text-sm font-bold text-[#1b254b] dark:text-white mt-1">{selectedHealer.name}</div>
+                                    <div className="text-xs text-[#A3AED0] mt-1">{selectedHealer.email}</div>
+                                </div>
+                                {isLoadingBalance ? (
+                                    <div className="flex items-center gap-2 text-xs font-medium text-[#A3AED0]">
+                                        <Loader2 className="w-4 h-4 animate-spin" /> Loading balance...
+                                    </div>
+                                ) : selectedHealerBalance ? (
+                                    <div className="text-right">
+                                        <div className="text-[10px] font-black text-[#A3AED0] uppercase tracking-wider">Available USD</div>
+                                        <div className="text-lg font-black text-[#1b254b] dark:text-white">
+                                            ${((selectedHealerBalance.available?.usd || 0) / 100).toFixed(2)}
+                                        </div>
+                                    </div>
+                                ) : null}
+                            </div>
+
+                            {balanceError ? (
+                                <div className="text-xs font-medium text-amber-700 dark:text-amber-400">{balanceError}</div>
+                            ) : selectedHealerBalance ? (
+                                <div className="grid md:grid-cols-3 gap-3 text-xs">
+                                    <div className="rounded-xl bg-white dark:bg-[#111C44] border border-[#E9EDF7] dark:border-white/10 px-3 py-2">
+                                        <div className="text-[#A3AED0] uppercase font-black tracking-wider text-[10px]">Payouts</div>
+                                        <div className={`mt-1 font-bold ${selectedHealerBalance.payoutsEnabled ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-600 dark:text-amber-400'}`}>
+                                            {selectedHealerBalance.payoutsEnabled ? 'Enabled' : 'Not enabled'}
+                                        </div>
+                                    </div>
+                                    <div className="rounded-xl bg-white dark:bg-[#111C44] border border-[#E9EDF7] dark:border-white/10 px-3 py-2">
+                                        <div className="text-[#A3AED0] uppercase font-black tracking-wider text-[10px]">Charges</div>
+                                        <div className={`mt-1 font-bold ${selectedHealerBalance.chargesEnabled ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-600 dark:text-amber-400'}`}>
+                                            {selectedHealerBalance.chargesEnabled ? 'Enabled' : 'Not enabled'}
+                                        </div>
+                                    </div>
+                                    <div className="rounded-xl bg-white dark:bg-[#111C44] border border-[#E9EDF7] dark:border-white/10 px-3 py-2">
+                                        <div className="text-[#A3AED0] uppercase font-black tracking-wider text-[10px]">Details</div>
+                                        <div className={`mt-1 font-bold ${selectedHealerBalance.detailsSubmitted ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-600 dark:text-amber-400'}`}>
+                                            {selectedHealerBalance.detailsSubmitted ? 'Submitted' : 'Incomplete'}
+                                        </div>
+                                    </div>
+                                </div>
+                            ) : null}
+                        </div>
+                    )}
+
+                    {submitError && (
+                        <div className="rounded-2xl border border-red-500/20 bg-red-500/[0.03] px-4 py-3 text-sm text-red-700 dark:text-red-400">
+                            {submitError}
+                        </div>
+                    )}
+
+                    {submitSuccess && (
+                        <div className="rounded-2xl border border-emerald-500/20 bg-emerald-500/[0.03] px-4 py-3 text-sm text-emerald-700 dark:text-emerald-400">
+                            {submitSuccess}
+                        </div>
+                    )}
+
                     <div className="space-y-4">
                         <label className="text-xs font-bold text-[#A3AED0] uppercase ml-1 tracking-wider block text-center">Amount to Pay (USD)</label>
-                        <div className="relative flex items-center justify-center bg-[#f4f7fe]/50 dark:bg-white/5 rounded-3xl py-8 px-6 border-2 border-dashed border-[#e9edf7] dark:border-white/10 group focus-within:border-[#4318FF] focus-within:border-solid transition-all">
+                        <div className={`relative flex items-center justify-center bg-[#f4f7fe]/50 dark:bg-white/5 rounded-3xl py-8 px-6 border-2 border-dashed group transition-all ${payoutValidationMessage ? 'border-red-300 dark:border-red-500/40 focus-within:border-red-500' : 'border-[#e9edf7] dark:border-white/10 focus-within:border-[#4318FF]'} focus-within:border-solid`}>
                             <div className="flex items-center gap-1 group-focus-within:scale-105 transition-transform duration-300">
                                 <span className="text-3xl font-bold text-[#4318FF] opacity-50">$</span>
                                 <input
@@ -481,6 +788,14 @@ export function PayoutsTable() {
                             </div>
                             <div className="absolute top-2 right-4 text-[10px] font-black text-[#A3AED0] uppercase tracking-widest opacity-50">Manual Override</div>
                         </div>
+                        {selectedHealerBalance && (
+                            <div className="text-center text-xs text-[#A3AED0]">
+                                Available to payout right now: <span className="font-bold text-[#1b254b] dark:text-white">${availableUsd.toFixed(2)}</span>
+                            </div>
+                        )}
+                        {payoutValidationMessage && (
+                            <div className="text-center text-xs font-medium text-red-600 dark:text-red-400">{payoutValidationMessage}</div>
+                        )}
                     </div>
 
                     <div className="flex items-center gap-4 text-[#707EAE] dark:text-amber-400/90 text-xs font-medium leading-relaxed bg-amber-500/[0.03] p-5 rounded-2xl border border-amber-500/10">

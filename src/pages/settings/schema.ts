@@ -11,6 +11,15 @@ export const formSchema = z.object({
             premium: z.object({ amount: z.coerce.number().min(0), currency: z.string().min(1) }),
         }),
     }),
+    adminBootstrap: z.object({
+        enabled: z.boolean(),
+        email: z.string().email("Enter a valid admin email"),
+        password: z.string().min(6, "Password must be at least 6 characters"),
+        display_name: z.string().min(1, "Display name is required"),
+        super_admin: z.boolean(),
+        seeded_at: z.union([z.string(), z.date(), z.null()]).optional(),
+        last_seed_error: z.union([z.string(), z.null()]).optional(),
+    }),
     commission: z.object({
         HEALER_COMMISSION_PERCENT: z.coerce.number().min(0).max(100),
         SEEKER_FEE_PERCENT: z.coerce.number().min(0).max(100),
@@ -38,6 +47,15 @@ export const defaultValues: SettingsFormValues = {
             free: { amount: 0 },
             premium: { amount: 120, currency: "USD" },
         },
+    },
+    adminBootstrap: {
+        enabled: false,
+        email: "ultrahealerz@gmail.com",
+        password: "uh2025#",
+        display_name: "UltraHealers Admin",
+        super_admin: true,
+        seeded_at: null,
+        last_seed_error: null,
     },
     commission: {
         HEALER_COMMISSION_PERCENT: 10,

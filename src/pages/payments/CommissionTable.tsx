@@ -90,11 +90,14 @@ export function CommissionTable() {
                 const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5001';
                 const response = await fetch(`${apiUrl}/api/admin/finance/commission-report`);
                 const result = await response.json();
-                if (result.success) {
-                    setData(result.records);
+                if (response.ok && result.success) {
+                    setData(result.records || []);
+                } else {
+                    setData([]);
                 }
             } catch (error) {
                 console.error('Error fetching commission records:', error);
+                setData([]);
             } finally {
                 setLoading(false);
             }

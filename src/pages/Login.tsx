@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { signInWithEmailAndPassword } from "firebase/auth";
-import { auth } from "../lib/firebase";
+import { auth, missingFirebaseConfigKeys } from "../lib/firebase";
 import { useNavigate, useLocation, Navigate } from "react-router-dom";
 import { useAdminAuth } from "../contexts/AdminAuthContext";
 
@@ -64,7 +64,12 @@ export function Login() {
             navigate(from, { replace: true });
         } catch (err: any) {
             console.error("Login failed:", err);
-            setError("Invalid email or password. Please try again.");
+
+            if (err?.code === "auth/api-key-not-valid" || err?.message?.includes("api-key-not-valid")) {
+                setError(`Firebase web config is invalid. Check admin-console .env values, especially ${missingFirebaseConfigKeys.map(([key]) => key).join(", ") || "VITE_FIREBASE_API_KEY"}. Then restart Vite.`);
+            } else {
+                setError("Invalid email or password. Please try again.");
+            }
         } finally {
             setIsLoading(false);
         }

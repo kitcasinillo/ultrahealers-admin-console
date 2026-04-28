@@ -1,10 +1,12 @@
 import { useEffect, useMemo, useState } from "react"
 import { type ColumnDef } from "@tanstack/react-table"
 import { Link } from "react-router-dom"
-import { MoreHorizontal } from "lucide-react"
+import { Download, MoreHorizontal } from "lucide-react"
 import { DataTable } from "../../components/DataTable"
 import { Badge } from "../../components/ui/badge"
 import { Button } from "../../components/ui/button"
+import { useToast } from "../../contexts/ToastContext"
+import { exportHealersCsv } from "../../lib/userExports"
 import { fetchHealers, type AdminHealer } from "../../lib/users"
 
 const formatCurrency = (amount: number) => new Intl.NumberFormat("en-US", {
@@ -22,6 +24,7 @@ export function Healers() {
     const [data, setData] = useState<AdminHealer[]>([])
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState<string | null>(null)
+    const { showToast } = useToast()
 
     useEffect(() => {
         let mounted = true
@@ -121,9 +124,19 @@ export function Healers() {
                     </p>
                 </div>
                 <div className="flex items-center gap-2">
-                    <button className="flex items-center bg-[#F4F7FE] dark:bg-white/5 text-[#4318FF] dark:text-white font-semibold py-2.5 px-5 rounded-full text-sm opacity-60 cursor-not-allowed" disabled>
-                        Export CSV (not wired yet)
-                    </button>
+                    <Button
+                        type="button"
+                        variant="outline"
+                        className="rounded-full"
+                        onClick={() => {
+                            exportHealersCsv(data)
+                            showToast("Healers CSV exported.", "success")
+                        }}
+                        disabled={loading || data.length === 0}
+                    >
+                        <Download className="h-4 w-4" />
+                        Export CSV
+                    </Button>
                 </div>
             </div>
 

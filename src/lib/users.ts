@@ -80,3 +80,19 @@ export async function fetchSeekerDetail(id: string) {
   const { data } = await api.get<{ success: boolean; data: AdminSeekerDetail }>(`/api/users/seekers/${id}`);
   return data.data;
 }
+
+export async function updateHealerSuspension(id: string, suspended: boolean, reason?: string) {
+  const { data } = await api.patch<{ success: boolean; data: { status: string; suspended: boolean; updatedAt: string; reason?: string | null } }>(`/api/users/healers/${id}/suspension`, {
+    suspended,
+    reason: reason || null,
+  });
+  return data.data;
+}
+
+export async function updateSeekerSuspension(id: string, suspended: boolean, reason?: string) {
+  const { data } = await api.patch<{ success: boolean; data: { status: string; suspended: boolean; updatedAt: string; reason?: string | null } }>(`/api/users/seekers/${id}/suspension`, {
+    suspended,
+    reason: reason || null,
+  });
+  return data.data;
+}

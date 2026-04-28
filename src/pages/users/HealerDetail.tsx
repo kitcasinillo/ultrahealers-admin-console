@@ -3,7 +3,8 @@ import { useParams, Link } from "react-router-dom"
 import { ArrowLeft, Calendar, Mail, MapPin, MoreVertical, User } from "lucide-react"
 import { Button } from "../../components/ui/button"
 import { Badge } from "../../components/ui/badge"
-import { fetchHealerDetail, type AdminHealerDetail } from "../../lib/users"
+import { useToast } from "../../contexts/ToastContext"
+import { fetchHealerDetail, type AdminHealerDetail, updateHealerSuspension } from "../../lib/users"
 
 const formatCurrency = (amount: number) => new Intl.NumberFormat("en-US", {
     style: "currency",
@@ -21,6 +22,8 @@ export function HealerDetail() {
     const [data, setData] = useState<AdminHealerDetail | null>(null)
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState<string | null>(null)
+    const [saving, setSaving] = useState(false)
+    const { showToast } = useToast()
 
     useEffect(() => {
         if (!id) return
@@ -46,6 +49,25 @@ export function HealerDetail() {
         return () => { mounted = false }
     }, [id])
 
+    const handleSuspendToggle = async () => {
+        if (!id || !data) return
+
+        const shouldSuspend = data.status !== "Suspended"
+        const reason = shouldSuspend ? window.prompt("Optional suspension reason:", "") || undefined : undefined
+
+        try {
+            setSaving(true)
+            const result = await updateHealerSuspension(id, shouldSuspend, reason)
+            setData((prev) => prev ? { ...prev, status: result.status as AdminHealerDetail["status"] } : prev)
+            showToast(shouldSuspend ? "Healer suspended." : "Healer reactivated.", "success")
+        } catch (err: any) {
+            console.error("Failed to update healer suspension:", err)
+            showToast(err?.response?.data?.error || err?.message || "Failed to update healer status", "error")
+        } finally {
+            setSaving(false)
+        }
+    }
+
     return (
         <div className="space-y-6">
             <div className="flex items-center gap-4">
@@ -59,8 +81,22 @@ export function HealerDetail() {
                     <p className="text-muted-foreground text-sm">ID: {id}</p>
                 </div>
                 <div className="flex items-center gap-2">
-                    <Button variant="outline" disabled>Message (not wired yet)</Button>
-                    <Button variant="destructive" disabled>Suspend (not wired yet)</Button>
+                    <Button
+                        variant="outline"
+                        type="button"
+                        onClick={() => data?.email && (window.location.href = `mailto:${data.email}`)}
+                        disabled={!data?.email}
+                    >
+                        Message
+                    </Button>
+                    <Button
+                        variant={data?.status === "Suspended" ? "outline" : "destructive"}
+                        type="button"
+                        onClick={handleSuspendToggle}
+                        disabled={loading || saving || !data}
+                    >
+                        {saving ? "Saving..." : data?.status === "Suspended" ? "Reactivate" : "Suspend"}
+                    </Button>
                     <Button variant="ghost" size="icon" disabled>
                         <MoreVertical className="h-4 w-4" />
                     </Button>

@@ -61,8 +61,20 @@ export type AdminSeekerDetail = AdminSeeker & {
   rawProfile?: Record<string, unknown>;
 };
 
-export async function fetchHealers() {
-  const { data } = await api.get<{ success: boolean; results: AdminHealer[] }>('/api/users/healers');
+export type UserListFilters = {
+  q?: string;
+  status?: '' | 'Active' | 'Suspended' | 'Pending';
+  subscription?: '' | 'Free' | 'Premium';
+};
+
+export async function fetchHealers(filters: UserListFilters = {}) {
+  const { data } = await api.get<{ success: boolean; results: AdminHealer[] }>('/api/users/healers', {
+    params: {
+      q: filters.q || undefined,
+      status: filters.status || undefined,
+      subscription: filters.subscription || undefined,
+    },
+  });
   return data.results || [];
 }
 
@@ -71,8 +83,13 @@ export async function fetchHealerDetail(id: string) {
   return data.data;
 }
 
-export async function fetchSeekers() {
-  const { data } = await api.get<{ success: boolean; results: AdminSeeker[] }>('/api/users/seekers');
+export async function fetchSeekers(filters: UserListFilters = {}) {
+  const { data } = await api.get<{ success: boolean; results: AdminSeeker[] }>('/api/users/seekers', {
+    params: {
+      q: filters.q || undefined,
+      status: filters.status || undefined,
+    },
+  });
   return data.results || [];
 }
 

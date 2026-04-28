@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react"
 import { type ColumnDef } from "@tanstack/react-table"
+import { Download, MoreHorizontal, Search, X } from "lucide-react"
 import { Link } from "react-router-dom"
-import { Download, MoreHorizontal } from "lucide-react"
 import { DataTable } from "../../components/DataTable"
 import { Badge } from "../../components/ui/badge"
 import { Button } from "../../components/ui/button"
@@ -24,30 +24,41 @@ export function Seekers() {
     const [data, setData] = useState<AdminSeeker[]>([])
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState<string | null>(null)
+    const [search, setSearch] = useState("")
+    const [statusFilter, setStatusFilter] = useState<"" | "Active" | "Suspended" | "Pending">("")
     const { showToast } = useToast()
 
     useEffect(() => {
         let mounted = true
 
-        const load = async () => {
-            try {
-                setLoading(true)
-                setError(null)
-                const results = await fetchSeekers()
-                if (!mounted) return
-                setData(results)
-            } catch (err: any) {
-                console.error("Failed to load seekers:", err)
-                if (!mounted) return
-                setError(err?.response?.data?.error || err?.message || "Failed to load seekers")
-            } finally {
-                if (mounted) setLoading(false)
+        const timeout = setTimeout(() => {
+            const load = async () => {
+                try {
+                    setLoading(true)
+                    setError(null)
+                    const results = await fetchSeekers({
+                        q: search,
+                        status: statusFilter,
+                    })
+                    if (!mounted) return
+                    setData(results)
+                } catch (err: any) {
+                    console.error("Failed to load seekers:", err)
+                    if (!mounted) return
+                    setError(err?.response?.data?.error || err?.message || "Failed to load seekers")
+                } finally {
+                    if (mounted) setLoading(false)
+                }
             }
-        }
 
-        load()
-        return () => { mounted = false }
-    }, [])
+            load()
+        }, 250)
+
+        return () => {
+            mounted = false
+            clearTimeout(timeout)
+        }
+    }, [search, statusFilter])
 
     const columns = useMemo<ColumnDef<AdminSeeker>[]>(() => [
         {
@@ -102,6 +113,11 @@ export function Seekers() {
         },
     ], [])
 
+    const clearFilters = () => {
+        setSearch("")
+        setStatusFilter("")
+    }
+
     return (
         <div className="space-y-6">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -124,6 +140,36 @@ export function Seekers() {
                     >
                         <Download className="h-4 w-4" />
                         Export CSV
+                    </Button>
+                </div>
+            </div>
+
+            <div className="bg-white dark:bg-[#111C44] rounded-[24px] p-4 shadow-[0_10px_30px_0_rgba(11,20,55,0.06)] dark:shadow-none border border-transparent dark:border-white/5">
+                <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_180px_auto]">
+                    <div className="relative">
+                        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#A3AED0]" />
+                        <input
+                            value={search}
+                            onChange={(e) => setSearch(e.target.value)}
+                            placeholder="Search by name, email, or ID"
+                            className="h-11 w-full rounded-xl border border-slate-200 bg-white pl-10 pr-4 text-sm outline-none transition focus:border-[#4318FF] dark:border-white/10 dark:bg-white/5 dark:text-white"
+                        />
+                    </div>
+
+                    <select
+                        value={statusFilter}
+                        onChange={(e) => setStatusFilter(e.target.value as typeof statusFilter)}
+                        className="h-11 rounded-xl border border-slate-200 bg-white px-3 text-sm outline-none transition focus:border-[#4318FF] dark:border-white/10 dark:bg-white/5 dark:text-white"
+                    >
+                        <option value="">All statuses</option>
+                        <option value="Active">Active</option>
+                        <option value="Suspended">Suspended</option>
+                        <option value="Pending">Pending</option>
+                    </select>
+
+                    <Button type="button" variant="ghost" onClick={clearFilters} disabled={!search && !statusFilter}>
+                        <X className="h-4 w-4" />
+                        Clear
                     </Button>
                 </div>
             </div>

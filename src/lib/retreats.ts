@@ -38,7 +38,7 @@ export interface Retreat {
     currency?: string;
     capacity: number;
     bookedSpots: number;
-    status: StatusType;
+    status: StatusType | 'finished';
     revenue: number;
     imageUrl?: string;
     shortDescription?: string;
@@ -46,6 +46,22 @@ export interface Retreat {
     createdAt?: string | null;
     updatedAt?: string | null;
     enrollments?: RetreatEnrollment[];
+}
+
+export interface UpdateRetreatFieldsPayload {
+    title: string;
+    location: string;
+    price: number;
+    capacity: number;
+    startDate: string;
+    endDate: string;
+    shortDescription: string;
+    longDescription: string;
+}
+
+export interface RetreatMessageAllPayload {
+    subject: string;
+    message: string;
 }
 
 export const getRetreats = async (filters: RetreatFilters) => {
@@ -65,7 +81,7 @@ export const getRetreats = async (filters: RetreatFilters) => {
 
     return {
         retreats: (response.data?.retreats || []) as Retreat[],
-        summary: response.data?.summary || { total: 0, pending: 0, active: 0 },
+        summary: response.data?.summary || { total: 0, pending: 0, active: 0, finished: 0 },
     };
 };
 
@@ -89,6 +105,16 @@ export const approveRetreat = async (id: string) => {
     return response.data;
 };
 
+export const updateRetreatFields = async (id: string, payload: UpdateRetreatFieldsPayload) => {
+    const response = await api.patch(`/api/retreats/${id}`, payload);
+    return response.data;
+};
+
+export const buildRetreatMessageAll = async (id: string, payload: RetreatMessageAllPayload) => {
+    const response = await api.post(`/api/retreats/${id}/message-all`, payload);
+    return response.data?.data;
+};
+
 export const deleteRetreat = async (id: string) => {
     const response = await api.delete(`/api/retreats/${id}`);
     return response.data;
@@ -102,6 +128,7 @@ export const exportRetreats = async (filters: RetreatFilters): Promise<Blob> => 
         inactive: 'Inactive',
         draft: 'Draft',
         full: 'Full',
+        finished: 'Finished',
         pending_review: 'Pending Review'
     };
 
@@ -114,20 +141,24 @@ export const exportRetreats = async (filters: RetreatFilters): Promise<Blob> => 
     retreats.forEach((r) => {
         const start = r.startDate ? new Date(r.startDate) : null;
         const end = r.endDate ? new Date(r.endDate) : null;
-        const formatDate = (date: Date | null) => date ? date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '—';
-        const year = end ? end.getFullYear() : '';
+        const formatDate = (date: Date | null) => date && !Number.isNaN(date.getTime()) ? date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '—';
+        const year = end && !Number.isNaN(end.getTime()) ? end.getFullYear() : '';
         const dateRange = `${formatDate(start)} - ${formatDate(end)}${year ? `, ${year}` : ''}`;
+        const safePrice = Number.isFinite(Number(r.price)) ? Number(r.price) : 0;
+        const safeCapacity = Number.isFinite(Number(r.capacity)) ? Number(r.capacity) : 0;
+        const safeBooked = Number.isFinite(Number(r.bookedSpots)) ? Number(r.bookedSpots) : 0;
+        const safeRevenue = Number.isFinite(Number(r.revenue)) ? Number(r.revenue) : 0;
 
         const row = [
             `"${r.hostName || ''}"`,
             `"${r.title || ''}"`,
             `"${r.location || ''}"`,
             `"${dateRange}"`,
-            `"${new Intl.NumberFormat('en-US', { style: 'currency', currency: r.currency || 'USD', maximumFractionDigits: 0 }).format(r.price || 0)}"`,
-            `"${r.capacity || 0}"`,
-            `"${r.bookedSpots || 0} / ${r.capacity || 0}"`,
+            `"${new Intl.NumberFormat('en-US', { style: 'currency', currency: r.currency || 'USD', maximumFractionDigits: 0 }).format(safePrice)}"`,
+            `"${safeCapacity}"`,
+            `"${safeBooked} / ${safeCapacity}"`,
             `"${statusLabels[r.status] || r.status}"`,
-            `"${new Intl.NumberFormat('en-US', { style: 'currency', currency: r.currency || 'USD', maximumFractionDigits: 0 }).format(r.revenue || 0)}"`,
+            `"${new Intl.NumberFormat('en-US', { style: 'currency', currency: r.currency || 'USD', maximumFractionDigits: 0 }).format(safeRevenue)}"`,
         ];
         csvRows.push(row.join(','));
     });

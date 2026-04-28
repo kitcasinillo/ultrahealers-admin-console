@@ -9,16 +9,18 @@ import {
     ExternalLink,
     Clock,
     UserCircle,
-    Image as ImageIcon
+    Image as ImageIcon,
+    Mail
 } from "lucide-react"
 import { Button } from "../../components/ui/button"
 import { Badge } from "../../components/ui/badge"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "../../components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../../components/ui/table"
 import { StatusBadge, type StatusType } from "../../components/StatusBadge"
-import { getRetreatById, updateRetreatStatus, approveRetreat } from "../../lib/retreats"
+import { buildRetreatMessageAll, getRetreatById, updateRetreatFields, updateRetreatStatus, approveRetreat } from "../../lib/retreats"
 import { Skeleton } from "../../components/ui/skeleton"
 import { Avatar, AvatarFallback } from "../../components/ui/avatar"
+import { useToast } from "../../contexts/ToastContext"
 
 const formatDate = (value?: string | null) => {
     if (!value) return "—"
@@ -26,11 +28,29 @@ const formatDate = (value?: string | null) => {
     return Number.isNaN(parsed.getTime()) ? value : parsed.toLocaleDateString()
 }
 
+const toSafeNumber = (value: unknown) => {
+    const n = Number(value)
+    return Number.isFinite(n) ? n : 0
+}
+
 export default function RetreatDetail() {
     const { id } = useParams<{ id: string }>()
+    const { showToast } = useToast()
     const [retreat, setRetreat] = useState<any>(null)
     const [isLoading, setIsLoading] = useState(true)
     const [isActionLoading, setIsActionLoading] = useState(false)
+    const [isEditOpen, setIsEditOpen] = useState(false)
+    const [messageDraft, setMessageDraft] = useState({ subject: "", message: "" })
+    const [editForm, setEditForm] = useState({
+        title: "",
+        location: "",
+        price: "",
+        capacity: "",
+        startDate: "",
+        endDate: "",
+        shortDescription: "",
+        longDescription: "",
+    })
 
     useEffect(() => {
         if (id) fetchData(id)
@@ -41,6 +61,16 @@ export default function RetreatDetail() {
         try {
             const data = await getRetreatById(retreatId)
             setRetreat(data)
+            setEditForm({
+                title: data.title || "",
+                location: data.location || "",
+                price: String(toSafeNumber(data.price)),
+                capacity: String(toSafeNumber(data.capacity)),
+                startDate: data.startDate ? String(data.startDate).slice(0, 10) : "",
+                endDate: data.endDate ? String(data.endDate).slice(0, 10) : "",
+                shortDescription: data.shortDescription || "",
+                longDescription: data.longDescription || "",
+            })
         } catch (error) {
             console.error("Failed to fetch retreat:", error)
         } finally {
@@ -53,9 +83,11 @@ export default function RetreatDetail() {
         try {
             setIsActionLoading(true)
             await approveRetreat(id)
+            showToast("Retreat approved successfully")
             fetchData(id)
         } catch (error) {
             console.error("Approve failed:", error)
+            showToast("Failed to approve retreat", "error")
         } finally {
             setIsActionLoading(false)
         }
@@ -67,9 +99,73 @@ export default function RetreatDetail() {
         try {
             setIsActionLoading(true)
             await updateRetreatStatus(id, newStatus)
+            showToast(`Retreat status updated to ${newStatus}`)
             fetchData(id)
         } catch (error) {
             console.error("Status toggle failed:", error)
+            showToast("Failed to update retreat status", "error")
+        } finally {
+            setIsActionLoading(false)
+        }
+    }
+
+    const handleMarkFinished = async () => {
+        if (!id) return
+        try {
+            setIsActionLoading(true)
+            await updateRetreatStatus(id, "finished")
+            showToast("Retreat marked as finished")
+            fetchData(id)
+        } catch (error) {
+            console.error("Mark finished failed:", error)
+            showToast("Failed to mark retreat as finished", "error")
+        } finally {
+            setIsActionLoading(false)
+        }
+    }
+
+    const handleSaveEdit = async () => {
+        if (!id) return
+        try {
+            setIsActionLoading(true)
+            await updateRetreatFields(id, {
+                title: editForm.title,
+                location: editForm.location,
+                price: Number(editForm.price || 0),
+                capacity: Number(editForm.capacity || 0),
+                startDate: editForm.startDate,
+                endDate: editForm.endDate,
+                shortDescription: editForm.shortDescription,
+                longDescription: editForm.longDescription,
+            })
+            showToast("Retreat updated")
+            setIsEditOpen(false)
+            fetchData(id)
+        } catch (error) {
+            console.error("Edit save failed:", error)
+            showToast("Failed to update retreat", "error")
+        } finally {
+            setIsActionLoading(false)
+        }
+    }
+
+    const handleMessageAll = async () => {
+        if (!id) return
+        try {
+            setIsActionLoading(true)
+            const result = await buildRetreatMessageAll(id, messageDraft)
+            const emails = (result?.recipients || []).map((recipient: any) => recipient.email).filter(Boolean)
+            if (emails.length === 0) {
+                showToast("No seeker emails found for this retreat", "error")
+                return
+            }
+            const subject = encodeURIComponent(messageDraft.subject)
+            const body = encodeURIComponent(messageDraft.message)
+            window.location.href = `mailto:${emails.join(',')}?subject=${subject}&body=${body}`
+            showToast(`Prepared message for ${emails.length} seekers`)
+        } catch (error) {
+            console.error("Message all failed:", error)
+            showToast("Failed to prepare seeker message", "error")
         } finally {
             setIsActionLoading(false)
         }
@@ -96,8 +192,11 @@ export default function RetreatDetail() {
         )
     }
 
-    const fillRate = (retreat.bookedSpots || 0) / ((retreat.capacity || 1)) * 100
-    const revenue = retreat.revenue || ((retreat.bookedSpots || 0) * (retreat.price || 0))
+    const safeBookedSpots = toSafeNumber(retreat.bookedSpots)
+    const safeCapacity = toSafeNumber(retreat.capacity)
+    const safePrice = toSafeNumber(retreat.price)
+    const safeRevenue = toSafeNumber(retreat.revenue) || (safeBookedSpots * safePrice)
+    const fillRate = safeCapacity > 0 ? (safeBookedSpots / safeCapacity) * 100 : 0
 
     return (
         <div className="space-y-6 pb-12">
@@ -108,18 +207,24 @@ export default function RetreatDetail() {
                         Back to Management
                     </Link>
                 </Button>
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-3 flex-wrap justify-end">
                     <Button variant="outline" asChild className="rounded-full border-[#E2E8F0]">
                         <a href={`https://ultrahealers.com/retreats/${id}`} target="_blank" rel="noreferrer" className="flex items-center gap-2">
                             <ExternalLink className="h-4 w-4" />
                             View Public Listing
                         </a>
                     </Button>
+                    <Button variant="outline" onClick={() => setIsEditOpen(true)} className="rounded-full border-[#E2E8F0]">
+                        Edit Fields
+                    </Button>
                     {retreat.status === "pending_review" && (
                         <Button onClick={handleApprove} disabled={isActionLoading} className="rounded-full bg-green-600 hover:bg-green-700 text-white font-bold px-6">
                             Approve Retreat
                         </Button>
                     )}
+                    <Button variant="outline" onClick={handleMarkFinished} disabled={isActionLoading} className="rounded-full font-bold px-6">
+                        Mark as Finished
+                    </Button>
                     <Button
                         variant={retreat.status === "active" ? "destructive" : "default"}
                         onClick={handleToggleStatus}
@@ -216,7 +321,7 @@ export default function RetreatDetail() {
                                             </div>
                                         </TableCell>
                                         <TableCell className="font-bold text-[#1b254b] dark:text-white">
-                                            ${Number(seeker.amount || 0).toLocaleString()}
+                                            ${toSafeNumber(seeker.amount).toLocaleString()}
                                         </TableCell>
                                         <TableCell className="text-[#A3AED0] font-medium">{formatDate(seeker.date)}</TableCell>
                                         <TableCell>
@@ -253,7 +358,7 @@ export default function RetreatDetail() {
                                 <h4 className="text-white/70 text-sm font-bold uppercase tracking-widest mb-1">Total Revenue</h4>
                                 <div className="text-4xl font-extrabold flex items-center gap-1">
                                     <DollarSign className="h-7 w-7" />
-                                    {revenue.toLocaleString()}
+                                    {safeRevenue.toLocaleString()}
                                 </div>
                             </div>
                             <div className="h-px bg-white/20 w-full" />
@@ -261,12 +366,12 @@ export default function RetreatDetail() {
                                 <div className="flex justify-between items-end mb-2">
                                     <div>
                                         <h4 className="text-white/70 text-sm font-bold uppercase tracking-widest mb-1">Capacity Fill Rate</h4>
-                                        <div className="text-2xl font-bold">{retreat.bookedSpots || 0} / {retreat.capacity || 0}</div>
+                                        <div className="text-2xl font-bold">{safeBookedSpots} / {safeCapacity}</div>
                                     </div>
                                     <div className="text-xl font-black">{Math.round(fillRate)}%</div>
                                 </div>
                                 <div className="h-3 w-full bg-white/20 rounded-full overflow-hidden">
-                                    <div className="h-full bg-white transition-all duration-700 ease-out" style={{ width: `${fillRate}%` }} />
+                                    <div className="h-full bg-white transition-all duration-700 ease-out" style={{ width: `${Math.min(Math.max(fillRate, 0), 100)}%` }} />
                                 </div>
                             </div>
                         </div>
@@ -279,15 +384,15 @@ export default function RetreatDetail() {
                         <CardContent className="px-2 space-y-4">
                             <div className="flex justify-between items-center bg-[#F4F7FE] dark:bg-white/5 p-4 rounded-2xl">
                                 <span className="text-[#A3AED0] font-bold">Standard Price</span>
-                                <span className="text-xl font-extrabold text-primary">${(retreat.price || 0).toLocaleString()}</span>
+                                <span className="text-xl font-extrabold text-primary">${safePrice.toLocaleString()}</span>
                             </div>
                             <div className="flex justify-between items-center p-4 border border-gray-100 dark:border-white/5 rounded-2xl">
                                 <span className="text-[#A3AED0] font-bold">Healer Payout</span>
-                                <span className="text-lg font-bold text-green-600">${((retreat.price || 0) * 0.85).toLocaleString()}</span>
+                                <span className="text-lg font-bold text-green-600">${(safeRevenue * 0.85).toLocaleString()}</span>
                             </div>
                             <div className="flex justify-between items-center p-4 border border-gray-100 dark:border-white/5 rounded-2xl">
                                 <span className="text-[#A3AED0] font-bold">Admin Fee (15%)</span>
-                                <span className="text-lg font-bold text-[#4318FF]">${((retreat.price || 0) * 0.15).toLocaleString()}</span>
+                                <span className="text-lg font-bold text-[#4318FF]">${(safeRevenue * 0.15).toLocaleString()}</span>
                             </div>
                         </CardContent>
                     </Card>
@@ -296,17 +401,49 @@ export default function RetreatDetail() {
                         <CardHeader className="px-2 pt-0">
                             <CardTitle className="text-lg font-bold text-[#1b254b] dark:text-white">Quick Actions</CardTitle>
                         </CardHeader>
-                        <CardContent className="px-2 space-y-3">
-                            <Button variant="outline" className="w-full rounded-2xl h-12 border-[#E2E8F0] justify-start gap-3" disabled>
+                        <CardContent className="px-2 space-y-4">
+                            <Button variant="outline" className="w-full rounded-2xl h-12 border-[#E2E8F0] justify-start gap-3" onClick={handleMarkFinished} disabled={isActionLoading}>
                                 <Clock className="h-5 w-5 text-[#A3AED0]" /> Mark as Finished
                             </Button>
-                            <Button variant="outline" className="w-full rounded-2xl h-12 border-[#E2E8F0] justify-start gap-3" disabled>
-                                <Users className="h-5 w-5 text-[#A3AED0]" /> Message All Seekers
-                            </Button>
+                            <div className="space-y-2 border rounded-2xl p-3 border-[#E2E8F0] dark:border-white/5">
+                                <div className="flex items-center gap-2 text-sm font-semibold">
+                                    <Mail className="h-4 w-4 text-[#A3AED0]" /> Message All Seekers
+                                </div>
+                                <input className="w-full rounded-xl border px-3 py-2 bg-transparent text-sm" placeholder="Subject" value={messageDraft.subject} onChange={(e) => setMessageDraft((prev) => ({ ...prev, subject: e.target.value }))} />
+                                <textarea className="w-full rounded-xl border px-3 py-2 bg-transparent text-sm min-h-[110px]" placeholder="Write your message to all seekers..." value={messageDraft.message} onChange={(e) => setMessageDraft((prev) => ({ ...prev, message: e.target.value }))} />
+                                <Button variant="outline" className="w-full rounded-2xl h-11 justify-start gap-3" onClick={handleMessageAll} disabled={isActionLoading || !messageDraft.subject.trim() || !messageDraft.message.trim()}>
+                                    <Users className="h-5 w-5 text-[#A3AED0]" /> Prepare Email to All Seekers
+                                </Button>
+                            </div>
                         </CardContent>
                     </Card>
                 </div>
             </div>
+
+            {isEditOpen && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+                    <div className="w-full max-w-3xl rounded-[24px] bg-white dark:bg-[#111C44] p-6 shadow-2xl">
+                        <div className="flex items-center justify-between mb-4">
+                            <h3 className="text-xl font-bold">Edit Retreat Fields</h3>
+                            <button className="text-sm text-[#A3AED0]" onClick={() => setIsEditOpen(false)}>Close</button>
+                        </div>
+                        <div className="grid gap-4 md:grid-cols-2">
+                            <input className="rounded-xl border px-3 py-2 bg-transparent" placeholder="Title" value={editForm.title} onChange={(e) => setEditForm((prev) => ({ ...prev, title: e.target.value }))} />
+                            <input className="rounded-xl border px-3 py-2 bg-transparent" placeholder="Location" value={editForm.location} onChange={(e) => setEditForm((prev) => ({ ...prev, location: e.target.value }))} />
+                            <input className="rounded-xl border px-3 py-2 bg-transparent" type="number" placeholder="Price" value={editForm.price} onChange={(e) => setEditForm((prev) => ({ ...prev, price: e.target.value }))} />
+                            <input className="rounded-xl border px-3 py-2 bg-transparent" type="number" placeholder="Capacity" value={editForm.capacity} onChange={(e) => setEditForm((prev) => ({ ...prev, capacity: e.target.value }))} />
+                            <input className="rounded-xl border px-3 py-2 bg-transparent" type="date" value={editForm.startDate} onChange={(e) => setEditForm((prev) => ({ ...prev, startDate: e.target.value }))} />
+                            <input className="rounded-xl border px-3 py-2 bg-transparent" type="date" value={editForm.endDate} onChange={(e) => setEditForm((prev) => ({ ...prev, endDate: e.target.value }))} />
+                            <textarea className="rounded-xl border px-3 py-2 bg-transparent md:col-span-2 min-h-[90px]" placeholder="Short description" value={editForm.shortDescription} onChange={(e) => setEditForm((prev) => ({ ...prev, shortDescription: e.target.value }))} />
+                            <textarea className="rounded-xl border px-3 py-2 bg-transparent md:col-span-2 min-h-[140px]" placeholder="Long description" value={editForm.longDescription} onChange={(e) => setEditForm((prev) => ({ ...prev, longDescription: e.target.value }))} />
+                        </div>
+                        <div className="mt-6 flex justify-end gap-3">
+                            <button className="rounded-xl px-4 py-2 text-sm" onClick={() => setIsEditOpen(false)}>Cancel</button>
+                            <button className="rounded-xl bg-[#4318FF] px-4 py-2 text-sm font-semibold text-white disabled:opacity-50" disabled={isActionLoading} onClick={handleSaveEdit}>Save Changes</button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     )
 }

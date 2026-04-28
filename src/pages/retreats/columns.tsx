@@ -2,22 +2,22 @@ import { type ColumnDef } from "@tanstack/react-table"
 import { Link } from "react-router-dom"
 import { StatusBadge, type StatusType } from "../../components/StatusBadge"
 import { Button } from "../../components/ui/button"
-import { 
-    MoreHorizontal, 
-    Eye, 
-    Edit, 
-    Trash2, 
+import {
+    MoreHorizontal,
+    Eye,
+    Edit,
+    Trash2,
     CheckCircle,
     UserCircle,
     MapPin
 } from "lucide-react"
-import { 
-    DropdownMenu, 
-    DropdownMenuContent, 
-    DropdownMenuItem, 
-    DropdownMenuLabel, 
-    DropdownMenuSeparator, 
-    DropdownMenuTrigger 
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuLabel,
+    DropdownMenuSeparator,
+    DropdownMenuTrigger
 } from "../../components/ui/dropdown-menu"
 import { Avatar, AvatarFallback, AvatarImage } from "../../components/ui/avatar"
 
@@ -33,17 +33,26 @@ export type Retreat = {
     price: number
     capacity: number
     bookedSpots: number
-    status: StatusType
+    status: StatusType | "finished"
     revenue: number
+    shortDescription?: string
+    longDescription?: string
 }
 
 interface ColumnProps {
     onApprove: (id: string) => void;
     onDelete: (id: string) => void;
     onToggleStatus: (id: string, currentStatus: string) => void;
+    onEdit: (id: string) => void;
+    onMarkFinished: (id: string) => void;
 }
 
-export const getColumns = ({ onApprove, onDelete, onToggleStatus }: ColumnProps): ColumnDef<Retreat>[] => [
+const toSafeNumber = (value: unknown) => {
+    const n = Number(value)
+    return Number.isFinite(n) ? n : 0
+}
+
+export const getColumns = ({ onApprove, onDelete, onToggleStatus, onEdit, onMarkFinished }: ColumnProps): ColumnDef<Retreat>[] => [
     {
         accessorKey: "hostName",
         header: "Host/Healer",
@@ -109,7 +118,7 @@ export const getColumns = ({ onApprove, onDelete, onToggleStatus }: ColumnProps)
         accessorKey: "price",
         header: "Price",
         cell: ({ row }) => {
-            const amount = parseFloat(row.getValue("price"))
+            const amount = toSafeNumber(row.getValue("price"))
             return (
                 <div className="font-bold text-[#1b254b] dark:text-white">
                     {new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(amount)}
@@ -120,15 +129,16 @@ export const getColumns = ({ onApprove, onDelete, onToggleStatus }: ColumnProps)
     {
         accessorKey: "capacity",
         header: "Cap.",
-        cell: ({ row }) => <div className="text-center font-medium text-[#A3AED0]">{row.original.capacity}</div>
+        cell: ({ row }) => <div className="text-center font-medium text-[#A3AED0]">{toSafeNumber(row.original.capacity)}</div>
     },
     {
         id: "booked",
         header: "Booked Spots",
         cell: ({ row }) => {
-            const { bookedSpots, capacity } = row.original
-            const percentage = (bookedSpots / capacity) * 100
-            
+            const bookedSpots = toSafeNumber(row.original.bookedSpots)
+            const capacity = toSafeNumber(row.original.capacity)
+            const percentage = capacity > 0 ? (bookedSpots / capacity) * 100 : 0
+
             return (
                 <div className="flex flex-col gap-1 w-28">
                     <div className="flex justify-between text-[11px] font-bold text-[#A3AED0]">
@@ -136,9 +146,9 @@ export const getColumns = ({ onApprove, onDelete, onToggleStatus }: ColumnProps)
                         <span className={percentage >= 100 ? "text-orange-500" : ""}>{Math.round(percentage)}%</span>
                     </div>
                     <div className="h-1.5 w-full bg-[#F4F7FE] dark:bg-white/5 rounded-full overflow-hidden">
-                        <div 
+                        <div
                             className={`h-full transition-all duration-500 ${percentage >= 100 ? 'bg-orange-500' : 'bg-primary'}`}
-                            style={{ width: `${Math.min(percentage, 100)}%` }}
+                            style={{ width: `${Math.min(Math.max(percentage, 0), 100)}%` }}
                         />
                     </div>
                 </div>
@@ -154,7 +164,7 @@ export const getColumns = ({ onApprove, onDelete, onToggleStatus }: ColumnProps)
         accessorKey: "revenue",
         header: "Revenue",
         cell: ({ row }) => {
-            const amount = parseFloat(row.getValue("revenue"))
+            const amount = toSafeNumber(row.getValue("revenue"))
             return (
                 <div className="font-extrabold text-[#4318FF] dark:text-[#01A3B4]">
                     {new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(amount)}
@@ -170,9 +180,9 @@ export const getColumns = ({ onApprove, onDelete, onToggleStatus }: ColumnProps)
             return (
                 <div className="flex justify-end gap-1">
                     {retreat.status === "pending_review" && (
-                        <Button 
-                            variant="ghost" 
-                            size="icon" 
+                        <Button
+                            variant="ghost"
+                            size="icon"
                             onClick={() => onApprove(retreat.id)}
                             className="h-8 w-8 text-green-600 hover:bg-green-50 dark:hover:bg-green-900/10 rounded-full"
                             title="Approve Retreat"
@@ -194,11 +204,11 @@ export const getColumns = ({ onApprove, onDelete, onToggleStatus }: ColumnProps)
                                     <span className="font-semibold text-sm">View Details</span>
                                 </Link>
                             </DropdownMenuItem>
-                            <DropdownMenuItem className="flex items-center gap-2 rounded-xl px-3 py-2.5 cursor-pointer">
+                            <DropdownMenuItem onClick={() => onEdit(retreat.id)} className="flex items-center gap-2 rounded-xl px-3 py-2.5 cursor-pointer">
                                 <Edit className="h-4 w-4 text-[#A3AED0]" />
                                 <span className="font-semibold text-sm">Edit Fields</span>
                             </DropdownMenuItem>
-                            <DropdownMenuItem 
+                            <DropdownMenuItem
                                 onClick={() => onToggleStatus(retreat.id, retreat.status)}
                                 className="flex items-center gap-2 rounded-xl px-3 py-2.5 cursor-pointer"
                             >
@@ -207,8 +217,12 @@ export const getColumns = ({ onApprove, onDelete, onToggleStatus }: ColumnProps)
                                     {retreat.status === "active" ? "Deactivate" : "Activate"}
                                 </span>
                             </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => onMarkFinished(retreat.id)} className="flex items-center gap-2 rounded-xl px-3 py-2.5 cursor-pointer">
+                                <CheckCircle className="h-4 w-4 text-[#A3AED0]" />
+                                <span className="font-semibold text-sm">Mark as Finished</span>
+                            </DropdownMenuItem>
                             <DropdownMenuSeparator className="bg-gray-100 dark:bg-white/5 mx-1" />
-                            <DropdownMenuItem 
+                            <DropdownMenuItem
                                 onClick={() => onDelete(retreat.id)}
                                 className="flex items-center gap-2 rounded-xl px-3 py-2.5 cursor-pointer text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/10"
                             >
@@ -223,7 +237,6 @@ export const getColumns = ({ onApprove, onDelete, onToggleStatus }: ColumnProps)
     },
 ]
 
-// To fix the Activity icon import
 function Activity(props: any) {
   return (
     <svg

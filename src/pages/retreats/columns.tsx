@@ -28,8 +28,8 @@ export type Retreat = {
     hostAvatar?: string
     title: string
     location: string
-    startDate: string
-    endDate: string
+    startDate: string | null
+    endDate: string | null
     price: number
     capacity: number
     bookedSpots: number
@@ -89,17 +89,18 @@ export const getColumns = ({ onApprove, onDelete, onToggleStatus }: ColumnProps)
         header: "Dates",
         cell: ({ row }) => {
             const { startDate, endDate } = row.original
-            const start = new Date(startDate)
-            const end = new Date(endDate)
-            
-            const formatDate = (date: Date) => {
+            const start = startDate ? new Date(startDate) : null
+            const end = endDate ? new Date(endDate) : null
+
+            const formatDate = (date: Date | null) => {
+                if (!date || Number.isNaN(date.getTime())) return '—'
                 return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
             }
-            const year = end.getFullYear()
-            
+            const year = end && !Number.isNaN(end.getTime()) ? end.getFullYear() : ''
+
             return (
                 <div className="text-sm font-semibold text-[#1b254b] dark:text-white">
-                    {formatDate(start)} – {formatDate(end)}, {year}
+                    {formatDate(start)} – {formatDate(end)}{year ? `, ${year}` : ''}
                 </div>
             )
         }

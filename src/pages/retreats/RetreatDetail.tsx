@@ -1,12 +1,12 @@
 import { useState, useEffect } from "react"
 import { useParams, Link } from "react-router-dom"
-import { 
-    ChevronLeft, 
-    Calendar, 
-    MapPin, 
-    Users, 
-    DollarSign, 
-    ExternalLink, 
+import {
+    ChevronLeft,
+    Calendar,
+    MapPin,
+    Users,
+    DollarSign,
+    ExternalLink,
     Clock,
     UserCircle,
     Image as ImageIcon
@@ -20,13 +20,11 @@ import { getRetreatById, updateRetreatStatus, approveRetreat } from "../../lib/r
 import { Skeleton } from "../../components/ui/skeleton"
 import { Avatar, AvatarFallback } from "../../components/ui/avatar"
 
-// Mock Enrollments (since backend might not have this yet)
-const mockEnrollments = [
-    { id: "B-101", name: "Alice Johnson", email: "alice@example.com", amount: 2500, date: "2024-03-10", status: "paid" },
-    { id: "B-102", name: "Bob Smith", email: "bob@example.com", amount: 2500, date: "2024-03-12", status: "paid" },
-    { id: "B-103", name: "Charlie Brown", email: "charlie@example.com", amount: 1250, date: "2024-03-15", status: "partial" },
-    { id: "B-104", name: "Diana Ross", email: "diana@example.com", amount: 0, date: "2024-03-18", status: "pending" },
-];
+const formatDate = (value?: string | null) => {
+    if (!value) return "—"
+    const parsed = new Date(value)
+    return Number.isNaN(parsed.getTime()) ? value : parsed.toLocaleDateString()
+}
 
 export default function RetreatDetail() {
     const { id } = useParams<{ id: string }>()
@@ -98,8 +96,8 @@ export default function RetreatDetail() {
         )
     }
 
-    const fillRate = (retreat.bookedSpots || 0) / (retreat.capacity || 1) * 100
-    const revenue = (retreat.bookedSpots || 0) * (retreat.price || 0)
+    const fillRate = (retreat.bookedSpots || 0) / ((retreat.capacity || 1)) * 100
+    const revenue = retreat.revenue || ((retreat.bookedSpots || 0) * (retreat.price || 0))
 
     return (
         <div className="space-y-6 pb-12">
@@ -122,7 +120,7 @@ export default function RetreatDetail() {
                             Approve Retreat
                         </Button>
                     )}
-                    <Button 
+                    <Button
                         variant={retreat.status === "active" ? "destructive" : "default"}
                         onClick={handleToggleStatus}
                         disabled={isActionLoading}
@@ -134,12 +132,11 @@ export default function RetreatDetail() {
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                {/* Left Column: Core Info & Images */}
                 <div className="lg:col-span-2 space-y-6">
                     <Card className="rounded-[30px] border-none shadow-[0_10px_30px_0_rgba(11,20,55,0.06)] overflow-hidden">
                         <div className="h-64 relative">
-                            <img 
-                                src={retreat.imageUrl || "https://images.unsplash.com/photo-1519681393784-3cef4a71b1b4?auto=format&fit=crop&q=80&w=1200"} 
+                            <img
+                                src={retreat.imageUrl || "https://images.unsplash.com/photo-1519681393784-3cef4a71b1b4?auto=format&fit=crop&q=80&w=1200"}
                                 alt={retreat.title}
                                 className="w-full h-full object-cover"
                             />
@@ -153,13 +150,13 @@ export default function RetreatDetail() {
                                     {retreat.title}
                                 </h1>
                             </div>
-                            
+
                             <div className="flex flex-wrap gap-4 text-[#A3AED0] mb-8">
                                 <div className="flex items-center gap-2 font-medium">
                                     <MapPin className="h-4 w-4" /> {retreat.location}
                                 </div>
                                 <div className="flex items-center gap-2 font-medium">
-                                    <Calendar className="h-4 w-4" /> {retreat.startDate} – {retreat.endDate}
+                                    <Calendar className="h-4 w-4" /> {formatDate(retreat.startDate)} – {formatDate(retreat.endDate)}
                                 </div>
                                 <div className="flex items-center gap-2 font-medium text-primary">
                                     <UserCircle className="h-4 w-4" /> Hosted by {retreat.hostName}
@@ -175,18 +172,21 @@ export default function RetreatDetail() {
 
                             <div className="mt-8">
                                 <h3 className="text-lg font-bold text-[#1b254b] dark:text-white mb-4">Gallery</h3>
-                                <div className="grid grid-cols-3 sm:grid-cols-4 gap-4">
-                                    {[1,2,3,4].map((i) => (
-                                        <div key={i} className="aspect-square rounded-2xl bg-[#F4F7FE] dark:bg-white/5 flex items-center justify-center border border-dashed border-gray-200 group cursor-pointer hover:border-primary transition-colors">
-                                            <ImageIcon className="h-6 w-6 text-[#A3AED0] group-hover:text-primary" />
+                                {retreat.imageUrl ? (
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                        <div className="aspect-video rounded-2xl overflow-hidden border border-gray-100 dark:border-white/5 bg-[#F4F7FE] dark:bg-white/5">
+                                            <img src={retreat.imageUrl} alt={retreat.title} className="w-full h-full object-cover" />
                                         </div>
-                                    ))}
-                                </div>
+                                    </div>
+                                ) : (
+                                    <div className="aspect-video rounded-2xl bg-[#F4F7FE] dark:bg-white/5 flex items-center justify-center border border-dashed border-gray-200">
+                                        <ImageIcon className="h-8 w-8 text-[#A3AED0]" />
+                                    </div>
+                                )}
                             </div>
                         </CardContent>
                     </Card>
 
-                    {/* Enrolled Seekers Table */}
                     <Card className="rounded-[30px] border-none shadow-[0_10px_30px_0_rgba(11,20,55,0.06)] p-6">
                         <CardHeader className="px-2 pb-6">
                             <CardTitle className="text-xl font-bold text-[#1b254b] dark:text-white">Enrolled Seekers</CardTitle>
@@ -202,12 +202,12 @@ export default function RetreatDetail() {
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
-                                {mockEnrollments.map((seeker) => (
+                                {(retreat.enrollments || []).map((seeker: any) => (
                                     <TableRow key={seeker.id} className="border-gray-50 hover:bg-[#F4F7FE]/50 dark:hover:bg-white/5 transition-colors group">
                                         <TableCell>
                                             <div className="flex items-center gap-3">
                                                 <Avatar className="h-8 w-8">
-                                                    <AvatarFallback>{seeker.name[0]}</AvatarFallback>
+                                                    <AvatarFallback>{seeker.name?.[0] || "?"}</AvatarFallback>
                                                 </Avatar>
                                                 <div>
                                                     <div className="font-bold text-[#1b254b] dark:text-white">{seeker.name}</div>
@@ -216,30 +216,36 @@ export default function RetreatDetail() {
                                             </div>
                                         </TableCell>
                                         <TableCell className="font-bold text-[#1b254b] dark:text-white">
-                                            ${seeker.amount.toLocaleString()}
+                                            ${Number(seeker.amount || 0).toLocaleString()}
                                         </TableCell>
-                                        <TableCell className="text-[#A3AED0] font-medium">{seeker.date}</TableCell>
+                                        <TableCell className="text-[#A3AED0] font-medium">{formatDate(seeker.date)}</TableCell>
                                         <TableCell>
-                                            <Badge 
-                                                variant="outline" 
+                                            <Badge
+                                                variant="outline"
                                                 className={cn(
                                                     "rounded-full px-3",
-                                                    seeker.status === 'paid' ? "bg-green-50 text-green-700 border-green-200" : 
+                                                    seeker.status === 'succeeded' || seeker.status === 'paid' ? "bg-green-50 text-green-700 border-green-200" :
                                                     seeker.status === 'partial' ? "bg-yellow-50 text-yellow-700 border-yellow-200" :
                                                     "bg-gray-100 text-gray-700 border-gray-200"
                                                 )}
                                             >
-                                                {seeker.status.toUpperCase()}
+                                                {String(seeker.status || 'pending').toUpperCase()}
                                             </Badge>
                                         </TableCell>
                                     </TableRow>
                                 ))}
+                                {(!retreat.enrollments || retreat.enrollments.length === 0) && (
+                                    <TableRow>
+                                        <TableCell colSpan={4} className="py-10 text-center text-sm text-[#A3AED0]">
+                                            No enrolled seekers found for this retreat yet.
+                                        </TableCell>
+                                    </TableRow>
+                                )}
                             </TableBody>
                         </Table>
                     </Card>
                 </div>
 
-                {/* Right Column: Stats & Operations */}
                 <div className="space-y-6">
                     <Card className="rounded-[30px] border-none shadow-[0_10px_30px_0_rgba(11,20,55,0.06)] p-8 bg-gradient-to-br from-[#4318FF] to-[#7C3AED] text-white">
                         <div className="space-y-6">
@@ -255,7 +261,7 @@ export default function RetreatDetail() {
                                 <div className="flex justify-between items-end mb-2">
                                     <div>
                                         <h4 className="text-white/70 text-sm font-bold uppercase tracking-widest mb-1">Capacity Fill Rate</h4>
-                                        <div className="text-2xl font-bold">{retreat.bookedSpots || 0} / {retreat.capacity}</div>
+                                        <div className="text-2xl font-bold">{retreat.bookedSpots || 0} / {retreat.capacity || 0}</div>
                                     </div>
                                     <div className="text-xl font-black">{Math.round(fillRate)}%</div>
                                 </div>
@@ -273,15 +279,15 @@ export default function RetreatDetail() {
                         <CardContent className="px-2 space-y-4">
                             <div className="flex justify-between items-center bg-[#F4F7FE] dark:bg-white/5 p-4 rounded-2xl">
                                 <span className="text-[#A3AED0] font-bold">Standard Price</span>
-                                <span className="text-xl font-extrabold text-primary">${retreat.price?.toLocaleString()}</span>
+                                <span className="text-xl font-extrabold text-primary">${(retreat.price || 0).toLocaleString()}</span>
                             </div>
                             <div className="flex justify-between items-center p-4 border border-gray-100 dark:border-white/5 rounded-2xl">
                                 <span className="text-[#A3AED0] font-bold">Healer Payout</span>
-                                <span className="text-lg font-bold text-green-600">${(retreat.price * 0.85).toLocaleString()}</span>
+                                <span className="text-lg font-bold text-green-600">${((retreat.price || 0) * 0.85).toLocaleString()}</span>
                             </div>
                             <div className="flex justify-between items-center p-4 border border-gray-100 dark:border-white/5 rounded-2xl">
                                 <span className="text-[#A3AED0] font-bold">Admin Fee (15%)</span>
-                                <span className="text-lg font-bold text-[#4318FF]">${(retreat.price * 0.15).toLocaleString()}</span>
+                                <span className="text-lg font-bold text-[#4318FF]">${((retreat.price || 0) * 0.15).toLocaleString()}</span>
                             </div>
                         </CardContent>
                     </Card>
@@ -291,10 +297,10 @@ export default function RetreatDetail() {
                             <CardTitle className="text-lg font-bold text-[#1b254b] dark:text-white">Quick Actions</CardTitle>
                         </CardHeader>
                         <CardContent className="px-2 space-y-3">
-                            <Button variant="outline" className="w-full rounded-2xl h-12 border-[#E2E8F0] justify-start gap-3">
+                            <Button variant="outline" className="w-full rounded-2xl h-12 border-[#E2E8F0] justify-start gap-3" disabled>
                                 <Clock className="h-5 w-5 text-[#A3AED0]" /> Mark as Finished
                             </Button>
-                            <Button variant="outline" className="w-full rounded-2xl h-12 border-[#E2E8F0] justify-start gap-3">
+                            <Button variant="outline" className="w-full rounded-2xl h-12 border-[#E2E8F0] justify-start gap-3" disabled>
                                 <Users className="h-5 w-5 text-[#A3AED0]" /> Message All Seekers
                             </Button>
                         </CardContent>
@@ -306,5 +312,5 @@ export default function RetreatDetail() {
 }
 
 function cn(...inputs: any[]) {
-    return inputs.filter(Boolean).join(" ");
+    return inputs.filter(Boolean).join(" ")
 }

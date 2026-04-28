@@ -1,10 +1,50 @@
+import { useEffect, useState } from "react"
 import { useParams, Link } from "react-router-dom"
+import { ArrowLeft, Calendar, Mail, MapPin, MoreVertical, User } from "lucide-react"
 import { Button } from "../../components/ui/button"
 import { Badge } from "../../components/ui/badge"
-import { ArrowLeft, User, Mail, MapPin, Calendar, Star, MoreVertical } from "lucide-react"
+import { fetchHealerDetail, type AdminHealerDetail } from "../../lib/users"
+
+const formatCurrency = (amount: number) => new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "USD",
+}).format(amount || 0)
+
+const formatDate = (value: string | null) => {
+    if (!value) return "—"
+    const parsed = new Date(value)
+    return Number.isNaN(parsed.getTime()) ? value : parsed.toLocaleString()
+}
 
 export function HealerDetail() {
     const { id } = useParams()
+    const [data, setData] = useState<AdminHealerDetail | null>(null)
+    const [loading, setLoading] = useState(true)
+    const [error, setError] = useState<string | null>(null)
+
+    useEffect(() => {
+        if (!id) return
+        let mounted = true
+
+        const load = async () => {
+            try {
+                setLoading(true)
+                setError(null)
+                const result = await fetchHealerDetail(id)
+                if (!mounted) return
+                setData(result)
+            } catch (err: any) {
+                console.error("Failed to load healer detail:", err)
+                if (!mounted) return
+                setError(err?.response?.data?.error || err?.message || "Failed to load healer detail")
+            } finally {
+                if (mounted) setLoading(false)
+            }
+        }
+
+        load()
+        return () => { mounted = false }
+    }, [id])
 
     return (
         <div className="space-y-6">
@@ -19,105 +59,110 @@ export function HealerDetail() {
                     <p className="text-muted-foreground text-sm">ID: {id}</p>
                 </div>
                 <div className="flex items-center gap-2">
-                    <Button variant="outline">Message</Button>
-                    <Button variant="destructive">Suspend</Button>
-                    <Button variant="ghost" size="icon">
+                    <Button variant="outline" disabled>Message (not wired yet)</Button>
+                    <Button variant="destructive" disabled>Suspend (not wired yet)</Button>
+                    <Button variant="ghost" size="icon" disabled>
                         <MoreVertical className="h-4 w-4" />
                     </Button>
                 </div>
             </div>
 
-            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-                <div className="col-span-full lg:col-span-1 space-y-6">
-                    <div className="border border-border/50 bg-card/60 backdrop-blur-sm shadow-sm rounded-xl p-6 text-center">
-                        <div className="w-24 h-24 bg-muted rounded-full mx-auto mb-4 flex items-center justify-center">
-                            <User className="h-10 w-10 text-muted-foreground" />
-                        </div>
-                        <h3 className="text-xl font-bold">John Doe</h3>
-                        <p className="text-muted-foreground text-sm flex items-center justify-center gap-1 mt-1">
-                            <Star className="h-4 w-4 text-yellow-500 fill-yellow-500" /> 4.9 (124 reviews)
-                        </p>
-                        <div className="flex items-center justify-center gap-2 mt-4">
-                            <Badge variant="outline">Active</Badge>
-                            <Badge>Premium 🏅</Badge>
+            {loading && <div className="rounded-2xl bg-white dark:bg-[#111C44] p-6 text-sm text-[#A3AED0]">Loading healer details...</div>}
+            {error && <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-500/30 dark:bg-red-500/10 dark:text-red-200">{error}</div>}
+
+            {!loading && !error && data && (
+                <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                    <div className="col-span-full lg:col-span-1 space-y-6">
+                        <div className="border border-border/50 bg-card/60 backdrop-blur-sm shadow-sm rounded-xl p-6 text-center">
+                            <div className="w-24 h-24 bg-muted rounded-full mx-auto mb-4 overflow-hidden flex items-center justify-center">
+                                {data.avatarUrl ? (
+                                    <img src={data.avatarUrl} alt={data.name} className="h-full w-full object-cover" />
+                                ) : (
+                                    <User className="h-10 w-10 text-muted-foreground" />
+                                )}
+                            </div>
+                            <h3 className="text-xl font-bold">{data.name}</h3>
+                            <p className="text-muted-foreground text-sm mt-1">
+                                Rating {data.rating ? data.rating.toFixed(1) : "—"} ({data.reviewCount || 0} reviews)
+                            </p>
+                            <div className="flex items-center justify-center gap-2 mt-4">
+                                <Badge variant={data.status === "Active" ? "outline" : data.status === "Pending" ? "secondary" : "destructive"}>{data.status}</Badge>
+                                <Badge variant={data.subscription === "Premium" ? "default" : "secondary"}>{data.subscription}{data.subscription === "Premium" ? " 🏅" : ""}</Badge>
+                            </div>
+
+                            <div className="mt-6 space-y-3 text-sm text-left border-t pt-6">
+                                <div className="flex items-center gap-3">
+                                    <Mail className="h-4 w-4 text-muted-foreground" />
+                                    <span>{data.email || "—"}</span>
+                                </div>
+                                <div className="flex items-center gap-3">
+                                    <MapPin className="h-4 w-4 text-muted-foreground" />
+                                    <span>{data.location || "—"}</span>
+                                </div>
+                                <div className="flex items-center gap-3">
+                                    <Calendar className="h-4 w-4 text-muted-foreground" />
+                                    <span>Joined {formatDate(data.joinedDate)}</span>
+                                </div>
+                            </div>
                         </div>
 
-                        <div className="mt-6 space-y-3 text-sm text-left border-t pt-6">
-                            <div className="flex items-center gap-3">
-                                <Mail className="h-4 w-4 text-muted-foreground" />
-                                <span>john@example.com</span>
-                            </div>
-                            <div className="flex items-center gap-3">
-                                <MapPin className="h-4 w-4 text-muted-foreground" />
-                                <span>San Francisco, CA</span>
-                            </div>
-                            <div className="flex items-center gap-3">
-                                <Calendar className="h-4 w-4 text-muted-foreground" />
-                                <span>Joined Jan 2025</span>
+                        <div className="border border-border/50 bg-card/60 backdrop-blur-sm shadow-sm rounded-xl p-6">
+                            <h3 className="font-semibold mb-4">Financial Overview</h3>
+                            <div className="space-y-4">
+                                <div className="flex justify-between">
+                                    <span className="text-muted-foreground text-sm">Total Earned</span>
+                                    <span className="font-medium">{formatCurrency(data.totalEarned)}</span>
+                                </div>
+                                <div className="flex justify-between">
+                                    <span className="text-muted-foreground text-sm">Pending Payout</span>
+                                    <span className="font-medium">{formatCurrency(data.pendingPayout)}</span>
+                                </div>
+                                <div className="flex justify-between">
+                                    <span className="text-muted-foreground text-sm">Stripe Status</span>
+                                    <span className="font-medium capitalize">{data.stripeStatus || "not_connected"}</span>
+                                </div>
                             </div>
                         </div>
                     </div>
 
-                    <div className="border border-border/50 bg-card/60 backdrop-blur-sm shadow-sm rounded-xl p-6">
-                        <h3 className="font-semibold mb-4">Financial Overview</h3>
-                        <div className="space-y-4">
-                            <div className="flex justify-between">
-                                <span className="text-muted-foreground text-sm">Total Earned</span>
-                                <span className="font-medium">$15,400</span>
+                    <div className="col-span-full lg:col-span-2 space-y-6">
+                        <div className="border border-border/50 bg-card/60 backdrop-blur-sm shadow-sm rounded-xl p-6">
+                            <h3 className="font-semibold mb-4 text-lg">Bio & Modalities</h3>
+                            <p className="text-muted-foreground text-sm leading-relaxed mb-6 whitespace-pre-wrap">
+                                {data.bio || "No healer bio is currently stored in the backend profile."}
+                            </p>
+                            <div className="flex flex-wrap gap-2 mb-4">
+                                {data.modalities.length > 0 ? data.modalities.map((modality) => (
+                                    <Badge key={modality} variant="secondary">{modality}</Badge>
+                                )) : <span className="text-sm text-muted-foreground">No modalities found.</span>}
                             </div>
-                            <div className="flex justify-between">
-                                <span className="text-muted-foreground text-sm">Pending Payout</span>
-                                <span className="font-medium">$850</span>
+                            <div className="text-sm text-muted-foreground">
+                                Languages: {data.languages.length > 0 ? data.languages.join(", ") : "—"}
                             </div>
-                            <div className="flex justify-between">
-                                <span className="text-muted-foreground text-sm">Subscription</span>
-                                <span className="font-medium">$29/mo</span>
+                        </div>
+
+                        <div className="border border-border/50 bg-card/60 backdrop-blur-sm shadow-sm rounded-xl p-6">
+                            <h3 className="font-semibold mb-4 text-lg">Recent Booking Activity</h3>
+                            <div className="space-y-4">
+                                {data.recentBookings.length > 0 ? data.recentBookings.map((booking) => (
+                                    <div key={booking.id} className="flex justify-between border-b pb-4 last:border-0">
+                                        <div>
+                                            <p className="text-sm font-medium">{booking.title}</p>
+                                            <p className="text-xs text-muted-foreground">Seeker: {booking.seekerName || booking.seekerId || "Unknown"}</p>
+                                        </div>
+                                        <div className="text-right">
+                                            <span className="text-sm font-medium block">{formatCurrency(booking.amount)}</span>
+                                            <span className="text-xs text-muted-foreground">{formatDate(booking.sessionDate || booking.createdAt)}</span>
+                                        </div>
+                                    </div>
+                                )) : (
+                                    <p className="text-sm text-muted-foreground">No recent bookings found for this healer.</p>
+                                )}
                             </div>
                         </div>
                     </div>
                 </div>
-
-                <div className="col-span-full lg:col-span-2 space-y-6">
-                    <div className="border border-border/50 bg-card/60 backdrop-blur-sm shadow-sm rounded-xl p-6">
-                        <h3 className="font-semibold mb-4 text-lg">Bio & Modalities</h3>
-                        <p className="text-muted-foreground text-sm leading-relaxed mb-6">
-                            Experienced holistic healer specializing in energy work and sound therapy. Certified practitioner with over 10 years of experience helping clients achieve balance and wellness.
-                        </p>
-                        <div className="flex flex-wrap gap-2">
-                            <Badge variant="secondary">Reiki Master</Badge>
-                            <Badge variant="secondary">Sound Healing</Badge>
-                            <Badge variant="secondary">Meditation Coach</Badge>
-                        </div>
-                    </div>
-
-                    <div className="border border-border/50 bg-card/60 backdrop-blur-sm shadow-sm rounded-xl p-6">
-                        <h3 className="font-semibold mb-4 text-lg">Recent Activity</h3>
-                        <div className="space-y-4">
-                            <div className="flex justify-between border-b pb-4 last:border-0">
-                                <div>
-                                    <p className="text-sm font-medium">Session Completed</p>
-                                    <p className="text-xs text-muted-foreground">with Seeker #1024</p>
-                                </div>
-                                <span className="text-xs text-muted-foreground">2 hours ago</span>
-                            </div>
-                            <div className="flex justify-between border-b pb-4 last:border-0">
-                                <div>
-                                    <p className="text-sm font-medium">Payout Processed</p>
-                                    <p className="text-xs text-muted-foreground">$450 to bank account</p>
-                                </div>
-                                <span className="text-xs text-muted-foreground">2 days ago</span>
-                            </div>
-                            <div className="flex justify-between pb-4">
-                                <div>
-                                    <p className="text-sm font-medium">Changed Subscription</p>
-                                    <p className="text-xs text-muted-foreground">Upgraded to Premium</p>
-                                </div>
-                                <span className="text-xs text-muted-foreground">1 week ago</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
+            )}
         </div>
     )
 }

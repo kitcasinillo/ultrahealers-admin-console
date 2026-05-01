@@ -23,6 +23,9 @@ import { DisputeReport } from "./pages/reports/DisputeReport";
 import { UserReport } from "./pages/reports/UserReport";
 import { BookingReport } from "./pages/reports/BookingReport";
 import { RetreatReport } from "./pages/reports/RetreatReport";
+import { SessionBookings } from "./pages/bookings/SessionBookings";
+import { RetreatBookings } from "./pages/bookings/RetreatBookings";
+import { BookingDetail } from "./pages/bookings/BookingDetail";
 
 import { PlatformOverview } from "./pages/reports/PlatformOverview";
 import { Payments } from "./pages/payments/Payments";
@@ -64,8 +67,10 @@ function App() {
             <Route path="retreats/:id" element={<RetreatDetail />} />
 
 
-            <Route path="bookings/sessions" element={<div>Session Bookings</div>} />
-            <Route path="bookings/retreats" element={<div>Retreat Bookings</div>} />
+            <Route path="bookings/sessions" element={<SessionBookings />} />
+            <Route path="bookings/sessions/:id" element={<BookingDetail />} />
+            <Route path="bookings/retreats" element={<RetreatBookings />} />
+            <Route path="bookings/retreats/:id" element={<BookingDetail />} />
 
             {/* Disputes */}
             <Route path="disputes" element={<DisputesPage />} />

@@ -73,3 +73,22 @@ export const fetchModalities = async (): Promise<Modality[]> => {
     synonyms: Array.isArray(item.synonyms) ? item.synonyms : [],
   }));
 };
+
+export const createModality = async (data: { name: string; icon: string }): Promise<Modality> => {
+  const response = await api.post<{ success: boolean; modality: Record<string, any> }>("/api/modalities", data);
+  if (!response.data.success) {
+    throw new Error("Failed to create modality");
+  }
+  const item = response.data.modality;
+  return {
+    id: String(item.id || item.slug),
+    slug: typeof item.slug === "string" ? item.slug : undefined,
+    name: String(item.label || item.name || item.slug || "Unnamed modality"),
+    icon: String(item.icon || pickIcon(item.slug, item.label || item.name)),
+    listingsCount: Number(item.listingsCount || 0),
+    active: item.active !== false,
+    order: Number.isFinite(Number(item.order)) ? Number(item.order) : 999,
+    createdAt: item.created_at || item.createdAt || new Date().toISOString(),
+    synonyms: Array.isArray(item.synonyms) ? item.synonyms : [],
+  };
+};

@@ -29,7 +29,7 @@ import { SortableRow } from "./modules/SortableRow";
 import { AddModalityModal } from "../../components/modals/AddModalityModal";
 import { EditModalityModal } from "../../components/modals/EditModalityModal";
 
-import { fetchModalities, type Modality } from "../../lib/modalities";
+import { fetchModalities, createModality, type Modality } from "../../lib/modalities";
 
 export default function Modalities() {
   const [modalities, setModalities] = useState<Modality[]>([]);
@@ -100,7 +100,7 @@ export default function Modalities() {
     toast.error(`Backend support for changing modality status is not available yet${modality ? ` for "${modality.name}"` : ""}.`);
   };
 
-  const handleAdd = () => {
+  const handleAdd = async () => {
     const trimmedName = formData.name.trim();
 
     if (!trimmedName) {
@@ -108,9 +108,19 @@ export default function Modalities() {
       return;
     }
 
-    toast.error("Backend support for creating modalities is not available yet.");
-    setIsAddModalOpen(false);
-    setFormData({ name: "", icon: "" });
+    try {
+      const newModality = await createModality({
+        name: trimmedName,
+        icon: formData.icon,
+      });
+      setModalities((prev) => [...prev, newModality].sort((a, b) => a.order - b.order || a.name.localeCompare(b.name)));
+      toast.success("Modality created successfully.");
+      setIsAddModalOpen(false);
+      setFormData({ name: "", icon: "" });
+    } catch (error) {
+      console.error("Error creating modality:", error);
+      toast.error(error instanceof Error ? error.message : "Failed to create modality.");
+    }
   };
 
   const handleEdit = () => {

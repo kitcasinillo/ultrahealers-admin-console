@@ -29,7 +29,7 @@ import { SortableRow } from "./modules/SortableRow";
 import { AddModalityModal } from "../../components/modals/AddModalityModal";
 import { EditModalityModal } from "../../components/modals/EditModalityModal";
 
-import { fetchModalities, createModality, type Modality } from "../../lib/modalities";
+import { fetchModalities, createModality, updateModality, deleteModality, type Modality } from "../../lib/modalities";
 
 export default function Modalities() {
   const [modalities, setModalities] = useState<Modality[]>([]);
@@ -94,10 +94,19 @@ export default function Modalities() {
     }
   };
 
-  const handleToggleActive = (id: string, active: boolean) => {
-    const modality = modalities.find(m => m.id === id);
+  const handleToggleActive = async (id: string, active: boolean) => {
+    // Optimistic UI update
     setModalities(prev => prev.map(m => m.id === id ? { ...m, active } : m));
-    toast.error(`Backend support for changing modality status is not available yet${modality ? ` for "${modality.name}"` : ""}.`);
+    
+    try {
+      await updateModality(id, { active });
+      toast.success("Modality status updated.");
+    } catch (error) {
+      console.error("Error toggling modality status:", error);
+      toast.error(error instanceof Error ? error.message : "Failed to update modality status.");
+      // Revert UI change
+      setModalities(prev => prev.map(m => m.id === id ? { ...m, active: !active } : m));
+    }
   };
 
   const handleAdd = async () => {
@@ -123,19 +132,45 @@ export default function Modalities() {
     }
   };
 
-  const handleEdit = () => {
+  const handleEdit = async () => {
     if (!currentModality) return;
-    toast.error(`Backend support for editing "${currentModality.name}" is not available yet.`);
-    setIsEditModalOpen(false);
-    setCurrentModality(null);
-    setFormData({ name: "", icon: "" });
+    
+    const trimmedName = formData.name.trim();
+    if (!trimmedName) {
+      toast.error("Please provide a modality name.");
+      return;
+    }
+
+    try {
+      const updatedModality = await updateModality(currentModality.id, {
+        name: trimmedName,
+        icon: formData.icon,
+      });
+      
+      setModalities((prev) => prev.map(m => m.id === updatedModality.id ? updatedModality : m).sort((a, b) => a.order - b.order || a.name.localeCompare(b.name)));
+      toast.success("Modality updated successfully.");
+      setIsEditModalOpen(false);
+      setCurrentModality(null);
+      setFormData({ name: "", icon: "" });
+    } catch (error) {
+      console.error("Error updating modality:", error);
+      toast.error(error instanceof Error ? error.message : "Failed to update modality.");
+    }
   };
 
-  const handleDelete = () => {
+  const handleDelete = async () => {
     if (!currentModality) return;
-    toast.error(`Backend support for deleting "${currentModality.name}" is not available yet.`);
-    setIsConfirmDeleteOpen(false);
-    setCurrentModality(null);
+    
+    try {
+      await deleteModality(currentModality.id);
+      setModalities((prev) => prev.filter(m => m.id !== currentModality.id));
+      toast.success("Modality deleted successfully.");
+      setIsConfirmDeleteOpen(false);
+      setCurrentModality(null);
+    } catch (error) {
+      console.error("Error deleting modality:", error);
+      toast.error(error instanceof Error ? error.message : "Failed to delete modality.");
+    }
   };
 
   const handleReseed = () => {

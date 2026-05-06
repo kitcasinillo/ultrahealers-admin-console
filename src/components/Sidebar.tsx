@@ -1,5 +1,5 @@
 import { NavLink } from "react-router-dom";
-import { Users, LayoutDashboard, List, Activity, Settings, UserCircle, MessageSquareWarning, CreditCard, Mail, Calendar, BarChart3, Search, Bell, Home, Clock, ClipboardList } from "lucide-react";
+import { Users, LayoutDashboard, List, Activity, Settings, UserCircle, MessageSquareWarning, CreditCard, Mail, Calendar, BarChart3, Search, Bell, Home, Clock } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export function Sidebar() {

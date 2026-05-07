@@ -18,6 +18,8 @@ import {
     TableRow,
 } from "./ui/table"
 
+import { Pagination } from "./common/Pagination"
+
 interface DataTableProps<TData, TValue> {
     columns: ColumnDef<TData, TValue>[]
     data: TData[]
@@ -36,6 +38,11 @@ export function DataTable<TData, TValue>({
         getPaginationRowModel: getPaginationRowModel(),
         onSortingChange: setSorting,
         getSortedRowModel: getSortedRowModel(),
+        initialState: {
+            pagination: {
+                pageSize: 10,
+            },
+        },
         state: {
             sorting,
         },
@@ -45,12 +52,12 @@ export function DataTable<TData, TValue>({
         <div>
             <div className="w-full">
                 <Table>
-                    <TableHeader>
+                    <TableHeader className="bg-gray-50/50 dark:bg-white/[0.02]">
                         {table.getHeaderGroups().map((headerGroup) => (
-                            <TableRow key={headerGroup.id}>
+                            <TableRow key={headerGroup.id} className="border-gray-100 dark:border-white/5 hover:bg-transparent">
                                 {headerGroup.headers.map((header) => {
                                     return (
-                                        <TableHead key={header.id}>
+                                        <TableHead key={header.id} className="text-[10px] font-bold uppercase tracking-wider text-[#A3AED0] py-4 h-auto">
                                             {header.isPlaceholder
                                                 ? null
                                                 : flexRender(
@@ -69,9 +76,10 @@ export function DataTable<TData, TValue>({
                                 <TableRow
                                     key={row.id}
                                     data-state={row.getIsSelected() && "selected"}
+                                    className="border-gray-50 dark:border-white/5 hover:bg-gray-50/50 dark:hover:bg-white/[0.03] transition-colors"
                                 >
                                     {row.getVisibleCells().map((cell) => (
-                                        <TableCell key={cell.id}>
+                                        <TableCell key={cell.id} className="py-4 text-xs font-medium text-[#1b254b] dark:text-white">
                                             {flexRender(cell.column.columnDef.cell, cell.getContext())}
                                         </TableCell>
                                     ))}
@@ -79,29 +87,21 @@ export function DataTable<TData, TValue>({
                             ))
                         ) : (
                             <TableRow>
-                                <TableCell colSpan={columns.length} className="h-24 text-center">
-                                    No results.
+                                <TableCell colSpan={columns.length} className="h-48 text-center text-[#A3AED0] font-medium">
+                                    No results found.
                                 </TableCell>
                             </TableRow>
                         )}
                     </TableBody>
                 </Table>
             </div>
-            <div className="flex items-center justify-end space-x-2 py-4">
-                <button
-                    className="flex items-center bg-[#F4F7FE] dark:bg-white/5 hover:bg-[#E2E8F0] dark:hover:bg-white/10 text-[#4318FF] dark:text-white font-bold py-2.5 px-6 rounded-full transition-all text-sm disabled:opacity-50 disabled:cursor-not-allowed"
-                    onClick={() => table.previousPage()}
-                    disabled={!table.getCanPreviousPage()}
-                >
-                    Previous
-                </button>
-                <button
-                    className="flex items-center bg-[#F4F7FE] dark:bg-white/5 hover:bg-[#E2E8F0] dark:hover:bg-white/10 text-[#4318FF] dark:text-white font-bold py-2.5 px-6 rounded-full transition-all text-sm disabled:opacity-50 disabled:cursor-not-allowed"
-                    onClick={() => table.nextPage()}
-                    disabled={!table.getCanNextPage()}
-                >
-                    Next
-                </button>
+            <div className="mt-2">
+                <Pagination
+                    currentPage={table.getState().pagination.pageIndex + 1}
+                    totalItems={table.getFilteredRowModel().rows.length}
+                    itemsPerPage={table.getState().pagination.pageSize}
+                    onPageChange={(page) => table.setPageIndex(page - 1)}
+                />
             </div>
         </div>
     )

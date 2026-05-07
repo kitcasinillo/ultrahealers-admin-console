@@ -13,8 +13,9 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { format } from "date-fns";
-import { Search, Filter, RotateCcw, ShieldCheck, Eye, Terminal, Clock, User as UserIcon, Tag, ArrowRight } from "lucide-react";
+import { Search, Filter, RotateCcw, ShieldCheck, Eye, Terminal, Clock, User as UserIcon, Tag, ArrowRight, ChevronLeft, ChevronRight } from "lucide-react";
 import { db } from "../../../lib/firebase";
+import { Pagination } from "@/components/common/Pagination";
 import {
     Dialog,
     DialogContent,
@@ -40,6 +41,8 @@ export function AuditLogSettings() {
     const [activeFilter, setActiveFilter] = useState("all");
     const [timeFilter, setTimeFilter] = useState("all");
     const [selectedLog, setSelectedLog] = useState<AuditLog | null>(null);
+    const [currentPage, setCurrentPage] = useState(1);
+    const ITEMS_PER_PAGE = 10;
 
     useEffect(() => {
         const fetchLogs = async () => {
@@ -96,7 +99,13 @@ export function AuditLogSettings() {
         }
 
         setFilteredLogs(result);
+        setCurrentPage(1); // Reset to first page on filter change
     }, [searchQuery, activeFilter, timeFilter, logs]);
+
+    const paginatedLogs = filteredLogs.slice(
+        (currentPage - 1) * ITEMS_PER_PAGE,
+        currentPage * ITEMS_PER_PAGE
+    );
 
     const getActionBadge = (action: string) => {
         const baseClass = "border-none font-bold uppercase text-[10px] px-2 py-0.5 rounded-full";
@@ -215,14 +224,14 @@ export function AuditLogSettings() {
                                             <TableCell colSpan={4} className="py-8"><div className="h-4 bg-gray-100 dark:bg-white/5 animate-pulse rounded w-full"></div></TableCell>
                                         </TableRow>
                                     ))
-                                ) : filteredLogs.length === 0 ? (
+                                ) : paginatedLogs.length === 0 ? (
                                     <TableRow>
                                         <TableCell colSpan={4} className="text-center py-20 text-[#A3AED0] text-sm font-medium">
                                             No activity logs matching your criteria.
                                         </TableCell>
                                     </TableRow>
                                 ) : (
-                                    filteredLogs.map((log) => (
+                                    paginatedLogs.map((log) => (
                                         <TableRow 
                                             key={log.id} 
                                             onClick={() => setSelectedLog(log)}
@@ -254,13 +263,12 @@ export function AuditLogSettings() {
                             </TableBody>
                         </Table>
                     </div>
-                    {!isLoading && filteredLogs.length > 0 && (
-                        <div className="mt-4 flex justify-end">
-                            <p className="text-[10px] font-bold text-[#A3AED0] uppercase">
-                                Showing {filteredLogs.length} recent operations
-                            </p>
-                        </div>
-                    )}
+                    <Pagination 
+                        currentPage={currentPage}
+                        totalItems={filteredLogs.length}
+                        itemsPerPage={ITEMS_PER_PAGE}
+                        onPageChange={setCurrentPage}
+                    />
                 </CardContent>
             </Card>
 

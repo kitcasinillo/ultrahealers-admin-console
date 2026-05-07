@@ -203,9 +203,9 @@ export function Payments() {
                         </div>
                     </div>
 
-                    <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-medium text-amber-900">
+                    {/* <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-medium text-amber-900">
                         Revenue overview, commission reports, and premium subscription reports are still waiting on missing backend finance endpoints. The payouts tab has stronger backend support than the rest of this module right now.
-                    </div>
+                    </div> */}
 
                     <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
                         <StatsCard title="Total Platform Revenue" value={loading ? "..." : formatCurrency(stats?.totalPlatformRevenue || 0)} description="Earnings from all sources" icon={<DollarSign className="h-5 w-5" />} trend="up" />

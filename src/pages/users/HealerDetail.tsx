@@ -5,6 +5,8 @@ import { Button } from "../../components/ui/button"
 import { Badge } from "../../components/ui/badge"
 import { useToast } from "../../contexts/ToastContext"
 import { fetchHealerDetail, type AdminHealerDetail, updateHealerSuspension } from "../../lib/users"
+import { logAdminAction } from "../../lib/audit"
+import { useAdminAuth } from "../../contexts/AdminAuthContext"
 
 const formatCurrency = (amount: number) => new Intl.NumberFormat("en-US", {
     style: "currency",
@@ -17,7 +19,9 @@ const formatDate = (value: string | null) => {
     return Number.isNaN(parsed.getTime()) ? value : parsed.toLocaleString()
 }
 
+
 export function HealerDetail() {
+    const { user: admin } = useAdminAuth()
     const { id } = useParams()
     const [data, setData] = useState<AdminHealerDetail | null>(null)
     const [loading, setLoading] = useState(true)
@@ -52,14 +56,35 @@ export function HealerDetail() {
     const handleSuspendToggle = async () => {
         if (!id || !data) return
 
-        const shouldSuspend = data.status !== "Suspended"
+        const currentStatus = data.status
+        const shouldSuspend = currentStatus !== "Suspended"
         const reason = shouldSuspend ? window.prompt("Optional suspension reason:", "") || undefined : undefined
 
         try {
             setSaving(true)
             const result = await updateHealerSuspension(id, shouldSuspend, reason)
+
+            // Update local state first
             setData((prev) => prev ? { ...prev, status: result.status as AdminHealerDetail["status"] } : prev)
             showToast(shouldSuspend ? "Healer suspended." : "Healer reactivated.", "success")
+
+            // Log the action to the audit trail (fire-and-forget, don't block UI)
+            if (admin) {
+                const auditAction = shouldSuspend ? "SUSPEND_HEALER" : "REACTIVATE_HEALER"
+                logAdminAction({
+                    adminId: admin.uid,
+                    adminEmail: admin.email || "unknown",
+                    action: auditAction,
+                    module: "Healers",
+                    targetId: id,
+                    targetName: data.name,
+                    reason,
+                    changes: {
+                        previousStatus: currentStatus,
+                        newStatus: result.status
+                    }
+                }).catch((logErr) => console.error("Audit log failed:", logErr))
+            }
         } catch (err: any) {
             console.error("Failed to update healer suspension:", err)
             showToast(err?.response?.data?.error || err?.message || "Failed to update healer status", "error")

@@ -83,11 +83,19 @@ export function Seekers() {
             header: "Status",
             cell: ({ row }) => {
                 const status = row.original.status
-                return (
-                    <Badge variant={status === "Active" ? "outline" : status === "Pending" ? "secondary" : "destructive"}>
-                        {status}
-                    </Badge>
-                )
+                const baseClass = "font-bold uppercase text-[10px] px-2 py-0.5 rounded-full"
+                
+                if (status === "Active") {
+                    return <Badge className={`${baseClass} bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-900/20 dark:text-emerald-400 dark:border-emerald-800`}>Active</Badge>
+                }
+                if (status === "Suspended") {
+                    return <Badge className={`${baseClass} bg-red-50 text-red-700 border-red-200 dark:bg-red-900/20 dark:text-red-400 dark:border-red-800`}>Suspended</Badge>
+                }
+                if (status === "Pending") {
+                    return <Badge className={`${baseClass} bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-900/20 dark:text-amber-400 dark:border-amber-800`}>Pending</Badge>
+                }
+                
+                return <Badge variant="outline" className={baseClass}>{status}</Badge>
             },
         },
         {

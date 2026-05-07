@@ -7,6 +7,7 @@ import { useToast } from "../../contexts/ToastContext"
 import { fetchHealerDetail, type AdminHealerDetail, updateHealerSuspension } from "../../lib/users"
 import { logAdminAction } from "../../lib/audit"
 import { useAdminAuth } from "../../contexts/AdminAuthContext"
+import { Pagination } from "../../components/common/Pagination"
 
 const formatCurrency = (amount: number) => new Intl.NumberFormat("en-US", {
     style: "currency",
@@ -28,6 +29,8 @@ export function HealerDetail() {
     const [error, setError] = useState<string | null>(null)
     const [saving, setSaving] = useState(false)
     const { showToast } = useToast()
+    const [currentPage, setCurrentPage] = useState(1)
+    const ITEMS_PER_PAGE = 5
 
     useEffect(() => {
         if (!id) return
@@ -147,7 +150,15 @@ export function HealerDetail() {
                                 Rating {data.rating ? data.rating.toFixed(1) : "—"} ({data.reviewCount || 0} reviews)
                             </p>
                             <div className="flex items-center justify-center gap-2 mt-4">
-                                <Badge variant={data.status === "Active" ? "outline" : data.status === "Pending" ? "secondary" : "destructive"}>{data.status}</Badge>
+                                <Badge className={`font-bold uppercase text-[10px] px-2 py-0.5 rounded-full ${
+                                    data.status === "Active" 
+                                    ? "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-900/20 dark:text-emerald-400 dark:border-emerald-800" 
+                                    : data.status === "Suspended"
+                                    ? "bg-red-50 text-red-700 border-red-200 dark:bg-red-900/20 dark:text-red-400 dark:border-red-800"
+                                    : "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-900/20 dark:text-amber-400 dark:border-amber-800"
+                                }`}>
+                                    {data.status}
+                                </Badge>
                                 <Badge variant={data.subscription === "Premium" ? "default" : "secondary"}>{data.subscription}{data.subscription === "Premium" ? " 🏅" : ""}</Badge>
                             </div>
 
@@ -205,19 +216,36 @@ export function HealerDetail() {
                         <div className="border border-border/50 bg-card/60 backdrop-blur-sm shadow-sm rounded-xl p-6">
                             <h3 className="font-semibold mb-4 text-lg">Recent Booking Activity</h3>
                             <div className="space-y-4">
-                                {data.recentBookings.length > 0 ? data.recentBookings.map((booking) => (
-                                    <div key={booking.id} className="flex justify-between border-b pb-4 last:border-0">
-                                        <div>
-                                            <p className="text-sm font-medium">{booking.title}</p>
-                                            <p className="text-xs text-muted-foreground">Seeker: {booking.seekerName || booking.seekerId || "Unknown"}</p>
+                                {data.recentBookings.length > 0 ? (
+                                    <>
+                                        {data.recentBookings
+                                            .slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE)
+                                            .map((booking) => (
+                                                <div key={booking.id} className="flex justify-between border-b pb-4 border-gray-50 dark:border-white/5 last:border-0 last:pb-0 transition-all hover:bg-gray-50/50 dark:hover:bg-white/[0.02] p-2 rounded-lg">
+                                                    <div>
+                                                        <p className="text-sm font-bold text-[#1b254b] dark:text-white">{booking.title}</p>
+                                                        <p className="text-[10px] font-medium text-[#A3AED0]">Seeker: {booking.seekerName || booking.seekerId || "Unknown"}</p>
+                                                    </div>
+                                                    <div className="text-right">
+                                                        <span className="text-sm font-black text-[#4318FF] dark:text-white block">{formatCurrency(booking.amount)}</span>
+                                                        <span className="text-[10px] font-medium text-[#A3AED0]">{formatDate(booking.sessionDate || booking.createdAt)}</span>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        
+                                        <div className="mt-2 pt-2 border-t border-gray-50 dark:border-white/5">
+                                            <Pagination
+                                                currentPage={currentPage}
+                                                totalItems={data.recentBookings.length}
+                                                itemsPerPage={ITEMS_PER_PAGE}
+                                                onPageChange={setCurrentPage}
+                                            />
                                         </div>
-                                        <div className="text-right">
-                                            <span className="text-sm font-medium block">{formatCurrency(booking.amount)}</span>
-                                            <span className="text-xs text-muted-foreground">{formatDate(booking.sessionDate || booking.createdAt)}</span>
-                                        </div>
+                                    </>
+                                ) : (
+                                    <div className="py-8 text-center bg-gray-50/30 dark:bg-white/[0.02] rounded-2xl border border-dashed border-gray-100 dark:border-white/5">
+                                        <p className="text-sm font-medium text-[#A3AED0]">No recent bookings found for this healer.</p>
                                     </div>
-                                )) : (
-                                    <p className="text-sm text-muted-foreground">No recent bookings found for this healer.</p>
                                 )}
                             </div>
                         </div>

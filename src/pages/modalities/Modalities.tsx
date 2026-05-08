@@ -273,9 +273,9 @@ export default function Modalities() {
                 </div>
 
                 <div className="flex items-center justify-end space-x-2 pt-6 pb-2">
-                  {/* <div className="mr-auto text-xs font-medium text-[#A3AED0]">
+                  <div className="mr-auto text-xs font-medium text-[#A3AED0]">
                     Drag, add, edit, delete, and reseed actions are still UI-only until backend write endpoints exist.
-                  </div> */}
+                  </div>
                   <button
                     className="flex items-center bg-[#F4F7FE] dark:bg-white/5 hover:bg-[#E2E8F0] dark:hover:bg-white/10 text-[#4318FF] dark:text-white font-bold py-2 px-4 rounded-xl transition-all text-sm disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                     onClick={() => setCurrentPage(p => Math.max(1, p - 1))}

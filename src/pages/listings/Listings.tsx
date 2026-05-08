@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react"
 import { type ColumnDef } from "@tanstack/react-table"
 import { Download, MoreHorizontal, Search, X } from "lucide-react"
-import { Link, useSearchParams } from "react-router-dom"
+import { Link } from "react-router-dom"
 import { DataTable } from "../../components/DataTable"
 import { Badge } from "../../components/ui/badge"
 import { Button } from "../../components/ui/button"
@@ -42,24 +42,13 @@ const exportListingsCsv = (rows: AdminListing[]) => {
 }
 
 export function Listings() {
-    const [searchParams] = useSearchParams()
-    const initialSearch = searchParams.get("q") || ""
-
     const [data, setData] = useState<AdminListing[]>([])
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState<string | null>(null)
-    const [search, setSearch] = useState(initialSearch)
+    const [search, setSearch] = useState("")
     const [statusFilter, setStatusFilter] = useState<"" | "Active" | "Pending" | "Rejected" | "Hidden">("")
     const [sourceFilter, setSourceFilter] = useState<"" | "session" | "retreat">("")
     const { showToast } = useToast()
-
-    // Sync search with URL parameter 'q'
-    useEffect(() => {
-        const q = searchParams.get("q")
-        if (q !== null) {
-            setSearch(q)
-        }
-    }, [searchParams])
 
     useEffect(() => {
         let mounted = true
@@ -114,15 +103,6 @@ export function Listings() {
         {
             accessorKey: "category",
             header: "Category",
-            cell: ({ getValue }) => {
-                const value = getValue();
-                if (!value) return "—";
-                if (typeof value !== "string") {
-                    if (Array.isArray(value)) return value.join(", ");
-                    return String(value);
-                }
-                return value.split(",").map((v) => v.trim()).join(", ");
-            },
         },
         {
             accessorKey: "status",

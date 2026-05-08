@@ -1,7 +1,6 @@
 import { GripVertical, Edit2, Trash2 } from "lucide-react";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { Link } from "react-router-dom";
 import { Badge } from "../../../components/ui/badge";
 import { Button } from "../../../components/ui/button";
 import { Switch } from "../../../components/ui/switch";
@@ -46,12 +45,7 @@ export function SortableRow({ modality, onEdit, onDelete, onToggleActive }: Sort
         </button>
       </td>
       <td className="p-5 font-bold text-[15px] text-[#1b254b] dark:text-white">
-        <Link 
-          to={`/listings?q=${encodeURIComponent(modality.name)}`}
-          className="hover:text-[#4318FF] transition-colors cursor-pointer"
-        >
-          {modality.name}
-        </Link>
+        {modality.name}
       </td>
       <td className="p-5 text-2xl">
         {modality.icon}

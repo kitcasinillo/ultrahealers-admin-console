@@ -83,7 +83,7 @@ export default function DisputeDetailPage() {
   const isResolved = dispute.status.startsWith('resolved_') || dispute.status === 'denied';
 
   return (
-    <div className="flex flex-col flex-1 bg-slate-50 overflow-y-auto">
+    <div className="flex flex-col flex-1 bg-slate-50 overflow-hidden">
 
       {/* 1. Alert Banners */}
       {isResolved && (
@@ -124,11 +124,11 @@ export default function DisputeDetailPage() {
       </div>
 
       {/* 3. Dual Column Scrollable Content Area */}
-      <div className="px-4 sm:px-6 lg:px-8 max-w-[1440px] mx-auto w-full pt-6">
+      <div className="flex-1 min-h-0 px-4 sm:px-6 lg:px-8 max-w-[1440px] mx-auto w-full pt-6 pb-6">
         <div className="grid grid-cols-1 lg:grid-cols-[1fr_390px] xl:grid-cols-[1fr_420px] gap-8 h-full">
 
           {/* Left Column Scrollable */}
-          <div className="sticky top-6 self-start h-[calc(100vh-230px)] overflow-y-auto custom-scrollbar pr-4 space-y-6 pb-24">
+          <div className="h-full overflow-y-auto hide-scrollbar pr-4 space-y-6 pb-12">
             <DisputeSummaryCard dispute={dispute} />
             <DisputeTimeline dispute={dispute} />
 
@@ -166,7 +166,7 @@ export default function DisputeDetailPage() {
           </div>
 
           {/* Right Column Scrollable */}
-          <div className="h-auto pr-2 space-y-6 pb-24">
+          <div className="h-full overflow-y-auto hide-scrollbar pr-2 space-y-6 pb-12">
             <DecisionForm dispute={dispute} onUpdate={setDispute} />
             <InternalNotes disputeId={dispute.id} initialNotes={dispute.internalNotes} />
 

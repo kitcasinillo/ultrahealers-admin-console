@@ -1,4 +1,6 @@
+import { collection, query, where, getCountFromServer, or } from "firebase/firestore";
 import api from "@/lib/api";
+import { db } from "./firebase";
 
 export interface Modality {
   id: string;
@@ -61,7 +63,7 @@ const pickIcon = (slug?: string, label?: string) => {
 export const fetchModalities = async (): Promise<Modality[]> => {
   const response = await api.get<{ success: boolean; modalities: Array<Record<string, any>> }>("/api/modalities");
 
-  return (response.data.modalities || []).map((item, index) => ({
+  const modalities = (response.data.modalities || []).map((item, index) => ({
     id: String(item.id || item.slug || index),
     slug: typeof item.slug === "string" ? item.slug : undefined,
     name: String(item.label || item.name || item.slug || "Unnamed modality"),
@@ -72,6 +74,34 @@ export const fetchModalities = async (): Promise<Modality[]> => {
     createdAt: item.created_at || item.createdAt || new Date().toISOString(),
     synonyms: Array.isArray(item.synonyms) ? item.synonyms : [],
   }));
+
+  // Fetch actual counts from Firestore to ensure data fidelity
+  try {
+    const results = await Promise.all(modalities.map(async (m) => {
+      try {
+        const countSnap = await getCountFromServer(
+          query(
+            collection(db, "listings"),
+            or(
+              where("category", "==", m.name),
+              where("category", "array-contains", m.name),
+              where("modality", "==", m.name),
+              where("modality", "array-contains", m.name)
+            )
+          )
+        );
+        
+        return { ...m, listingsCount: countSnap.data().count };
+      } catch (err) {
+        console.error(`Failed to fetch count for ${m.name}:`, err);
+        return m;
+      }
+    }));
+    return results;
+  } catch (error) {
+    console.error("Failed to fetch all modality counts:", error);
+    return modalities;
+  }
 };
 
 export const createModality = async (data: { name: string; icon: string }): Promise<Modality> => {

@@ -13,7 +13,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { format } from "date-fns";
-import { Search, Filter, RotateCcw, ShieldCheck, Eye, Terminal, Clock, User as UserIcon, Tag, ArrowRight, ChevronLeft, ChevronRight } from "lucide-react";
+import { Search, Filter, RotateCcw, ShieldCheck, Eye, Terminal, Clock, User as UserIcon, Tag, ArrowRight } from "lucide-react";
 import { db } from "../../../lib/firebase";
 import { Pagination } from "@/components/common/Pagination";
 import {

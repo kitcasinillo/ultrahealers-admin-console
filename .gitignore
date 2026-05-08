@@ -26,6 +26,7 @@ dist-ssr
 *.sln
 *.sw?
 
+.gitignore
 
 AGENTS.md
 flow.md

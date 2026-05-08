@@ -5,6 +5,8 @@ import { Button } from "../../components/ui/button"
 import { Badge } from "../../components/ui/badge"
 import { useToast } from "../../contexts/ToastContext"
 import { fetchListingDetail, type AdminListingDetail, updateListingStatus } from "../../lib/listings"
+import { logAdminAction } from "../../lib/audit"
+import { useAdminAuth } from "../../contexts/AdminAuthContext"
 
 const formatCurrency = (amount: number, currency = "USD") => new Intl.NumberFormat("en-US", {
     style: "currency",
@@ -17,7 +19,9 @@ const formatDate = (value: string | null) => {
     return Number.isNaN(parsed.getTime()) ? value : parsed.toLocaleString()
 }
 
+
 export function ListingDetail() {
+    const { user: admin } = useAdminAuth()
     const { id } = useParams()
     const [searchParams] = useSearchParams()
     const source = searchParams.get("source") === "retreat" ? "retreat" : "session"
@@ -56,6 +60,24 @@ export function ListingDetail() {
         try {
             setSaving(true)
             await updateListingStatus(id, source, nextStatus)
+
+            // Log the action to the audit trail
+            if (admin) {
+                await logAdminAction({
+                    adminId: admin.uid,
+                    adminEmail: admin.email || "unknown",
+                    action: 'UPDATE_LISTING_STATUS',
+                    module: 'Listings',
+                    targetId: id,
+                    targetName: data.title,
+                    changes: { 
+                        previousStatus: data.status,
+                        newStatus: nextStatus,
+                        source: data.source
+                    }
+                });
+            }
+
             setData((prev) => prev ? { ...prev, status: nextStatus } : prev)
             showToast(`Listing status updated to ${nextStatus}.`, "success")
         } catch (err: any) {

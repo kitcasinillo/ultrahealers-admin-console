@@ -5,6 +5,8 @@ import { Button } from "../../components/ui/button"
 import { Badge } from "../../components/ui/badge"
 import { useToast } from "../../contexts/ToastContext"
 import { fetchSeekerDetail, type AdminSeekerDetail, updateSeekerSuspension } from "../../lib/users"
+import { logAdminAction } from "../../lib/audit"
+import { useAdminAuth } from "../../contexts/AdminAuthContext"
 
 const formatCurrency = (amount: number) => new Intl.NumberFormat("en-US", {
     style: "currency",
@@ -18,6 +20,7 @@ const formatDate = (value: string | null) => {
 }
 
 export function SeekerDetail() {
+    const { user: admin } = useAdminAuth()
     const { id } = useParams()
     const [data, setData] = useState<AdminSeekerDetail | null>(null)
     const [loading, setLoading] = useState(true)
@@ -52,14 +55,37 @@ export function SeekerDetail() {
     const handleSuspendToggle = async () => {
         if (!id || !data) return
 
-        const shouldSuspend = data.status !== "Suspended"
+        const currentStatus = data.status
+        const shouldSuspend = currentStatus !== "Suspended"
         const reason = shouldSuspend ? window.prompt("Optional suspension reason:", "") || undefined : undefined
 
         try {
             setSaving(true)
             const result = await updateSeekerSuspension(id, shouldSuspend, reason)
+
             setData((prev) => prev ? { ...prev, status: result.status as AdminSeekerDetail["status"] } : prev)
             showToast(shouldSuspend ? "Seeker suspended." : "Seeker reactivated.", "success")
+
+            // Log the action to the audit trail
+            const auditAction = shouldSuspend ? "SUSPEND_SEEKER" : "REACTIVATE_SEEKER"
+            if (admin) {
+                try {
+                    await logAdminAction({
+                        adminId: admin.uid,
+                        adminEmail: admin.email || "unknown",
+                        action: auditAction,
+                        module: "Seekers",
+                        targetId: id,
+                        targetName: data.name || "Unknown Seeker",
+                        changes: {
+                            previousStatus: currentStatus,
+                            newStatus: result.status
+                        }
+                    })
+                } catch (logErr) {
+                    console.error("Seeker audit log failed:", logErr)
+                }
+            }
         } catch (err: any) {
             console.error("Failed to update seeker suspension:", err)
             showToast(err?.response?.data?.error || err?.message || "Failed to update seeker status", "error")
@@ -119,7 +145,15 @@ export function SeekerDetail() {
                             </div>
                             <h3 className="text-xl font-bold">{data.name}</h3>
                             <div className="flex items-center justify-center gap-2 mt-4">
-                                <Badge variant={data.status === "Active" ? "outline" : data.status === "Pending" ? "secondary" : "destructive"}>{data.status}</Badge>
+                                <Badge className={`font-bold uppercase text-[10px] px-2 py-0.5 rounded-full ${
+                                    data.status === "Active" 
+                                    ? "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-900/20 dark:text-emerald-400 dark:border-emerald-800" 
+                                    : data.status === "Suspended"
+                                    ? "bg-red-50 text-red-700 border-red-200 dark:bg-red-900/20 dark:text-red-400 dark:border-red-800"
+                                    : "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-900/20 dark:text-amber-400 dark:border-amber-800"
+                                }`}>
+                                    {data.status}
+                                </Badge>
                             </div>
 
                             <div className="mt-6 space-y-3 text-sm text-left border-t pt-6">

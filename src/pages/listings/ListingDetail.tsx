@@ -137,7 +137,9 @@ export function ListingDetail() {
                                     <span className="text-sm text-muted-foreground flex items-center gap-2 mb-1">
                                         <Tag className="h-4 w-4" /> Category
                                     </span>
-                                    <span className="font-medium">{data.category}</span>
+                                    <span className="font-medium">
+                                        {data.category ? data.category.split(",").map((v) => v.trim()).join(", ") : "—"}
+                                    </span>
                                 </div>
                                 <div>
                                     <span className="text-sm text-muted-foreground flex items-center gap-2 mb-1">

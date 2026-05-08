@@ -114,6 +114,15 @@ export function Listings() {
         {
             accessorKey: "category",
             header: "Category",
+            cell: ({ getValue }) => {
+                const value = getValue();
+                if (!value) return "—";
+                if (typeof value !== "string") {
+                    if (Array.isArray(value)) return value.join(", ");
+                    return String(value);
+                }
+                return value.split(",").map((v) => v.trim()).join(", ");
+            },
         },
         {
             accessorKey: "status",

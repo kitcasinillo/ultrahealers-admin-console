@@ -1,3 +1,4 @@
+import { Link } from "react-router-dom";
 import { GripVertical, Edit2, Trash2 } from "lucide-react";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
@@ -45,7 +46,9 @@ export function SortableRow({ modality, onEdit, onDelete, onToggleActive }: Sort
         </button>
       </td>
       <td className="p-5 font-bold text-[15px] text-[#1b254b] dark:text-white">
-        {modality.name}
+        <Link to={`/listings?search=${encodeURIComponent(modality.name)}`} className="hover:underline hover:text-[#4318FF] transition-colors">
+          {modality.name}
+        </Link>
       </td>
       <td className="p-5 text-2xl">
         {modality.icon}

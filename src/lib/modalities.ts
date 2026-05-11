@@ -1,4 +1,5 @@
 import api from "@/lib/api";
+import { fetchListings } from "./listings";
 
 export interface Modality {
   id: string;
@@ -59,19 +60,36 @@ const pickIcon = (slug?: string, label?: string) => {
 };
 
 export const fetchModalities = async (): Promise<Modality[]> => {
-  const response = await api.get<{ success: boolean; modalities: Array<Record<string, any>> }>("/api/modalities");
+  const [response, listings] = await Promise.all([
+    api.get<{ success: boolean; modalities: Array<Record<string, any>> }>("/api/modalities"),
+    fetchListings()
+  ]);
 
-  return (response.data.modalities || []).map((item, index) => ({
-    id: String(item.id || item.slug || index),
-    slug: typeof item.slug === "string" ? item.slug : undefined,
-    name: String(item.label || item.name || item.slug || "Unnamed modality"),
-    icon: pickIcon(item.slug, item.label || item.name),
-    listingsCount: Number(item.listingsCount || 0),
-    active: item.active !== false,
-    order: Number.isFinite(Number(item.order)) ? Number(item.order) : index,
-    createdAt: item.created_at || item.createdAt || new Date().toISOString(),
-    synonyms: Array.isArray(item.synonyms) ? item.synonyms : [],
-  }));
+  return (response.data.modalities || []).map((item, index) => {
+    const name = String(item.label || item.name || item.slug || "Unnamed modality");
+    const q = name.toLowerCase().trim();
+    
+    // Calculate the count by simulating the exact behavior of the listings search endpoint.
+    // The backend's `q=...` search checks title, healerName, and category for a substring match.
+    const count = listings.filter(l => {
+      const cat = Array.isArray(l.category) ? l.category.join(' ') : (l.category || '');
+      return (l.title?.toLowerCase().includes(q)) || 
+             (l.healerName?.toLowerCase().includes(q)) || 
+             (cat.toLowerCase().includes(q));
+    }).length;
+
+    return {
+      id: String(item.id || item.slug || index),
+      slug: typeof item.slug === "string" ? item.slug : undefined,
+      name,
+      icon: pickIcon(item.slug, item.label || item.name),
+      listingsCount: count,
+      active: item.active !== false,
+      order: Number.isFinite(Number(item.order)) ? Number(item.order) : index,
+      createdAt: item.created_at || item.createdAt || new Date().toISOString(),
+      synonyms: Array.isArray(item.synonyms) ? item.synonyms : [],
+    };
+  });
 };
 
 export const createModality = async (data: { name: string; icon: string }): Promise<Modality> => {

@@ -1,10 +1,31 @@
 import { useState } from "react";
-import type { InternalNote } from "@/lib/disputes";
+import { type InternalNote, addInternalNote } from "@/lib/disputes";
 import { format } from "date-fns";
-import { Lock, AlertTriangle } from "lucide-react";
+import { Lock } from "lucide-react";
+import { useToast } from "@/contexts/ToastContext";
 
-export default function InternalNotes({ disputeId: _disputeId, initialNotes }: { disputeId: string, initialNotes: InternalNote[] }) {
-  const [notes] = useState<InternalNote[]>(initialNotes);
+export default function InternalNotes({ disputeId, initialNotes }: { disputeId: string; initialNotes: InternalNote[] }) {
+  const { showToast } = useToast();
+  const [notes, setNotes] = useState<InternalNote[]>(initialNotes);
+  const [text, setText] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!text.trim() || saving) return;
+    setSaving(true);
+    try {
+      const newNote = await addInternalNote(disputeId, text);
+      setNotes(prev => [...prev, newNote]);
+      setText("");
+      showToast("Internal note added successfully.", "success");
+    } catch (err) {
+      console.error(err);
+      showToast("Failed to add note.", "error");
+    } finally {
+      setSaving(false);
+    }
+  };
 
   return (
     <div className="bg-white rounded-xl border border-slate-200 shadow-sm mb-6 flex flex-col overflow-hidden">
@@ -34,13 +55,23 @@ export default function InternalNotes({ disputeId: _disputeId, initialNotes }: {
       </div>
 
       <div className="p-4 bg-white border-t border-slate-100">
-        <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900 flex items-start gap-3">
-          <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0 text-amber-700" />
-          <div>
-            <div className="font-bold">Internal notes are read-only right now.</div>
-            <div className="mt-1 text-amber-800">The current backend does not expose an endpoint for creating dispute notes yet.</div>
-          </div>
-        </div>
+        <form onSubmit={handleSubmit} className="flex gap-2">
+          <input
+            type="text"
+            value={text}
+            onChange={(e) => setText(e.target.value)}
+            placeholder="Add an internal note..."
+            disabled={saving}
+            className="flex-1 bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent disabled:opacity-50"
+          />
+          <button
+            type="submit"
+            disabled={!text.trim() || saving}
+            className="bg-amber-600 hover:bg-amber-700 text-white px-4 py-2 rounded-lg text-sm font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {saving ? "Saving..." : "Add Note"}
+          </button>
+        </form>
       </div>
     </div>
   );

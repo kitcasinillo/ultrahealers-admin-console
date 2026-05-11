@@ -28,7 +28,7 @@ export function BaseGaugeChart({ title, data, colors, score, statusBadge, subtit
       </CardHeader>
       <CardContent className="flex flex-col items-center justify-center pt-0">
         <div className="h-[200px] sm:h-[250px] w-full relative flex items-center justify-center -mt-4">
-          <ResponsiveContainer width="100%" height="100%">
+          <ResponsiveContainer width="100%" height="100%" minWidth={0}>
             <PieChart>
               <Pie
                 data={data}

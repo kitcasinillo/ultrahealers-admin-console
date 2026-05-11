@@ -30,7 +30,7 @@ export function BasePieChart({
       </CardHeader>
       <CardContent className="flex-1">
         <div className="h-[250px] sm:h-[300px] w-full mt-4">
-          <ResponsiveContainer width="100%" height="100%">
+          <ResponsiveContainer width="100%" height="100%" minWidth={0}>
             <PieChart>
               <Pie
                 data={data}

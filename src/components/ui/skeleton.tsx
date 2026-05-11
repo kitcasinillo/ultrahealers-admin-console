@@ -53,3 +53,22 @@ export function StatsCardSkeleton() {
         </div>
     )
 }
+export function ReportSkeleton() {
+    return (
+        <div className="space-y-6">
+            <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-4">
+                {[...Array(4)].map((_, i) => (
+                    <StatsCardSkeleton key={i} />
+                ))}
+            </div>
+            <div className="grid gap-5 md:grid-cols-1 lg:grid-cols-2">
+                <Skeleton className="h-[350px] w-full rounded-3xl" />
+                <Skeleton className="h-[350px] w-full rounded-3xl" />
+            </div>
+            <div className="grid gap-5 md:grid-cols-1 lg:grid-cols-2">
+                <Skeleton className="h-[450px] w-full rounded-3xl" />
+                <Skeleton className="h-[450px] w-full rounded-3xl" />
+            </div>
+        </div>
+    )
+}

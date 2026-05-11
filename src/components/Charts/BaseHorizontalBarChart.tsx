@@ -36,7 +36,7 @@ export function BaseHorizontalBarChart({
       </CardHeader>
       <CardContent className="flex-1">
         <div className="h-[400px] w-full mt-4">
-          <ResponsiveContainer width="100%" height="100%">
+          <ResponsiveContainer width="100%" height="100%" minWidth={0}>
             <BarChart 
               data={data} 
               layout="vertical" 

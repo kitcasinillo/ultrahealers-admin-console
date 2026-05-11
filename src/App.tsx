@@ -14,10 +14,9 @@ import DisputesPage from "./pages/disputes/DisputesPage";
 import DisputeDetailPage from './pages/disputes/DisputeDetailPage';
 // import ModalitiesPage from './pages/modalities';
 // import PayoutsPage from './pages/payouts/index';
-import { AuditLog } from "./pages/settings/audit-log/AuditLog";
-import { AdminGuard } from "./components/AdminGuard";
 import { AdminAuthProvider } from "./contexts/AdminAuthContext";
 import { ToastProvider } from "./contexts/ToastContext";
+import { AdminGuard } from "./components/AdminGuard";
 import { FinancialReport } from "./pages/reports/FinancialReport";
 import { CampaignReport } from "./pages/reports/CampaignReport";
 import { DisputeReport } from "./pages/reports/DisputeReport";
@@ -102,7 +101,6 @@ function App() {
             <Route path="notifications" element={<Notifications />} />
             <Route path="seo" element={<SEOPage />} />
             <Route path="settings" element={<SettingsPage />} />
-            <Route path="settings/audit-log" element={<AuditLog />} />
           </Route>
           </Route>
 

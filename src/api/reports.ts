@@ -66,14 +66,41 @@ export const getUserReport = async (
   }
 };
 
+export interface RetreatReportData {
+  summary: Array<{
+    title: string;
+    value: string;
+    description: string;
+  }>;
+  retreatCountTrend: Array<{ name: string; active: number }>;
+  bookingRateTrend: Array<{ name: string; rate: number }>;
+  revenueByEvent: Array<{ event: string; revenue: number }>;
+  topLocations: Array<{ location: string; count: number }>;
+  avgPriceTrend: Array<{ name: string; price: number }>;
+  durationBreakdown: Array<{ name: string; value: number; color: string }>;
+  retreatPerformanceData: Array<{
+    event: string;
+    revenue: number;
+    rate: number;
+    price: number;
+  }>;
+}
+
 /**
  * Fetch retreat report data from the backend
  */
-export const getRetreatsReport = async (startDate?: string, endDate?: string) => {
+export const getRetreatsReport = async (
+  startDate?: string,
+  endDate?: string,
+  granularity?: string,
+  range?: string
+): Promise<RetreatReportData> => {
   try {
     const params = new URLSearchParams();
     if (startDate) params.append("startDate", startDate);
     if (endDate) params.append("endDate", endDate);
+    if (granularity) params.append("granularity", granularity);
+    if (range) params.append("range", range);
 
     const response = await api.get(
       `/api/admin/reports/retreats${params.toString() ? `?${params}` : ""}`

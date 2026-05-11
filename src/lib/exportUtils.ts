@@ -1,4 +1,4 @@
-﻿import { jsPDF } from 'jspdf';
+import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import * as XLSX from 'xlsx';
 
@@ -1343,6 +1343,22 @@ export const exportRetreatReportPdf = (payload: RetreatExportPayload) => {
   doc.setTextColor(163, 174, 208);
   doc.text(`Generated on: ${new Date().toLocaleString()}`, 14, 28);
 
+  // Helper to check for meaningful data (non-zero/non-empty)
+  const hasMeaningfulData = (arr: any[], key?: string) => {
+    if (!arr || arr.length === 0) return false;
+    return arr.some(item => {
+      const val = key ? item[key] : Object.values(item).find(v => typeof v === 'number' || (typeof v === 'string' && !isNaN(parseFloat(v))));
+      if (typeof val === 'number') return val > 0;
+      if (typeof val === 'string') {
+        const num = parseFloat(val.replace(/[^0-9.-]+/g, ""));
+        return !isNaN(num) && num > 0;
+      }
+      return false;
+    });
+  };
+
+  const noDataMsg = 'No data available for the selected period';
+
   // 1. Summary Metrics
   doc.setFontSize(14);
   doc.setTextColor(27, 37, 75);
@@ -1351,7 +1367,7 @@ export const exportRetreatReportPdf = (payload: RetreatExportPayload) => {
   autoTable(doc, {
     startY: 45,
     head: [['Metric', 'Value', 'Context']],
-    body: summaryData.map(s => [s.title, s.value, s.description || '-']),
+    body: summaryData.length > 0 ? summaryData.map(s => [s.title, s.value, s.description || '-']) : [[noDataMsg, '', '']],
     theme: 'grid',
     headStyles: { fillColor: [67, 24, 255] },
     styles: { fontSize: 9 }
@@ -1364,7 +1380,9 @@ export const exportRetreatReportPdf = (payload: RetreatExportPayload) => {
   autoTable(doc, {
     startY: currentY + 5,
     head: [['Period', 'Active']],
-    body: retreatCountTrend.map(t => [t.name, String(t.active)]),
+    body: hasMeaningfulData(retreatCountTrend, 'active') 
+      ? retreatCountTrend.map(t => [t.name, String(t.active)]) 
+      : [[noDataMsg, '']],
     theme: 'striped',
     headStyles: { fillColor: [67, 24, 255] },
     styles: { fontSize: 9 }
@@ -1378,7 +1396,9 @@ export const exportRetreatReportPdf = (payload: RetreatExportPayload) => {
   autoTable(doc, {
     startY: currentY + 5,
     head: [['Period', 'Rate (%)']],
-    body: bookingRateTrend.map(t => [t.name, `${t.rate}%`]),
+    body: hasMeaningfulData(bookingRateTrend, 'rate') 
+      ? bookingRateTrend.map(t => [t.name, `${t.rate}%`]) 
+      : [[noDataMsg, '']],
     theme: 'striped',
     headStyles: { fillColor: [1, 163, 180] },
     styles: { fontSize: 9 }
@@ -1392,7 +1412,9 @@ export const exportRetreatReportPdf = (payload: RetreatExportPayload) => {
   autoTable(doc, {
     startY: currentY + 5,
     head: [['Event', 'Revenue ($)']],
-    body: revenueByEvent.map(e => [e.event, `$${e.revenue.toLocaleString()}`]),
+    body: hasMeaningfulData(revenueByEvent, 'revenue') 
+      ? revenueByEvent.map(e => [e.event, `$${e.revenue.toLocaleString()}`]) 
+      : [[noDataMsg, '']],
     theme: 'striped',
     headStyles: { fillColor: [67, 24, 255] },
     styles: { fontSize: 9 }
@@ -1406,7 +1428,9 @@ export const exportRetreatReportPdf = (payload: RetreatExportPayload) => {
   autoTable(doc, {
     startY: currentY + 5,
     head: [['Location', 'Count']],
-    body: topLocations.map(l => [l.location, String(l.count)]),
+    body: hasMeaningfulData(topLocations, 'count') 
+      ? topLocations.map(l => [l.location, String(l.count)]) 
+      : [[noDataMsg, '']],
     theme: 'striped',
     headStyles: { fillColor: [1, 163, 180] },
     styles: { fontSize: 9 }
@@ -1420,7 +1444,9 @@ export const exportRetreatReportPdf = (payload: RetreatExportPayload) => {
   autoTable(doc, {
     startY: currentY + 5,
     head: [['Period', 'Price ($)']],
-    body: avgPriceTrend.map(t => [t.name, `$${t.price.toLocaleString()}`]),
+    body: hasMeaningfulData(avgPriceTrend, 'price') 
+      ? avgPriceTrend.map(t => [t.name, `$${t.price.toLocaleString()}`]) 
+      : [[noDataMsg, '']],
     theme: 'striped',
     headStyles: { fillColor: [124, 58, 237] },
     styles: { fontSize: 9 }
@@ -1434,7 +1460,9 @@ export const exportRetreatReportPdf = (payload: RetreatExportPayload) => {
   autoTable(doc, {
     startY: currentY + 5,
     head: [['Duration', 'Value (%)']],
-    body: durationBreakdown.map(d => [d.name, `${d.value}%`]),
+    body: hasMeaningfulData(durationBreakdown, 'value') 
+      ? durationBreakdown.map(d => [d.name, `${d.value}%`]) 
+      : [[noDataMsg, '']],
     theme: 'striped',
     headStyles: { fillColor: [1, 163, 180] },
     styles: { fontSize: 9 }
@@ -1448,9 +1476,11 @@ export const exportRetreatReportPdf = (payload: RetreatExportPayload) => {
   autoTable(doc, {
     startY: currentY + 5,
     head: [['Event Name', 'Revenue', 'Booked Rate', 'Avg Price']],
-    body: retreatPerformanceData.map(e => [
-      e.event, `$${e.revenue.toLocaleString()}`, `${e.rate}%`, `$${e.price.toLocaleString()}`
-    ]),
+    body: hasMeaningfulData(retreatPerformanceData, 'revenue') 
+      ? retreatPerformanceData.map(e => [
+          e.event, `$${e.revenue.toLocaleString()}`, `${e.rate}%`, `$${e.price.toLocaleString()}`
+        ]) 
+      : [[noDataMsg, '', '', '']],
     theme: 'striped',
     headStyles: { fillColor: [67, 24, 255] },
     styles: { fontSize: 9 }
@@ -1463,42 +1493,90 @@ export const exportRetreatReportExcel = (payload: RetreatExportPayload) => {
   const { summaryData, retreatCountTrend, bookingRateTrend, revenueByEvent, topLocations, avgPriceTrend, durationBreakdown, retreatPerformanceData } = payload;
   const wb = XLSX.utils.book_new();
 
-  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(
-    summaryData.map(s => ({ 'Metric': s.title, 'Value': s.value, 'Context': s.description || '-' }))
-  ), "Market Summary");
+  // Helper to check for meaningful data (non-zero/non-empty)
+  const hasMeaningfulData = (arr: any[], key?: string) => {
+    if (!arr || arr.length === 0) return false;
+    return arr.some(item => {
+      const val = key ? item[key] : Object.values(item).find(v => typeof v === 'number' || (typeof v === 'string' && !isNaN(parseFloat(v))));
+      if (typeof val === 'number') return val > 0;
+      if (typeof val === 'string') {
+        const num = parseFloat(val.replace(/[^0-9.-]+/g, ""));
+        return !isNaN(num) && num > 0;
+      }
+      return false;
+    });
+  };
 
-  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(
-    retreatCountTrend.map(t => ({ 'Period': t.name, 'Active': t.active }))
-  ), "Active Listing Trend");
+  const addSheetWithAutoWidth = (data: any[], sheetName: string, checkKey?: string) => {
+    const isMeaningful = hasMeaningfulData(data, checkKey);
+    const finalData = isMeaningful ? data : [{ 'Status': 'No data available for the selected period' }];
+    const ws = XLSX.utils.json_to_sheet(finalData);
+    
+    // Auto-width helper
+    const keys = Object.keys(finalData[0]);
+    ws['!cols'] = keys.map((key) => {
+        const maxLength = Math.max(
+            key.length,
+            ...finalData.map(d => String(d[key] || '').length)
+        );
+        return { wch: maxLength + 2 };
+    });
 
-  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(
-    bookingRateTrend.map(t => ({ 'Period': t.name, 'Rate (%)': t.rate }))
-  ), "Booking Rate Trend");
+    XLSX.utils.book_append_sheet(wb, ws, sheetName);
+  };
 
-  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(
-    revenueByEvent.map(e => ({ 'Event': e.event, 'Revenue ($)': e.revenue }))
-  ), "Revenue by Event");
+  addSheetWithAutoWidth(
+    summaryData.map(s => ({ 'Metric': s.title, 'Value': s.value, 'Context': s.description || '-' })),
+    "Market Summary"
+  );
 
-  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(
-    topLocations.map(l => ({ 'Location': l.location, 'Count': l.count }))
-  ), "Top Destinations");
+  addSheetWithAutoWidth(
+    retreatCountTrend.map(t => ({ 'Period': t.name, 'ActiveListing': t.active })),
+    "Active Listing Trend",
+    "ActiveListing"
+  );
 
-  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(
-    avgPriceTrend.map(t => ({ 'Period': t.name, 'Price ($)': t.price }))
-  ), "Price Trends");
+  addSheetWithAutoWidth(
+    bookingRateTrend.map(t => ({ 'Period': t.name, 'RatePercentage': t.rate })),
+    "Booking Rate Trend",
+    "RatePercentage"
+  );
 
-  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(
-    durationBreakdown.map(d => ({ 'Duration': d.name, 'Value (%)': d.value }))
-  ), "Duration Breakdown");
+  addSheetWithAutoWidth(
+    revenueByEvent.map(e => ({ 'Event': e.event, 'RevenueUSD': e.revenue })),
+    "Revenue by Event",
+    "RevenueUSD"
+  );
 
-  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(
+  addSheetWithAutoWidth(
+    topLocations.map(l => ({ 'Location': l.location, 'ListingCount': l.count })),
+    "Top Destinations",
+    "ListingCount"
+  );
+
+  addSheetWithAutoWidth(
+    avgPriceTrend.map(t => ({ 'Period': t.name, 'PriceUSD': t.price })),
+    "Price Trends",
+    "PriceUSD"
+  );
+
+  addSheetWithAutoWidth(
+    durationBreakdown.map(d => ({ 'Duration': d.name, 'ValuePercentage': d.value })),
+    "Duration Breakdown",
+    "ValuePercentage"
+  );
+
+  addSheetWithAutoWidth(
     retreatPerformanceData.map(e => ({
       'Event Name': e.event,
-      'Revenue': e.revenue,
-      'Booked Rate': e.rate,
-      'Avg Price': e.price
-    }))
-  ), "Performance Overview");
+      'TotalRevenue': e.revenue,
+      'BookedRate': e.rate,
+      'AvgPrice': e.price
+    })),
+    "Performance Overview",
+    "TotalRevenue"
+  );
 
   XLSX.writeFile(wb, `Retreat_Report_${new Date().getTime()}.xlsx`);
 };
+

@@ -297,7 +297,7 @@ export function FinancialReport() {
     // Today = 2024-03-24 only
     // Last 7 Days = 2024-03-18 to 2024-03-24
     // Last 30 Days = All
-    
+
     if (dateRange === "Today") {
       return {
         bookings: bookingsData.filter(b => b.date === "2024-03-24"),

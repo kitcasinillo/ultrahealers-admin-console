@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react"
 import { type ColumnDef } from "@tanstack/react-table"
 import { Download, MoreHorizontal, Search, X } from "lucide-react"
-import { Link } from "react-router-dom"
+import { Link, useSearchParams } from "react-router-dom"
 import { DataTable } from "../../components/DataTable"
 import { Badge } from "../../components/ui/badge"
 import { Button } from "../../components/ui/button"
@@ -26,7 +26,7 @@ const exportListingsCsv = (rows: AdminListing[]) => {
         Source: row.source,
         Title: row.title,
         Healer: row.healerName,
-        Category: row.category,
+        Category: Array.isArray(row.category) ? row.category.join(", ") : (row.category || ""),
         Price: row.price,
         Currency: row.currency,
         Status: row.status,
@@ -42,13 +42,21 @@ const exportListingsCsv = (rows: AdminListing[]) => {
 }
 
 export function Listings() {
+    const [searchParams, setSearchParams] = useSearchParams()
     const [data, setData] = useState<AdminListing[]>([])
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState<string | null>(null)
-    const [search, setSearch] = useState("")
+    const [search, setSearch] = useState(searchParams.get("search") || "")
     const [statusFilter, setStatusFilter] = useState<"" | "Active" | "Pending" | "Rejected" | "Hidden">("")
     const [sourceFilter, setSourceFilter] = useState<"" | "session" | "retreat">("")
     const { showToast } = useToast()
+
+    useEffect(() => {
+        const querySearch = searchParams.get("search")
+        if (querySearch !== null && querySearch !== search) {
+            setSearch(querySearch)
+        }
+    }, [searchParams])
 
     useEffect(() => {
         let mounted = true
@@ -103,6 +111,10 @@ export function Listings() {
         {
             accessorKey: "category",
             header: "Category",
+            cell: ({ row }) => {
+                const cat = row.original.category
+                return Array.isArray(cat) ? cat.join(", ") : (cat || "—")
+            },
         },
         {
             accessorKey: "status",
@@ -155,8 +167,18 @@ export function Listings() {
         },
     ], [])
 
+    const handleSearchChange = (val: string) => {
+        setSearch(val)
+        if (val) {
+            setSearchParams({ search: val })
+        } else {
+            setSearchParams({})
+        }
+    }
+
     const clearFilters = () => {
         setSearch("")
+        setSearchParams({})
         setStatusFilter("")
         setSourceFilter("")
     }
@@ -193,7 +215,7 @@ export function Listings() {
                         <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#A3AED0]" />
                         <input
                             value={search}
-                            onChange={(e) => setSearch(e.target.value)}
+                            onChange={(e) => handleSearchChange(e.target.value)}
                             placeholder="Search by title, healer, category, or ID"
                             className="h-11 w-full rounded-xl border border-slate-200 bg-white pl-10 pr-4 text-sm outline-none transition focus:border-[#4318FF] dark:border-white/10 dark:bg-white/5 dark:text-white"
                         />

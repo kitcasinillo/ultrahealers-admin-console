@@ -6,7 +6,7 @@ export type AdminListing = {
   title: string;
   healerId: string | null;
   healerName: string;
-  category: string;
+  category: string | string[];
   price: number;
   currency: string;
   status: 'Active' | 'Pending' | 'Rejected' | 'Hidden';

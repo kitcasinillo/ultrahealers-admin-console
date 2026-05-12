@@ -13,7 +13,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { format } from "date-fns";
-import { Search, Filter, RotateCcw, ShieldCheck, Eye, Terminal, Clock, User as UserIcon, Tag, ArrowRight, ChevronLeft, ChevronRight } from "lucide-react";
+import { Search, Filter, RotateCcw, ShieldCheck, Eye, Terminal, Clock, User as UserIcon, Tag } from "lucide-react";
 import { db } from "../../../lib/firebase";
 import { Pagination } from "@/components/common/Pagination";
 import {
@@ -133,6 +133,70 @@ export function AuditLogSettings() {
                 return <Badge variant="outline" className={`${baseClass} text-gray-400 border-gray-100`}>{action.replace('_', ' ')}</Badge>;
         }
     };
+
+    const normalizeLabel = (key: string) =>
+        key
+            .replace(/_/g, " ")
+            .replace(/([a-z])([A-Z])/g, "$1 $2")
+            .replace(/\b\w/g, (c) => c.toUpperCase());
+
+    const formatAuditValue = (value: any): string => {
+        if (value === null || value === undefined) return "Not set";
+        if (typeof value === "boolean") return value ? "Enabled" : "Disabled";
+        if (Array.isArray(value)) {
+            if (value.every((item) => item && typeof item === "object" && "label" in item && "enabled" in item)) {
+                return value.map((item) => `${item.label}: ${item.enabled ? "Enabled" : "Disabled"}`).join("\n");
+            }
+            return value.map((item) => formatAuditValue(item)).join(", ");
+        }
+        if (typeof value === "object") {
+            return Object.entries(value)
+                .map(([subKey, subValue]) => `${normalizeLabel(subKey)}: ${formatAuditValue(subValue)}`)
+                .join(", ");
+        }
+        return String(value);
+    };
+
+    const flattenChanges = (changes: any, parentLabel = ""): Array<{ label: string; value: string }> => {
+        if (changes === null || changes === undefined) {
+            if (!parentLabel) return [];
+            return [{ label: parentLabel, value: "Not set" }];
+        }
+
+        if (typeof changes !== "object" || changes instanceof Date) {
+            return [{ label: parentLabel || "Value", value: formatAuditValue(changes) }];
+        }
+
+        if (Array.isArray(changes)) {
+            const flattened = changes.flatMap((item, index) => {
+                if (item && typeof item === "object" && !Array.isArray(item)) {
+                    const itemLabel = item.label ?? item.id ?? `${parentLabel || "Item"} ${index + 1}`;
+                    const isFlagOnly = Object.keys(item).every((key) => ["id", "label", "enabled"].includes(key));
+
+                    if (isFlagOnly && "enabled" in item) {
+                        return [{
+                            label: parentLabel ? `${parentLabel} / ${itemLabel}` : itemLabel,
+                            value: item.enabled ? "Enabled" : "Disabled",
+                        }];
+                    }
+
+                    if (itemLabel && ("label" in item || "id" in item)) {
+                        return flattenChanges(item, parentLabel ? `${parentLabel} / ${itemLabel}` : itemLabel);
+                    }
+                }
+
+                return [{ label: parentLabel || `Item ${index + 1}`, value: formatAuditValue(item) }];
+            });
+
+            return flattened.length ? flattened : [{ label: parentLabel || "Value", value: formatAuditValue(changes) }];
+        }
+
+        return Object.entries(changes).flatMap(([key, value]) =>
+            flattenChanges(value, parentLabel ? `${parentLabel} / ${normalizeLabel(key)}` : normalizeLabel(key))
+        );
+    };
+
+    const flattenedSelectedLogChanges = selectedLog ? flattenChanges(selectedLog.changes) : [];
 
     return (
         <div className="space-y-4">
@@ -339,53 +403,15 @@ export function AuditLogSettings() {
                                     </div>
                                     
                                     <div className="space-y-2">
-                                        {selectedLog.changes && Object.keys(selectedLog.changes).length > 0 ? (
-                                            Object.entries(selectedLog.changes).map(([key, value]: [string, any]) => {
-                                                // Handle the common "previousStatus/newStatus" or similar naming patterns
-                                                if (key.toLowerCase().includes('previous') || key.toLowerCase().includes('old')) {
-                                                    const baseKey = key.replace(/previous|old/i, '');
-                                                    const newValueKey = Object.keys(selectedLog.changes).find(k => 
-                                                        k.toLowerCase().includes('new') && k.toLowerCase().includes(baseKey.toLowerCase())
-                                                    );
-                                                    
-                                                    if (newValueKey) {
-                                                        const newValue = selectedLog.changes[newValueKey];
-                                                        return (
-                                                            <div key={key} className="group p-4 bg-gray-50 dark:bg-white/5 rounded-2xl border border-gray-100 dark:border-white/5 transition-all hover:border-[#4318FF]/30">
-                                                                <div className="text-[10px] font-black uppercase text-[#A3AED0] tracking-tighter mb-2">{baseKey || "Value"}</div>
-                                                                <div className="flex items-center gap-4">
-                                                                    <div className="flex-1 p-2 bg-red-50/50 dark:bg-red-900/10 rounded-lg border border-red-100/50 dark:border-red-900/20">
-                                                                        <span className="text-xs font-bold text-red-600 dark:text-red-400 line-through opacity-70">{String(value)}</span>
-                                                                    </div>
-                                                                    <ArrowRight className="w-4 h-4 text-[#4318FF]" />
-                                                                    <div className="flex-1 p-2 bg-emerald-50/50 dark:bg-emerald-900/10 rounded-lg border border-emerald-100/50 dark:border-emerald-900/20">
-                                                                        <span className="text-xs font-black text-emerald-600 dark:text-emerald-400">{String(newValue)}</span>
-                                                                    </div>
-                                                                </div>
-                                                            </div>
-                                                        );
-                                                    }
-                                                }
-                                                
-                                                // Skip if it's the "new" part of a pair we already handled
-                                                if (key.toLowerCase().includes('new')) {
-                                                    const oldKey = Object.keys(selectedLog.changes).find(k => 
-                                                        (k.toLowerCase().includes('previous') || k.toLowerCase().includes('old')) && 
-                                                        key.toLowerCase().includes(k.replace(/previous|old/i, '').toLowerCase())
-                                                    );
-                                                    if (oldKey) return null;
-                                                }
-
-                                                // Fallback for single values or un-paired changes
-                                                return (
-                                                    <div key={key} className="p-4 bg-gray-50 dark:bg-white/5 rounded-2xl border border-gray-100 dark:border-white/5">
-                                                        <div className="text-[10px] font-black uppercase text-[#A3AED0] tracking-tighter mb-1">{key}</div>
-                                                        <div className="text-xs font-bold text-[#1b254b] dark:text-white">
-                                                            {typeof value === 'object' ? JSON.stringify(value) : String(value)}
-                                                        </div>
+                                        {flattenedSelectedLogChanges.length > 0 ? (
+                                            flattenedSelectedLogChanges.map(({ label, value }, index) => (
+                                                <div key={`${label}-${index}`} className="p-4 bg-gray-50 dark:bg-white/5 rounded-2xl border border-gray-100 dark:border-white/5">
+                                                    <div className="text-[10px] font-black uppercase text-[#A3AED0] tracking-tighter mb-1">{label}</div>
+                                                    <div className="whitespace-pre-wrap text-xs font-bold text-[#1b254b] dark:text-white">
+                                                        {value}
                                                     </div>
-                                                );
-                                            })
+                                                </div>
+                                            ))
                                         ) : (
                                             <div className="p-8 text-center bg-gray-50 dark:bg-white/5 rounded-3xl border border-dashed border-gray-200 dark:border-white/10">
                                                 <p className="text-xs font-medium text-[#A3AED0]">No data changes recorded for this action.</p>

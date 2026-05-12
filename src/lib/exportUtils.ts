@@ -13,6 +13,23 @@ export interface ReportDataPayload {
 export const exportPlatformOverviewPdf = (data: ReportDataPayload) => {
   const doc = new jsPDF();
 
+  // Helper to check for meaningful data (non-zero/non-empty)
+  const hasMeaningfulData = (arr: any[]) => {
+    if (!arr || arr.length === 0) return false;
+    return arr.some(item => {
+      return Object.values(item).some(v => 
+        (typeof v === 'number' && v > 0) || 
+        (typeof v === 'string' && v.trim() !== '' && v !== '0' && v !== '0%')
+      );
+    });
+  };
+
+  const noDataBody = [[{ 
+    content: 'No data available for the selected period', 
+    colSpan: 4, 
+    styles: { halign: 'center' as const, fontStyle: 'italic' as const } 
+  }]];
+
   doc.setFontSize(22);
   doc.setTextColor(27, 37, 75);
   doc.text("Platform Overview Report", 14, 22);
@@ -30,7 +47,9 @@ export const exportPlatformOverviewPdf = (data: ReportDataPayload) => {
     autoTable(doc, {
       startY: 53,
       head: [['Metric', 'Value', 'Details']],
-      body: data.summaryData.map(card => [card.title, String(card.value), card.description || '-']),
+      body: hasMeaningfulData(data.summaryData) 
+        ? data.summaryData.map(card => [card.title, String(card.value), card.description || '-'])
+        : [[{ content: 'No data available for the selected period', colSpan: 3, styles: { halign: 'center' as const, fontStyle: 'italic' as const } }]],
       theme: 'grid',
       headStyles: { fillColor: [67, 24, 255] },
       styles: { fontSize: 9 }
@@ -45,7 +64,9 @@ export const exportPlatformOverviewPdf = (data: ReportDataPayload) => {
     autoTable(doc, {
       startY: finalYMetrics + 5,
       head: [['Period', 'Healers', 'Seekers', 'Total Added']],
-      body: data.userGrowthData.map(d => [d.name, String(d.healers), String(d.seekers), String(d.healers + d.seekers)]),
+      body: hasMeaningfulData(data.userGrowthData)
+        ? data.userGrowthData.map(d => [d.name, String(d.healers), String(d.seekers), String(d.healers + d.seekers)])
+        : noDataBody,
       theme: 'striped',
       headStyles: { fillColor: [67, 24, 255] },
       styles: { fontSize: 9 }
@@ -59,7 +80,9 @@ export const exportPlatformOverviewPdf = (data: ReportDataPayload) => {
     autoTable(doc, {
       startY: finalYGrowth + 5,
       head: [['Period', 'Sessions', 'Retreats', 'Total Volume']],
-      body: data.bookingVolumeData.map(d => [d.name, String(d.sessions), String(d.retreats), String(d.sessions + d.retreats)]),
+      body: hasMeaningfulData(data.bookingVolumeData)
+        ? data.bookingVolumeData.map(d => [d.name, String(d.sessions), String(d.retreats), String(d.sessions + d.retreats)])
+        : noDataBody,
       theme: 'striped',
       headStyles: { fillColor: [67, 24, 255] },
       styles: { fontSize: 9 }
@@ -72,19 +95,21 @@ export const exportPlatformOverviewPdf = (data: ReportDataPayload) => {
     autoTable(doc, {
       startY: 28,
       head: [['Period', 'Session Commission', 'Seeker Fees', 'Premium Subscriptions', 'Total Context Revenue']],
-      body: data.revenueData.map(d => [
-        d.name,
-        `$${d.commission.toLocaleString()}`,
-        `$${d.fees.toLocaleString()}`,
-        `$${(d.premium || 0).toLocaleString()}`,
-        `$${(d.commission + d.fees + (d.premium || 0)).toLocaleString()}`
-      ]),
+      body: hasMeaningfulData(data.revenueData)
+        ? data.revenueData.map(d => [
+            d.name,
+            `$${d.commission.toLocaleString()}`,
+            `$${d.fees.toLocaleString()}`,
+            `$${(d.premium || 0).toLocaleString()}`,
+            `$${(d.commission + d.fees + (d.premium || 0)).toLocaleString()}`
+          ])
+        : [[{ content: 'No data available for the selected period', colSpan: 5, styles: { halign: 'center' as const, fontStyle: 'italic' as const } }]],
       theme: 'striped',
       headStyles: { fillColor: [67, 24, 255] },
       styles: { fontSize: 9 }
     });
 
-    doc.save('Platform-Overview-Report.pdf');
+    doc.save(`Platform-Overview-Report_${new Date().getTime()}.pdf`);
   }).catch(err => {
     console.error("Failed to generate styled PDF report:", err);
   });
@@ -93,20 +118,65 @@ export const exportPlatformOverviewPdf = (data: ReportDataPayload) => {
 export const exportPlatformOverviewExcel = (data: ReportDataPayload) => {
   const wb = XLSX.utils.book_new();
 
-  const ws1 = XLSX.utils.json_to_sheet(data.userGrowthData);
-  XLSX.utils.book_append_sheet(wb, ws1, "User Growth");
+  // Helper to check for meaningful data (non-zero/non-empty)
+  const hasMeaningfulData = (arr: any[]) => {
+    if (!arr || arr.length === 0) return false;
+    return arr.some(item => {
+      return Object.values(item).some(v => 
+        (typeof v === 'number' && v > 0) || 
+        (typeof v === 'string' && v.trim() !== '' && v !== '0')
+      );
+    });
+  };
 
-  const ws2 = XLSX.utils.json_to_sheet(data.bookingVolumeData);
-  XLSX.utils.book_append_sheet(wb, ws2, "Booking Volume");
+  const addSheet = (arr: any[], sheetName: string) => {
+    const finalData = hasMeaningfulData(arr) 
+      ? arr 
+      : [{ 'Status': 'No data available for the selected period' }];
+    const ws = XLSX.utils.json_to_sheet(finalData);
 
-  const ws3 = XLSX.utils.json_to_sheet(data.revenueData);
-  XLSX.utils.book_append_sheet(wb, ws3, "Revenue Composition");
+    // Auto-width helper
+    const keys = Object.keys(finalData[0]);
+    ws['!cols'] = keys.map((key) => {
+      const maxLength = Math.max(
+        key.length,
+        ...finalData.map(d => String(d[key] || '').length)
+      );
+      return { wch: maxLength + 2 };
+    });
 
-  const summaryDataFormatted = data.summaryData.map(card => ({ Metric: card.title, Value: card.value, Details: card.description || '-' }));
-  const ws4 = XLSX.utils.json_to_sheet(summaryDataFormatted);
-  XLSX.utils.book_append_sheet(wb, ws4, "Summary Metrics");
+    XLSX.utils.book_append_sheet(wb, ws, sheetName);
+  };
 
-  XLSX.writeFile(wb, "Platform-Overview-Data.xlsx");
+  addSheet(data.userGrowthData.map(d => ({
+    'Period': d.name,
+    'Healers': d.healers,
+    'Seekers': d.seekers,
+    'Total Added': d.healers + d.seekers
+  })), "User Growth");
+
+  addSheet(data.bookingVolumeData.map(d => ({
+    'Period': d.name,
+    'Sessions': d.sessions,
+    'Retreats': d.retreats,
+    'Total Volume': d.sessions + d.retreats
+  })), "Booking Volume");
+
+  addSheet(data.revenueData.map(d => ({
+    'Period': d.name,
+    'Session Commission ($)': d.commission,
+    'Seeker Fees ($)': d.fees,
+    'Premium Subscriptions ($)': d.premium || 0,
+    'Total Revenue ($)': d.commission + d.fees + (d.premium || 0)
+  })), "Revenue Composition");
+
+  addSheet(data.summaryData.map(card => ({ 
+    'Metric': card.title, 
+    'Value': card.value, 
+    'Details': card.description || '-' 
+  })), "Summary Metrics");
+
+  XLSX.writeFile(wb, `Platform-Overview-Data_${new Date().getTime()}.xlsx`);
 };
 
 /**

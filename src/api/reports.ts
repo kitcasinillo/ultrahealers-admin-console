@@ -103,12 +103,11 @@ export interface DisputeReportData {
 }
 
 export interface PlatformOverviewData {
-  summary: Array<{ title: string; value: string; description: string; icon: string; color: string }>;
-  revenueTrend: Array<{ name: string; revenue: number; prior: number }>;
+  summary: Array<{ title: string; value: string; description: string }>;
   userGrowth: Array<{ name: string; healers: number; seekers: number }>;
-  bookingStats: Array<{ name: string; sessions: number; retreats: number }>;
-  topHealers: Array<{ name: string; revenue: number }>;
-  topPerformers: Array<{ name: string; bookings: number }>;
+  bookingVolume: Array<{ name: string; sessions: number; retreats: number }>;
+  revenue: Array<{ name: string; commission: number; fees: number; premium: number }>;
+  healthScore: number;
 }
 
 /**
@@ -186,9 +185,16 @@ export const getFinancialReport = async (
 /**
  * Fetch platform overview data from the backend
  */
-export const getPlatformOverview = async (): Promise<PlatformOverviewData> => {
+export const getPlatformOverview = async (
+  startDate?: string,
+  endDate?: string,
+  granularity?: string,
+  range?: string
+): Promise<PlatformOverviewData> => {
   try {
-    const response = await api.get("/api/admin/reports/overview");
+    const response = await api.get("/api/admin/reports/overview", {
+      params: { startDate, endDate, granularity, range }
+    });
 
     if (response.data.success) {
       return response.data.data;

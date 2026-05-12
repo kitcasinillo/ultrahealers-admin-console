@@ -1,4 +1,4 @@
-import { useMemo, useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
   TrendingUp,
   Target,
@@ -40,15 +40,15 @@ const columns: ColumnDef<any>[] = [
     accessorKey: "rate",
     header: "Booking Rate",
     cell: ({ row }) => {
-        const val = Number(row.getValue("rate"));
-        return (
-            <div className="flex items-center gap-2">
-                <div className="h-2 w-24 bg-gray-100 dark:bg-white/5 rounded-full overflow-hidden">
-                    <div className="h-full bg-emerald-500" style={{ width: `${val}%` }} />
-                </div>
-                <span className="font-bold text-emerald-500 text-xs">{val}%</span>
-            </div>
-        );
+      const val = Number(row.getValue("rate"));
+      return (
+        <div className="flex items-center gap-2">
+          <div className="h-2 w-24 bg-gray-100 dark:bg-white/5 rounded-full overflow-hidden">
+            <div className="h-full bg-emerald-500" style={{ width: `${val}%` }} />
+          </div>
+          <span className="font-bold text-emerald-500 text-xs">{val}%</span>
+        </div>
+      );
     },
   },
   {
@@ -204,9 +204,9 @@ export function RetreatReport() {
               description={card.description}
               icon={
                 card.title.includes("Active") ? <TrendingUp className="h-6 w-6 text-[#4318FF]" /> :
-                card.title.includes("Rate") ? <Target className="h-6 w-6 text-amber-500" /> :
-                card.title.includes("Revenue") ? <DollarSign className="h-6 w-6 text-emerald-500" /> :
-                <TrendingUp className="h-6 w-6 text-[#01A3B4]" />
+                  card.title.includes("Rate") ? <Target className="h-6 w-6 text-amber-500" /> :
+                    card.title.includes("Revenue") ? <DollarSign className="h-6 w-6 text-emerald-500" /> :
+                      <TrendingUp className="h-6 w-6 text-[#01A3B4]" />
               }
             />
           ))}

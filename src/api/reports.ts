@@ -38,34 +38,6 @@ export interface UserReportData {
   }>;
 }
 
-/**
- * Fetch user report data from the backend
- */
-export const getUserReport = async (
-  startDate?: string,
-  endDate?: string,
-  granularity?: string,
-  range?: string
-): Promise<UserReportData> => {
-  try {
-    const params = new URLSearchParams();
-    if (startDate) params.append("startDate", startDate);
-    if (endDate) params.append("endDate", endDate);
-    if (granularity) params.append("granularity", granularity);
-    if (range) params.append("range", range);
-
-    const response = await api.get(`/api/admin/reports/users${params.toString() ? `?${params}` : ""}`);
-
-    if (response.data.success) {
-      return response.data.data;
-    }
-    throw new Error(response.data.error || "Failed to fetch user report data");
-  } catch (error) {
-    console.error("Error fetching user report:", error);
-    throw error;
-  }
-};
-
 export interface RetreatReportData {
   summary: Array<{
     title: string;
@@ -86,6 +58,83 @@ export interface RetreatReportData {
   }>;
 }
 
+export interface FinancialReportData {
+  summary: Array<{
+    title: string;
+    value: string;
+    description: string;
+  }>;
+  revenueBySource: Array<{ name: string; value: number; color: string }>;
+  revenueTrend: Array<{ month: string; sessions: number; retreats: number; subs: number }>;
+  monthlyComparison: Array<{ month: string; revenue: number; prior: number }>;
+  stripeFeeImpact: Array<{ name: string; gross: number; fees: number }>;
+  topHealers: Array<{ name: string; revenue: number }>;
+  topRetreats: Array<{ name: string; revenue: number }>;
+  bookingAudit: Array<{
+    date: string;
+    bookingId: string;
+    listing: string;
+    healer: string;
+    seeker: string;
+    grossAmount: number;
+    healerCommission: number;
+    seekerFee: number;
+    processingFee: number;
+    netRevenue: number;
+    stripePi: string;
+  }>;
+  premiumLog: Array<{
+    healer: string;
+    activationDate: string;
+    amount: number;
+    stripeSessionId: string;
+  }>;
+}
+
+export interface DisputeReportData {
+  summaryData: any[];
+  disputeRateTrend: Array<{ name: string; rate: number }>;
+  disputesByType: Array<{ name: string; value: number }>;
+  disputesBySeverity: Array<{ name: string; normal: number; safety: number }>;
+  resolutionTimeTrend: Array<{ name: string; hours: number }>;
+  outcomeBreakdown: Array<{ name: string; refund: number; partial: number; credit: number; deny: number }>;
+  modalityDisputeRate: Array<{ name: string; value: number }>;
+  healerRepeatDisputes: Array<{ name: string; disputes: number; status: string }>;
+}
+
+export interface PlatformOverviewData {
+  summary: Array<{ title: string; value: string; description: string; icon: string; color: string }>;
+  revenueTrend: Array<{ name: string; revenue: number; prior: number }>;
+  userGrowth: Array<{ name: string; healers: number; seekers: number }>;
+  bookingStats: Array<{ name: string; sessions: number; retreats: number }>;
+  topHealers: Array<{ name: string; revenue: number }>;
+  topPerformers: Array<{ name: string; bookings: number }>;
+}
+
+/**
+ * Fetch user report data from the backend
+ */
+export const getUserReport = async (
+  startDate?: string,
+  endDate?: string,
+  granularity?: string,
+  range?: string
+): Promise<UserReportData> => {
+  try {
+    const response = await api.get("/api/admin/reports/users", {
+      params: { startDate, endDate, granularity, range }
+    });
+
+    if (response.data.success) {
+      return response.data.data;
+    }
+    throw new Error(response.data.error || "Failed to fetch user report data");
+  } catch (error) {
+    console.error("Error fetching user report:", error);
+    throw error;
+  }
+};
+
 /**
  * Fetch retreat report data from the backend
  */
@@ -96,15 +145,9 @@ export const getRetreatsReport = async (
   range?: string
 ): Promise<RetreatReportData> => {
   try {
-    const params = new URLSearchParams();
-    if (startDate) params.append("startDate", startDate);
-    if (endDate) params.append("endDate", endDate);
-    if (granularity) params.append("granularity", granularity);
-    if (range) params.append("range", range);
-
-    const response = await api.get(
-      `/api/admin/reports/retreats${params.toString() ? `?${params}` : ""}`
-    );
+    const response = await api.get("/api/admin/reports/retreats", {
+      params: { startDate, endDate, granularity, range }
+    });
 
     if (response.data.success) {
       return response.data.data;
@@ -119,15 +162,16 @@ export const getRetreatsReport = async (
 /**
  * Fetch financial report data from the backend
  */
-export const getFinancialReport = async (startDate?: string, endDate?: string) => {
+export const getFinancialReport = async (
+  startDate?: string,
+  endDate?: string,
+  granularity?: string,
+  range?: string
+): Promise<FinancialReportData> => {
   try {
-    const params = new URLSearchParams();
-    if (startDate) params.append("startDate", startDate);
-    if (endDate) params.append("endDate", endDate);
-
-    const response = await api.get(
-      `/api/admin/reports/financial${params.toString() ? `?${params}` : ""}`
-    );
+    const response = await api.get("/api/admin/reports/financial", {
+      params: { startDate, endDate, granularity, range }
+    });
 
     if (response.data.success) {
       return response.data.data;
@@ -142,9 +186,9 @@ export const getFinancialReport = async (startDate?: string, endDate?: string) =
 /**
  * Fetch platform overview data from the backend
  */
-export const getPlatformOverview = async () => {
+export const getPlatformOverview = async (): Promise<PlatformOverviewData> => {
   try {
-    const response = await api.get(`/api/admin/reports/overview`);
+    const response = await api.get("/api/admin/reports/overview");
 
     if (response.data.success) {
       return response.data.data;
@@ -159,15 +203,14 @@ export const getPlatformOverview = async () => {
 /**
  * Fetch dispute report data from the backend
  */
-export const getDisputeReport = async (startDate?: string, endDate?: string) => {
+export const getDisputeReport = async (
+  startDate?: string, 
+  endDate?: string
+): Promise<DisputeReportData> => {
   try {
-    const params = new URLSearchParams();
-    if (startDate) params.append("startDate", startDate);
-    if (endDate) params.append("endDate", endDate);
-
-    const response = await api.get(
-      `/api/admin/reports/disputes${params.toString() ? `?${params}` : ""}`
-    );
+    const response = await api.get("/api/admin/reports/disputes", {
+      params: { startDate, endDate }
+    });
 
     if (response.data.success) {
       return response.data.data;

@@ -114,21 +114,51 @@ export const exportPlatformOverviewExcel = (data: ReportDataPayload) => {
  */
 
 export interface FinancialExportPayload {
-  bookings: any[];
-  premium: any[];
-  title: string;
-  dateRangeLabel: string;
+  summary: Array<{ title: string; value: string; description?: string }>;
   revenueBySource: Array<{ name: string; value: number }>;
   revenueTrend: Array<{ month: string; sessions: number; retreats: number; subs: number }>;
   monthlyComparison: Array<{ month: string; revenue: number; prior: number }>;
   stripeFeeImpact: Array<{ name: string; gross: number; fees: number }>;
   topHealers: Array<{ name: string; revenue: number }>;
   topRetreats: Array<{ name: string; revenue: number }>;
+  bookingAudit: Array<{
+    date: string;
+    bookingId: string;
+    listing: string;
+    healer: string;
+    seeker: string;
+    grossAmount: number;
+    healerCommission: number;
+    seekerFee: number;
+    processingFee: number;
+    netRevenue: number;
+    stripePi: string;
+  }>;
+  premiumLog: Array<{
+    healer: string;
+    activationDate: string;
+    amount: number;
+    stripeSessionId: string;
+  }>;
+  title: string;
+  dateRangeLabel: string;
 }
 
 export const exportFinancialPdf = (payload: FinancialExportPayload) => {
   const doc = new jsPDF('l', 'mm', 'a4'); // Landscape for more columns
-  const { bookings, premium, title, dateRangeLabel, revenueBySource, revenueTrend, monthlyComparison, stripeFeeImpact, topHealers, topRetreats } = payload;
+  const { 
+    summary,
+    revenueBySource, 
+    revenueTrend, 
+    monthlyComparison, 
+    stripeFeeImpact, 
+    topHealers, 
+    topRetreats,
+    bookingAudit,
+    premiumLog,
+    title, 
+    dateRangeLabel 
+  } = payload;
 
   doc.setFontSize(22);
   doc.setTextColor(27, 37, 75);
@@ -139,199 +169,244 @@ export const exportFinancialPdf = (payload: FinancialExportPayload) => {
   doc.text(`Generated on: ${new Date().toLocaleString()}`, 14, 28);
   doc.text(`Active Filter: ${dateRangeLabel}`, 14, 34);
 
-  // --- Section 1: Revenue by Source ---
+  // Helper to check for meaningful data
+  const hasMeaningfulData = (arr: any[], key?: string) => {
+    if (!arr || arr.length === 0) return false;
+    return arr.some(item => {
+      const val = key ? item[key] : Object.values(item).find(v => typeof v === 'number' || (typeof v === 'string' && !isNaN(parseFloat(v))));
+      if (typeof val === 'number') return val > 0;
+      if (typeof val === 'string') {
+        const num = parseFloat(val.replace(/[^0-9.-]+/g, ""));
+        return !isNaN(num) && num > 0;
+      }
+      return false;
+    });
+  };
+
+  const noDataMsg = 'No data available for the selected period';
+
+  // --- Section 1: Summary Metrics ---
   doc.setFontSize(14);
   doc.setTextColor(27, 37, 75);
-  doc.text("1. Revenue by Source", 14, 46);
+  doc.text("1. Financial Summary Metrics", 14, 46);
 
-  const totalRevBySource = revenueBySource.length > 0 ? revenueBySource.reduce((s, r) => s + r.value, 0) : 1;
   autoTable(doc, {
     startY: 51,
-    head: [['Source', 'Revenue ($)', '% of Total']],
-    body: revenueBySource.map(r => [
-      r.name,
-      `$${r.value.toLocaleString()}`,
-      `${((r.value / totalRevBySource) * 100).toFixed(1)}%`
-    ]),
+    head: [['Metric', 'Value', 'Context']],
+    body: summary && summary.length > 0 ? summary.map(s => [s.title, s.value, s.description || '-']) : [[noDataMsg, '', '']],
     theme: 'grid',
     headStyles: { fillColor: [67, 24, 255] },
     styles: { fontSize: 9 }
   });
 
-  // --- Section 2: Revenue Trend ---
+  // --- Section 2: Revenue by Source ---
   let lastY = (doc as any).lastAutoTable.finalY + 12;
-  doc.setFontSize(14);
-  doc.text("2. Revenue Trend (Financial Period)", 14, lastY);
+  doc.text("2. Revenue by Source", 14, lastY);
+
+  const totalRevBySource = (revenueBySource && revenueBySource.length > 0) ? revenueBySource.reduce((s, r) => s + r.value, 0) : 1;
+  autoTable(doc, {
+    startY: lastY + 5,
+    head: [['Source', 'Revenue ($)', '% of Total']],
+    body: hasMeaningfulData(revenueBySource, 'value') 
+      ? revenueBySource.map(r => [
+          r.name,
+          `$${r.value.toLocaleString()}`,
+          `${((r.value / totalRevBySource) * 100).toFixed(1)}%`
+        ]) 
+      : [[noDataMsg, '', '']],
+    theme: 'grid',
+    headStyles: { fillColor: [1, 163, 180] },
+    styles: { fontSize: 9 }
+  });
+
+  // --- Section 3: Revenue Trend ---
+  lastY = (doc as any).lastAutoTable.finalY + 12;
+  if (lastY > doc.internal.pageSize.getHeight() - 40) { doc.addPage(); lastY = 20; }
+  doc.text("3. Revenue Trend Analytics", 14, lastY);
 
   autoTable(doc, {
     startY: lastY + 5,
     head: [['Period', 'Sessions ($)', 'Retreats ($)', 'Subscriptions ($)', 'Total ($)']],
-    body: revenueTrend.map(d => [
-      d.month,
-      `$${d.sessions.toLocaleString()}`,
-      `$${d.retreats.toLocaleString()}`,
-      `$${d.subs.toLocaleString()}`,
-      `$${(d.sessions + d.retreats + d.subs).toLocaleString()}`
-    ]),
+    body: hasMeaningfulData(revenueTrend) 
+      ? revenueTrend.map(d => [
+          d.month,
+          `$${d.sessions.toLocaleString()}`,
+          `$${d.retreats.toLocaleString()}`,
+          `$${d.subs.toLocaleString()}`,
+          `$${(d.sessions + d.retreats + d.subs).toLocaleString()}`
+        ]) 
+      : [[noDataMsg, '', '', '', '']],
     theme: 'striped',
     headStyles: { fillColor: [67, 24, 255] },
     styles: { fontSize: 9 }
   });
 
-  // --- Section 3: Revenue Growth Performance ---
+  // --- Section 4: Revenue Growth ---
   lastY = (doc as any).lastAutoTable.finalY + 12;
-  doc.setFontSize(14);
-  doc.text("3. Revenue Growth Performance", 14, lastY);
+  if (lastY > doc.internal.pageSize.getHeight() - 40) { doc.addPage(); lastY = 20; }
+  doc.text("4. Revenue Growth Performance", 14, lastY);
 
   autoTable(doc, {
     startY: lastY + 5,
     head: [['Period', 'Current Revenue ($)', 'Prior Period ($)', 'Change ($)', 'Change (%)']],
-    body: monthlyComparison.map(d => {
-      const change = d.revenue - d.prior;
-      const pctChange = d.prior > 0 ? ((change / d.prior) * 100).toFixed(1) : 'N/A';
-      return [
-        d.month,
-        `$${d.revenue.toLocaleString()}`,
-        `$${d.prior.toLocaleString()}`,
-        `$${change.toLocaleString()}`,
-        `${pctChange}%`
-      ];
-    }),
+    body: hasMeaningfulData(monthlyComparison, 'revenue') 
+      ? monthlyComparison.map(d => {
+          const change = d.revenue - d.prior;
+          const pctChange = d.prior > 0 ? ((change / d.prior) * 100).toFixed(1) : 'N/A';
+          return [
+            d.month,
+            `$${d.revenue.toLocaleString()}`,
+            `$${d.prior.toLocaleString()}`,
+            `$${change.toLocaleString()}`,
+            `${pctChange}%`
+          ];
+        }) 
+      : [[noDataMsg, '', '', '', '']],
     theme: 'striped',
-    headStyles: { fillColor: [67, 24, 255] },
+    headStyles: { fillColor: [1, 163, 180] },
     styles: { fontSize: 9 }
   });
 
-  // --- Section 4: Stripe Fee Impact ---
-  lastY = (doc as any).lastAutoTable.finalY + 12;
-  
-  // Check for page overflow for header
-  if (lastY > doc.internal.pageSize.getHeight() - 40) {
-    doc.addPage();
-    lastY = 20;
-  }
-  
-  doc.setFontSize(14);
-  doc.setTextColor(27, 37, 75);
-  doc.text("4. Stripe Processing Fee Impact", 14, lastY);
+  doc.addPage();
+  lastY = 20;
+
+  // --- Section 5: Stripe Fee Impact ---
+  doc.text("5. Stripe Processing Fee Impact", 14, lastY);
   
   autoTable(doc, {
     startY: lastY + 5,
     head: [['Day/Period', 'Gross Value ($)', 'Stripe Fees ($)', 'Net After Fees ($)', 'Fee Rate (%)']],
-    body: stripeFeeImpact.map(d => [
-      d.name,
-      `$${d.gross.toLocaleString()}`,
-      `$${d.fees.toLocaleString()}`,
-      `$${(d.gross - d.fees).toLocaleString()}`,
-      d.gross > 0 ? `${((d.fees / d.gross) * 100).toFixed(2)}%` : '0%'
-    ]),
+    body: hasMeaningfulData(stripeFeeImpact, 'gross') 
+      ? stripeFeeImpact.map(d => [
+          d.name,
+          `$${d.gross.toLocaleString()}`,
+          `$${d.fees.toLocaleString()}`,
+          `$${(d.gross - d.fees).toLocaleString()}`,
+          d.gross > 0 ? `${((d.fees / d.gross) * 100).toFixed(2)}%` : '0%'
+        ]) 
+      : [[noDataMsg, '', '', '', '']],
     theme: 'striped',
     headStyles: { fillColor: [67, 24, 255] },
     styles: { fontSize: 9 }
   });
   
   lastY = (doc as any).lastAutoTable.finalY + 12;
+  if (lastY > doc.internal.pageSize.getHeight() - 60) { doc.addPage(); lastY = 20; }
   
-  // Check for page overflow for header
-  if (lastY > doc.internal.pageSize.getHeight() - 40) {
-    doc.addPage();
-    lastY = 20;
-  }
+  doc.text("6. Healer and Retreat Rankings (Top 10)", 14, lastY);
   
-  doc.text("5. Top High-Revenue Healers (Top 10)", 14, lastY);
-  
+  // Table 1: Top Healers (Left Side)
   autoTable(doc, {
     startY: lastY + 5,
     head: [['Rank', 'Healer Name', 'Revenue ($)']],
-    body: topHealers.map((h, i) => [
-      String(i + 1),
-      h.name,
-      `$${h.revenue.toLocaleString()}`
-    ]),
+    body: hasMeaningfulData(topHealers, 'revenue') 
+      ? topHealers.map((h, i) => [String(i + 1), h.name, `$${h.revenue.toLocaleString()}`]) 
+      : [[{ content: noDataMsg, colSpan: 3, styles: { halign: 'center', fontStyle: 'italic' } }]],
     theme: 'grid',
-    headStyles: { fillColor: [67, 24, 255] },
-    styles: { fontSize: 9 }
+    headStyles: { fillColor: [1, 163, 180] },
+    styles: { fontSize: 8, cellPadding: 2 },
+    columnStyles: {
+      0: { cellWidth: 12 }, // Rank
+      2: { cellWidth: 25, halign: 'right' } // Revenue
+    },
+    margin: { left: 14, right: 155 } // Constrain to left half
   });
-  
-  lastY = (doc as any).lastAutoTable.finalY + 12;
 
-  // Check for page overflow for header
-  if (lastY > doc.internal.pageSize.getHeight() - 40) {
-    doc.addPage();
-    lastY = 20;
-  }
-
-  doc.text("6. Top High-Growth Retreat Events (Top 10)", 14, lastY);
-  
+  // Table 2: Top Retreats (Right Side)
   autoTable(doc, {
     startY: lastY + 5,
     head: [['Rank', 'Retreat Name', 'Revenue ($)']],
-    body: topRetreats.map((r, i) => [
-      String(i + 1),
-      r.name,
-      `$${r.revenue.toLocaleString()}`
-    ]),
+    body: hasMeaningfulData(topRetreats, 'revenue') 
+      ? topRetreats.map((r, i) => [String(i + 1), r.name, `$${r.revenue.toLocaleString()}`]) 
+      : [[{ content: noDataMsg, colSpan: 3, styles: { halign: 'center', fontStyle: 'italic' } }]],
     theme: 'grid',
     headStyles: { fillColor: [67, 24, 255] },
+    styles: { fontSize: 8, cellPadding: 2 },
+    columnStyles: {
+      0: { cellWidth: 12 }, // Rank
+      2: { cellWidth: 25, halign: 'right' } // Revenue
+    },
+    margin: { left: 155, right: 14 } // Constrain to right half
+  });
+  
+  doc.addPage();
+  lastY = 20;
+
+  // --- Section 7: Booking Audit ---
+  doc.text("7. Booking Financial Audit Registry", 14, lastY);
+  
+  autoTable(doc, {
+    startY: lastY + 5,
+    head: [['Date', 'Booking ID', 'Listing', 'Healer', 'Seeker', 'Gross ($)', 'Comm. ($)', 'S.Fee ($)', 'P.Fee ($)', 'Net ($)', 'Stripe PI']],
+    body: hasMeaningfulData(bookingAudit, 'grossAmount') 
+      ? bookingAudit.map(b => [
+          b.date, b.bookingId, b.listing, b.healer, b.seeker,
+          `$${b.grossAmount.toLocaleString()}`, `$${b.healerCommission.toLocaleString()}`,
+          `$${b.seekerFee.toLocaleString()}`, `$${b.processingFee.toFixed(2)}`, `$${b.netRevenue.toLocaleString()}`,
+          b.stripePi
+        ]) 
+      : [[noDataMsg, '', '', '', '', '', '', '', '', '', '']],
+    theme: 'grid',
+    headStyles: { fillColor: [67, 24, 255] },
+    styles: { fontSize: 7 }
+  });
+
+  lastY = (doc as any).lastAutoTable.finalY + 12;
+  if (lastY > doc.internal.pageSize.getHeight() - 40) { doc.addPage(); lastY = 20; }
+
+  // --- Section 8: Premium Log ---
+  doc.text("8. Premium Activation Audit Log", 14, lastY);
+  
+  autoTable(doc, {
+    startY: lastY + 5,
+    head: [['Healer Name', 'Activation Date', 'Amount Paid ($)', 'Stripe Session ID']],
+    body: hasMeaningfulData(premiumLog, 'amount') 
+      ? premiumLog.map(p => [
+          p.healer, p.activationDate, `$${p.amount.toLocaleString()}`, p.stripeSessionId
+        ]) 
+      : [[noDataMsg, '', '', '']],
+    theme: 'striped',
+    headStyles: { fillColor: [1, 163, 180] },
     styles: { fontSize: 9 }
   });
   
-  // --- Section 7: Booking Audit ---
-  lastY = (doc as any).lastAutoTable.finalY + 12;
-
-  // Audit Logs are long, but let's see if we can start them on the same page
-  if (lastY > doc.internal.pageSize.getHeight() - 50) {
-    doc.addPage();
-    lastY = 20;
-  }
-
-  doc.setFontSize(14);
-  doc.setTextColor(27, 37, 75);
-  doc.text("7. Booking Financial Audit", 14, lastY);
-  
-  autoTable(doc, {
-    startY: lastY + 5,
-    head: [['Date', 'Booking ID', 'Listing', 'Healer', 'Seeker', 'Gross', 'Comm.', 'S.Fee', 'P.Fee', 'Net', 'Stripe PI']],
-    body: bookings.map(b => [
-      b.date, b.bookingId, b.listing, b.healer, b.seeker,
-      `$${b.grossAmount.toFixed(2)}`, `$${b.healerCommission.toFixed(2)}`,
-      `$${b.seekerFee.toFixed(2)}`, `$${b.processingFee.toFixed(2)}`, `$${b.netRevenue.toFixed(2)}`,
-      b.stripePi
-    ]),
-    theme: 'striped',
-    headStyles: { fillColor: [67, 24, 255] },
-    styles: { fontSize: 7 } // Smaller font to accommodate 11 columns
-  });
-  
-  // --- Section 8: Premium Activations ---
-  lastY = (doc as any).lastAutoTable.finalY + 12;
-
-  if (lastY > doc.internal.pageSize.getHeight() - 40) {
-    doc.addPage();
-    lastY = 20;
-  }
-
-  doc.text("8. Premium Activations", 14, lastY);
-  
-  autoTable(doc, {
-    startY: lastY + 5,
-    head: [['Healer', 'Date', 'Amount', 'Session ID']],
-    body: premium.map(p => [
-      p.healer, p.activationDate, `$${p.amount.toFixed(2)}`, p.stripeSessionId
-    ]),
-    theme: 'striped',
-    headStyles: { fillColor: [67, 24, 255] },
-    styles: { fontSize: 8 }
-  });
-
   doc.save(`Financial_Report_${new Date().getTime()}.pdf`);
 };
 
 export const exportFinancialExcel = (payload: FinancialExportPayload) => {
+  const { 
+    summary,
+    revenueBySource, 
+    revenueTrend, 
+    monthlyComparison, 
+    stripeFeeImpact, 
+    topHealers, 
+    topRetreats,
+    bookingAudit,
+    premiumLog,
+    title,
+    dateRangeLabel
+  } = payload;
   const wb = XLSX.utils.book_new();
-  const { bookings, premium, title, dateRangeLabel, revenueBySource, revenueTrend, monthlyComparison, stripeFeeImpact, topHealers, topRetreats } = payload;
 
-  const createSheetWithHeader = (data: any[], sheetName: string, subTitle: string) => {
+  // Helper to check for meaningful data
+  const hasMeaningfulData = (arr: any[], key?: string) => {
+    if (!arr || arr.length === 0) return false;
+    return arr.some(item => {
+      const val = key ? item[key] : Object.values(item).find(v => typeof v === 'number' || (typeof v === 'string' && !isNaN(parseFloat(v))));
+      if (typeof val === 'number') return val > 0;
+      if (typeof val === 'string') {
+        const num = parseFloat(val.replace(/[^0-9.-]+/g, ""));
+        return !isNaN(num) && num > 0;
+      }
+      return false;
+    });
+  };
+
+  const createSheetWithHeader = (data: any[], sheetName: string, subTitle: string, checkKey?: string) => {
+    const isMeaningful = hasMeaningfulData(data, checkKey);
+    const finalData = isMeaningful ? data : [{ 'Status': 'No data available for the selected period' }];
+
     // 1. Create header with branding and metadata
     const header = [
       ["ULTRAHEALERS ADMIN CONSOLE"],
@@ -345,29 +420,34 @@ export const exportFinancialExcel = (payload: FinancialExportPayload) => {
     const ws = XLSX.utils.aoa_to_sheet(header);
 
     // 2. Add the actual data starting at row 7 (index 6)
-    if (data.length > 0) {
-      XLSX.utils.sheet_add_json(ws, data, { origin: "A7" });
-      
-      // Auto-width helper
-      const keys = Object.keys(data[0]);
-      ws['!cols'] = keys.map((key, i) => ({
-        wch: Math.max(key.length, ...data.map(d => String(d[key] || '').length), i === 0 ? 30 : 10) + 2
-      }));
-    }
+    XLSX.utils.sheet_add_json(ws, finalData, { origin: "A7" });
+    
+    // Auto-width helper
+    const keys = Object.keys(finalData[0]);
+    ws['!cols'] = keys.map((key, i) => ({
+      wch: Math.max(key.length, ...finalData.map(d => String(d[key] || '').length), i === 0 ? 30 : 10) + 2
+    }));
 
     XLSX.utils.book_append_sheet(wb, ws, sheetName);
   };
 
-  // Sheet 1: Revenue by Source
-  const totalRevBySource = revenueBySource.length > 0 ? revenueBySource.reduce((s, r) => s + r.value, 0) : 1;
+  // Sheet 1: Summary
+  createSheetWithHeader(
+    summary.map(s => ({ 'Metric': s.title, 'Value': s.value, 'Context': s.description || '-' })),
+    "Financial Summary",
+    "Key Metrics Overview"
+  );
+
+  // Sheet 2: Revenue by Source
+  const totalRevBySource = (revenueBySource && revenueBySource.length > 0) ? revenueBySource.reduce((s, r) => s + r.value, 0) : 1;
   const formattedRevBySource = revenueBySource.map(r => ({
     'Source': r.name,
     'Revenue ($)': r.value,
     '% of Total': `${((r.value / totalRevBySource) * 100).toFixed(1)}%`
   }));
-  createSheetWithHeader(formattedRevBySource, "Revenue by Source", "Income Distribution");
+  createSheetWithHeader(formattedRevBySource, "Revenue Mix", "Income Distribution", "Revenue ($)");
 
-  // Sheet 2: Revenue Trend
+  // Sheet 3: Revenue Trend
   const formattedTrend = revenueTrend.map(d => ({
     'Period': d.month,
     'Sessions ($)': d.sessions,
@@ -375,9 +455,9 @@ export const exportFinancialExcel = (payload: FinancialExportPayload) => {
     'Subscriptions ($)': d.subs,
     'Total ($)': d.sessions + d.retreats + d.subs
   }));
-  createSheetWithHeader(formattedTrend, "Revenue Trend", "Historical Growth");
+  createSheetWithHeader(formattedTrend, "Historical Trends", "Historical Growth Analytics", "Total ($)");
 
-  // Sheet 3: Revenue Growth
+  // Sheet 4: Revenue Growth
   const formattedGrowth = monthlyComparison.map(d => {
     const change = d.revenue - d.prior;
     const pctChange = d.prior > 0 ? `${((change / d.prior) * 100).toFixed(1)}%` : 'N/A';
@@ -385,40 +465,39 @@ export const exportFinancialExcel = (payload: FinancialExportPayload) => {
       'Period': d.month,
       'Current Revenue ($)': d.revenue,
       'Prior Period ($)': d.prior,
-      'Change ($)': change,
-      'Change (%)': pctChange
+      'Growth ($)': change,
+      'Growth (%)': pctChange
     };
   });
-  createSheetWithHeader(formattedGrowth, "Revenue Growth", "Period-over-Period Performance");
+  createSheetWithHeader(formattedGrowth, "Growth Metrics", "Period-over-Period Performance", "Current Revenue ($)");
 
-  // Sheet 4: Stripe Fee Impact
+  // Sheet 5: Stripe Fee Impact
   const formattedFees = stripeFeeImpact.map(d => ({
-    'Day/Period': d.name,
+    'Period': d.name,
     'Gross Value ($)': d.gross,
     'Stripe Fees ($)': d.fees,
     'Net After Fees ($)': d.gross - d.fees,
     'Fee Rate (%)': d.gross > 0 ? `${((d.fees / d.gross) * 100).toFixed(2)}%` : '0%'
   }));
-  createSheetWithHeader(formattedFees, "Stripe Fee Impact", "Processing Efficiency");
+  createSheetWithHeader(formattedFees, "Stripe Fee Impact", "Processing Efficiency", "Gross Value ($)");
 
-  // Sheet 5: Top Healers
+  // Sheet 6: Top Performers
   const formattedHealers = topHealers.map((h, i) => ({
     'Rank': i + 1,
     'Healer Name': h.name,
     'Revenue ($)': h.revenue
   }));
-  createSheetWithHeader(formattedHealers, "Top Healers", "Healer Rankings");
+  createSheetWithHeader(formattedHealers, "Top Healers", "Healer Rankings", "Revenue ($)");
 
-  // Sheet 6: Top Retreats
   const formattedRetreats = topRetreats.map((r, i) => ({
     'Rank': i + 1,
     'Retreat Name': r.name,
     'Revenue ($)': r.revenue
   }));
-  createSheetWithHeader(formattedRetreats, "Top Retreats", "Event Performance");
+  createSheetWithHeader(formattedRetreats, "Top Retreats", "Event Performance", "Revenue ($)");
 
   // Sheet 7: Bookings Audit
-  const formattedBookings = bookings.map(b => ({
+  const formattedBookings = bookingAudit.map(b => ({
     'Date': b.date,
     'Booking ID': b.bookingId,
     'Listing/Retreat': b.listing,
@@ -431,16 +510,16 @@ export const exportFinancialExcel = (payload: FinancialExportPayload) => {
     'Net Revenue ($)': b.netRevenue,
     'Stripe P.I.': b.stripePi
   }));
-  createSheetWithHeader(formattedBookings, "Bookings Audit", "Booking Financial Audit");
+  createSheetWithHeader(formattedBookings, "Booking Audit Ledger", "Transactional Audit Registry", "Gross Amount ($)");
 
   // Sheet 8: Premium Activations
-  const formattedPremium = premium.map(p => ({
+  const formattedPremium = premiumLog.map(p => ({
     'Healer': p.healer,
     'Activation Date': p.activationDate,
-    'Amount ($)': p.amount,
+    'Amount Paid ($)': p.amount,
     'Stripe Session ID': p.stripeSessionId
   }));
-  createSheetWithHeader(formattedPremium, "Premium Activations", "Subscription Log");
+  createSheetWithHeader(formattedPremium, "Premium Activations", "Subscription Audit Log", "Amount Paid ($)");
 
   XLSX.writeFile(wb, `Financial_Report_${new Date().getTime()}.xlsx`);
 };

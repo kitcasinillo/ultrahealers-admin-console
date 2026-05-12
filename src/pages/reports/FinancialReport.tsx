@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import type { ColumnDef } from "@tanstack/react-table";
 import { DataTable } from "@/components/DataTable";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -9,15 +9,22 @@ import {
   Award,
   Wallet,
   ArrowUpRight,
+  Loader2,
+  AlertCircle,
+  DollarSign,
+  BarChart2,
+  Percent
 } from "lucide-react";
 
 // Common Components
 import { DateRangePicker } from "@/components/common/DateRangePicker";
 import { ExportDropdown } from "@/components/common/ExportDropdown";
-import { GranularityTabs } from "@/components/common/GranularityTabs";
+import { StatsCard } from "@/components/StatsCard";
+import { ReportSkeleton } from "@/components/ui/skeleton";
 
 // Utilities
 import { exportFinancialPdf, exportFinancialExcel, type FinancialExportPayload } from "@/lib/exportUtils";
+import { getFinancialReport, type FinancialReportData } from "@/api/reports";
 
 // Chart Components
 import { BaseAreaChart, type AreaConfig } from "@/components/Charts/BaseAreaChart";
@@ -26,180 +33,6 @@ import { BaseLineChart } from "@/components/Charts/BaseLineChart";
 import { BasePieChart } from "@/components/Charts/BasePieChart";
 import { BaseHorizontalBarChart } from "@/components/Charts/BaseHorizontalBarChart";
 
-
-// --- Mock Data & Constants ---
-
-// REFINED PALETTE: Using #8A99AF (Grey) for Subscriptions to ensure READABILITY
-const revenueBySourceData = [
-  { name: "Sessions", value: 45000, color: "#4318FF" },
-  { name: "Retreats", value: 32000, color: "#6AD2FF" },
-  { name: "Subscriptions", value: 18000, color: "#8A99AF" },
-];
-
-const revenueTrendData = [
-  { month: "Jan", sessions: 4000, retreats: 2400, subs: 2400 },
-  { month: "Feb", sessions: 3000, retreats: 1398, subs: 2210 },
-  { month: "Mar", sessions: 2000, retreats: 9800, subs: 2290 },
-  { month: "Apr", sessions: 2780, retreats: 3908, subs: 2000 },
-  { month: "May", sessions: 1890, retreats: 4800, subs: 2181 },
-  { month: "Jun", sessions: 2390, retreats: 3800, subs: 2500 },
-  { month: "Jul", sessions: 3490, retreats: 4300, subs: 2100 },
-];
-
-const monthlyRevenueComparison = [
-  { month: "Current", revenue: 54000, prior: 48000 },
-];
-
-const topHealersData = [
-  { name: "Dr. Sarah", revenue: 12500 },
-  { name: "Emma Wilson", revenue: 10800 },
-  { name: "Michael Chen", revenue: 9200 },
-  { name: "Aria Thorne", revenue: 8500 },
-  { name: "David Miller", revenue: 7900 },
-  { name: "Sophia Reed", revenue: 7200 },
-  { name: "Lucas Graham", revenue: 6500 },
-  { name: "Olivia White", revenue: 5900 },
-  { name: "Ethan Hunt", revenue: 5200 },
-  { name: "Nathan Drake", revenue: 4800 },
-];
-
-const topRetreatsData = [
-  { name: "Zen Meditation", revenue: 15400 },
-  { name: "Yoga Wellness", revenue: 12200 },
-  { name: "Spiritual Awakening", revenue: 10500 },
-  { name: "Beach Escape", revenue: 9800 },
-  { name: "Forest Healing", revenue: 8400 },
-  { name: "Desert Silence", revenue: 7800 },
-  { name: "Mountain Breath", revenue: 7100 },
-  { name: "Urban Reset", revenue: 6400 },
-  { name: "Island Soul", revenue: 5800 },
-  { name: "Nordic Calm", revenue: 5100 },
-];
-
-const stripeFeeImpactData = [
-  { name: "Mon", gross: 4000, fees: 120 },
-  { name: "Tue", gross: 3000, fees: 90 },
-  { name: "Wed", gross: 5000, fees: 150 },
-  { name: "Thu", gross: 2780, fees: 83 },
-  { name: "Fri", gross: 1890, fees: 56 },
-  { name: "Sat", gross: 2390, fees: 71 },
-  { name: "Sun", gross: 3490, fees: 104 },
-];
-
-const bookingsData = [
-  {
-    date: "2024-03-24",
-    bookingId: "BK-8821",
-    listing: "Life Coaching Session",
-    healer: "Dr. Sarah Johnson",
-    seeker: "John Doe",
-    grossAmount: 150.0,
-    healerCommission: 120.0,
-    seekerFee: 15.0,
-    processingFee: 4.5,
-    netRevenue: 10.5,
-    stripePi: "pi_3Oh...",
-  },
-  {
-    date: "2024-03-23",
-    bookingId: "BK-8820",
-    listing: "Yoga Retreat",
-    healer: "Emma Wilson",
-    seeker: "Alice Smith",
-    grossAmount: 450.0,
-    healerCommission: 360.0,
-    seekerFee: 45.0,
-    processingFee: 13.5,
-    netRevenue: 31.5,
-    stripePi: "pi_3Og...",
-  },
-  {
-    date: "2024-03-22",
-    bookingId: "BK-8819",
-    listing: "Meditation Workshop",
-    healer: "Michael Chen",
-    seeker: "Bob Brown",
-    grossAmount: 80.0,
-    healerCommission: 64.0,
-    seekerFee: 8.0,
-    processingFee: 2.4,
-    netRevenue: 5.6,
-    stripePi: "pi_3Of...",
-  },
-  {
-    date: "2024-03-21",
-    bookingId: "BK-8818",
-    listing: "Spiritual Healing",
-    healer: "Aria Thorne",
-    seeker: "Charlie Green",
-    grossAmount: 200.0,
-    healerCommission: 160.0,
-    seekerFee: 20.0,
-    processingFee: 6.0,
-    netRevenue: 14.0,
-    stripePi: "pi_3Oe...",
-  },
-  {
-    date: "2024-03-20",
-    bookingId: "BK-8817",
-    listing: "Forest Therapy",
-    healer: "David Miller",
-    seeker: "Diana Prince",
-    grossAmount: 120.0,
-    healerCommission: 96.0,
-    seekerFee: 12.0,
-    processingFee: 3.6,
-    netRevenue: 8.4,
-    stripePi: "pi_3Od...",
-  },
-  {
-    date: "2024-03-19",
-    bookingId: "BK-8816",
-    listing: "Mindfulness Session",
-    healer: "Dr. Sarah Johnson",
-    seeker: "Ethan Hunt",
-    grossAmount: 150.0,
-    healerCommission: 120.0,
-    seekerFee: 15.0,
-    processingFee: 4.5,
-    netRevenue: 10.5,
-    stripePi: "pi_3Oc...",
-  },
-  {
-    date: "2024-03-18",
-    bookingId: "BK-8815",
-    listing: "Zen Retreat",
-    healer: "Emma Wilson",
-    seeker: "Fiona Apple",
-    grossAmount: 500.0,
-    healerCommission: 400.0,
-    seekerFee: 50.0,
-    processingFee: 15.0,
-    netRevenue: 35.0,
-    stripePi: "pi_3Ob...",
-  },
-];
-
-const premiumRevenueData = [
-  {
-    healer: "Dr. Sarah Johnson",
-    activationDate: "2024-03-01",
-    amount: 99.0,
-    stripeSessionId: "cs_test_...",
-  },
-  {
-    healer: "Emma Wilson",
-    activationDate: "2024-03-05",
-    amount: 99.0,
-    stripeSessionId: "cs_test_...",
-  },
-  {
-    healer: "Michael Chen",
-    activationDate: "2024-03-10",
-    amount: 99.0,
-    stripeSessionId: "cs_test_...",
-  },
-];
 
 // --- Column Definitions ---
 
@@ -212,17 +45,17 @@ const bookingColumns: ColumnDef<any>[] = [
   {
     accessorKey: "grossAmount",
     header: "Gross ($)",
-    cell: ({ row }: { row: any }) => `$${row.original.grossAmount.toFixed(2)}`,
+    cell: ({ row }: { row: any }) => `$${row.original.grossAmount.toLocaleString()}`,
   },
   {
     accessorKey: "healerCommission",
     header: "Commission ($)",
-    cell: ({ row }: { row: any }) => `$${row.original.healerCommission.toFixed(2)}`,
+    cell: ({ row }: { row: any }) => `$${row.original.healerCommission.toLocaleString()}`,
   },
   {
     accessorKey: "seekerFee",
     header: "Seeker Fee ($)",
-    cell: ({ row }: { row: any }) => `$${row.original.seekerFee.toFixed(2)}`,
+    cell: ({ row }: { row: any }) => `$${row.original.seekerFee.toLocaleString()}`,
   },
   {
     accessorKey: "processingFee",
@@ -232,7 +65,7 @@ const bookingColumns: ColumnDef<any>[] = [
   {
     accessorKey: "netRevenue",
     header: "Net Revenue ($)",
-    cell: ({ row }: { row: any }) => `$${row.original.netRevenue.toFixed(2)}`,
+    cell: ({ row }: { row: any }) => `$${row.original.netRevenue.toLocaleString()}`,
   },
   {
     accessorKey: "stripePi",
@@ -277,10 +110,23 @@ function SectionHeader({ title, icon: Icon, description }: any) {
 }
 
 export function FinancialReport() {
-  const [dateRange, setDateRange] = useState("Last 30 Days");
+  const [dateRange, setDateRange] = useState("Monthly");
   const [customStartDate, setCustomStartDate] = useState("");
   const [customEndDate, setCustomEndDate] = useState("");
   const [granularity, setGranularity] = useState("Monthly");
+
+  // Sync granularity with the dropdown selection
+  useEffect(() => {
+    if (dateRange === "Daily") setGranularity("Daily");
+    if (dateRange === "Weekly") setGranularity("Weekly");
+    if (dateRange === "Monthly") setGranularity("Monthly");
+  }, [dateRange]);
+
+  const [reportData, setReportData] = useState<FinancialReportData | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const reportCache = useRef<Record<string, FinancialReportData>>({});
 
   const areaConfigs: AreaConfig[] = [
     { name: "Sessions", dataKey: "sessions", stroke: "#4318FF" },
@@ -288,72 +134,91 @@ export function FinancialReport() {
     { name: "Subscriptions", dataKey: "subs", stroke: "#8A99AF" },
   ];
 
-  // --- Filtering Logic ---
-  const getFilteredData = () => {
-    // Basic reactive trend data calculation
-    const baseTrend = revenueTrendData.map(d => ({ ...d, name: d.month }));
-
-    // For this demo, we'll map specific date ranges to specific data subsets
-    // Today = 2024-03-24 only
-    // Last 7 Days = 2024-03-18 to 2024-03-24
-    // Last 30 Days = All
-
-    if (dateRange === "Today") {
-      return {
-        bookings: bookingsData.filter(b => b.date === "2024-03-24"),
-        premium: [],
-        trend: baseTrend.slice(-1),
-        fees: stripeFeeImpactData.slice(-1),
-        source: revenueBySourceData.map(d => ({ ...d, value: d.value * 0.1 })),
-        healers: topHealersData.slice(0, 1),
-        retreats: topRetreatsData.slice(0, 1),
-        comparison: monthlyRevenueComparison.map(d => ({ ...d, revenue: d.revenue * 0.05 }))
+  useEffect(() => {
+    const fetchData = async () => {
+      // Map dropdown labels to backend range keywords
+      const rangeMap: Record<string, string> = {
+        "Daily": "Today",
+        "Weekly": "This Week",
+        "Monthly": "This Month"
       };
-    }
 
-    if (dateRange === "Last 7 Days") {
-      return {
-        bookings: bookingsData.filter(b => b.date >= "2024-03-18"),
-        premium: premiumRevenueData.filter(p => p.activationDate >= "2024-03-18"),
-        trend: baseTrend.slice(-2),
-        fees: stripeFeeImpactData.slice(-7),
-        source: revenueBySourceData.map(d => ({ ...d, value: d.value * 0.25 })),
-        healers: topHealersData.slice(0, 7),
-        retreats: topRetreatsData.slice(0, 7),
-        comparison: monthlyRevenueComparison.map(d => ({ ...d, revenue: d.revenue * 0.25 }))
-      };
-    }
+      const apiRange = rangeMap[dateRange] || dateRange;
+      const cacheKey = `${apiRange}-${granularity}-${customStartDate}-${customEndDate}`;
 
-    // Default or "Last 30 Days"
-    return {
-      bookings: bookingsData,
-      premium: premiumRevenueData,
-      trend: baseTrend,
-      fees: stripeFeeImpactData,
-      source: revenueBySourceData,
-      healers: topHealersData,
-      retreats: topRetreatsData,
-      comparison: monthlyRevenueComparison
+      if (reportCache.current[cacheKey]) {
+        setReportData(reportCache.current[cacheKey]);
+        setIsLoading(false);
+        return;
+      }
+
+      setIsLoading(true);
+      setError(null);
+      try {
+        const data = await getFinancialReport(customStartDate, customEndDate, granularity, apiRange);
+        setReportData(data);
+        reportCache.current[cacheKey] = data;
+      } catch (err: any) {
+        setError(err.message || "Failed to fetch financial report");
+      } finally {
+        setIsLoading(false);
+      }
     };
+
+    fetchData();
+  }, [dateRange, customStartDate, customEndDate, granularity]);
+
+  const defaultData: FinancialReportData = {
+    summary: [
+      { title: "Total Platform Revenue", value: "$0", description: "0 bookings + 0 subscriptions" },
+      { title: "Revenue Growth", value: "0%", description: "vs. prior period" },
+      { title: "Gross Booking Volume", value: "$0", description: "All sources combined" },
+      { title: "Avg. Stripe Fee", value: "$0", description: "Per transaction average" },
+    ],
+    revenueBySource: [],
+    revenueTrend: [],
+    monthlyComparison: [],
+    stripeFeeImpact: [],
+    topHealers: [],
+    topRetreats: [],
+    bookingAudit: [],
+    premiumLog: [],
   };
 
-  const filtered = getFilteredData();
+  const data = reportData || defaultData;
+
+  if (error) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[400px] gap-4">
+        <AlertCircle className="w-12 h-12 text-red-500" />
+        <p className="text-lg font-bold text-red-500">{error}</p>
+        <button
+          onClick={() => window.location.reload()}
+          className="px-4 py-2 bg-[#4318FF] text-white rounded-xl font-bold transition-all hover:opacity-80"
+        >
+          Retry
+        </button>
+      </div>
+    );
+  }
 
   return (
-    <div className="p-4 sm:p-6 lg:p-8 space-y-12 animate-in fade-in duration-700 max-w-[1700px] mx-auto overflow-hidden">
+    <div className={`p-4 sm:p-6 lg:p-8 space-y-12 animate-in fade-in duration-700 max-w-[1700px] mx-auto overflow-hidden ${isLoading ? 'opacity-50 pointer-events-none' : ''}`}>
 
       {/* 1. Dashboard Header */}
       <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-6">
         <div className="space-y-1">
-          <h1 className="text-3xl md:text-4xl font-extrabold text-[#1b254b] dark:text-white tracking-tighter">Financial Overview</h1>
+          <div className="flex items-center gap-3">
+            <h1 className="text-3xl md:text-4xl font-extrabold text-[#1b254b] dark:text-white tracking-tighter">Financial Overview</h1>
+            {isLoading && <Loader2 className="w-6 h-6 text-[#4318FF] animate-spin" />}
+          </div>
           <p className="text-xs font-medium text-[#A3AED0] uppercase tracking-widest pl-0.5">
             {dateRange === 'Custom Range' ? `From ${customStartDate} to ${customEndDate}` : `Reporting: ${dateRange}`}
           </p>
         </div>
 
         <div className="flex flex-col lg:flex-row items-stretch lg:items-center gap-4 w-full xl:w-auto">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:flex items-center gap-4 w-full">
-            <GranularityTabs granularity={granularity} setGranularity={setGranularity} />
+          <div className="flex items-center gap-4 w-full">
             <DateRangePicker
               dateRange={dateRange} setDateRange={setDateRange}
               customStartDate={customStartDate} setCustomStartDate={setCustomStartDate}
@@ -363,31 +228,17 @@ export function FinancialReport() {
           <ExportDropdown
             onExportExcel={() => {
               const payload: FinancialExportPayload = {
-                bookings: filtered.bookings,
-                premium: filtered.premium,
+                ...data,
                 title: "Booking Financial Report",
                 dateRangeLabel: dateRange === 'Custom Range' ? `${customStartDate} to ${customEndDate}` : dateRange,
-                revenueBySource: filtered.source,
-                revenueTrend: filtered.trend.map(d => ({ month: d.month, sessions: d.sessions, retreats: d.retreats, subs: d.subs })),
-                monthlyComparison: filtered.comparison,
-                stripeFeeImpact: filtered.fees,
-                topHealers: filtered.healers,
-                topRetreats: filtered.retreats,
               };
               exportFinancialExcel(payload);
             }}
             onExportPdf={() => {
               const payload: FinancialExportPayload = {
-                bookings: filtered.bookings,
-                premium: filtered.premium,
+                ...data,
                 title: "Booking Financial Report",
                 dateRangeLabel: dateRange === 'Custom Range' ? `${customStartDate} to ${customEndDate}` : dateRange,
-                revenueBySource: filtered.source,
-                revenueTrend: filtered.trend.map(d => ({ month: d.month, sessions: d.sessions, retreats: d.retreats, subs: d.subs })),
-                monthlyComparison: filtered.comparison,
-                stripeFeeImpact: filtered.fees,
-                topHealers: filtered.healers,
-                topRetreats: filtered.retreats,
               };
               exportFinancialPdf(payload);
             }}
@@ -395,82 +246,115 @@ export function FinancialReport() {
         </div>
       </div>
 
-      {/* 2. Visual Insights (STANDARD DASHBOARD FLOW) */}
-      <div className="space-y-12">
+      {/* Loading State */}
+      {isLoading && <ReportSkeleton />}
 
-        {/* REQUIREMENT: Revenue by source (session vs retreat vs subscription) — Pie + trend */}
-        <div className="space-y-6">
-          <SectionHeader title="Revenue by Source" icon={PieIcon} description="Income distribution (Pie) and historical lifecycle trends (Area Chart)." />
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            <BasePieChart title="Revenue Mix Overview" data={filtered.source} />
-            <BaseAreaChart title="Revenue Trend Analytics" data={filtered.trend} areas={areaConfigs} yAxisTickFormatter={(v: number) => `$${v / 1000}k`} />
-          </div>
+      {/* Report Content */}
+      <div className={isLoading ? "hidden" : "block space-y-12"}>
+
+        {/* 1.5 Stats Cards Grid */}
+        <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-4">
+          {data.summary.map((card, idx) => (
+            <StatsCard
+              key={idx}
+              title={card.title}
+              value={card.value}
+              description={card.description}
+              icon={
+                card.title.includes("Revenue") ? <DollarSign className="h-6 w-6 text-[#4318FF]" /> :
+                  card.title.includes("Growth") ? <TrendingUp className="h-6 w-6 text-emerald-500" /> :
+                    card.title.includes("Volume") ? <BarChart2 className="h-6 w-6 text-amber-500" /> :
+                      <Percent className="h-6 w-6 text-[#01A3B4]" />
+              }
+            />
+          ))}
         </div>
 
-        {/* Level 2: Performance & Fees */}
-        <div className="space-y-6">
-          <SectionHeader title="Growth & Efficiency" icon={TrendingUp} description="Reporting vs. prior periods and Stripe processing fee impact." />
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            <Card className="rounded-[40px] border-none shadow-[0_10px_30px_0_rgba(11,20,55,0.06)] dark:bg-[#111C44]">
-              <CardHeader className="flex flex-row items-center justify-between px-8 pt-8 pb-4">
-                <CardTitle className="text-sm font-bold text-[#1b254b] dark:text-white uppercase tracking-wider">Revenue Growth Performance</CardTitle>
-                <div className="flex items-center gap-1 bg-green-100 text-green-700 text-[10px] font-black px-2 py-0.5 rounded-full">
-                  <ArrowUpRight className="w-2 h-2" />
-                  +12.5%
-                </div>
-              </CardHeader>
-              <CardContent className="px-8 pb-8">
-                <BaseBarChart
-                  title=""
-                  data={filtered.comparison}
-                  bars={[{ name: "Current Monthly", dataKey: "revenue", fill: "#4318FF", radius: [8, 8, 0, 0] }, { name: "Prior Period", dataKey: "prior", fill: "#6AD2FF", radius: [8, 8, 0, 0] }]}
-                  yAxisTickFormatter={(v: number) => `$${v / 1000}k`}
-                />
-              </CardContent>
-            </Card>
+        {/* 2. Visual Insights (STANDARD DASHBOARD FLOW) */}
+        <div className="space-y-12">
 
-            <BaseLineChart title="Stripe Processing Fee Impact" data={filtered.fees} lines={[
-              { name: "Gross Value ($)", dataKey: "gross", stroke: "#4318FF" },
-              { name: "Stripe Fees ($)", dataKey: "fees", stroke: "#6AD2FF" }
-            ]} />
-          </div>
-        </div>
-
-        {/* Level 3: Rankings */}
-        <div className="space-y-6">
-          <SectionHeader title="Platform Activity Standings" icon={Award} description="Leadership rankings for healers and retreat events." />
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            <BaseHorizontalBarChart title="Top 10 High-Revenue Healers" data={filtered.healers} dataKey="revenue" nameKey="name" fill="#4318FF" />
-            <BaseHorizontalBarChart title="Top 10 High-Growth Retreat Events" data={filtered.retreats} dataKey="revenue" nameKey="name" fill="#6AD2FF" />
-          </div>
-        </div>
-      </div>
-
-      {/* 3. Transaction Audit (Evidence Rows) */}
-      <div className="space-y-8 pt-12 border-t border-gray-100 dark:border-white/5">
-        <SectionHeader title="Financial Evidence Logs" icon={Database} description="Transactional audit registry for bookings and premiums." />
-
-        <Card className="rounded-[40px] border-none shadow-[0_20px_50px_rgba(11,20,55,0.06)] dark:bg-[#111C44]">
-          <CardHeader className="p-10 border-b border-gray-50 dark:border-white/5 bg-white dark:bg-white/5 rounded-t-[40px]">
-            <div className="flex items-center justify-between">
-              <div className="flex flex-col gap-1">
-                <CardTitle className="text-xl font-bold text-[#1b254b] dark:text-white uppercase tracking-tight">Booking Financial Registry</CardTitle>
-                <span className="text-[10px] text-[#A3AED0] font-black tracking-[0.2em] uppercase opacity-70">Transactional Daily Audit Ledger</span>
-              </div>
-              <Wallet className="w-5 h-5 text-[#4318FF] opacity-30" />
+          {/* REQUIREMENT: Revenue by source (session vs retreat vs subscription) — Pie + trend */}
+          <div className="space-y-6">
+            <SectionHeader title="Revenue by Source" icon={PieIcon} description="Income distribution (Pie) and historical lifecycle trends (Area Chart)." />
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+              <BasePieChart title="Revenue Mix Overview" data={data.revenueBySource} />
+              <BaseAreaChart title="Revenue Trend Analytics" data={data.revenueTrend} areas={areaConfigs} yAxisTickFormatter={(v: number) => `$${v / 1000}k`} />
             </div>
-          </CardHeader>
-          <CardContent className="p-8 pb-10">
-            <DataTable columns={bookingColumns} data={filtered.bookings} />
-          </CardContent>
-        </Card>
+          </div>
 
-        <Card className="rounded-[24px] border-none shadow-sm dark:bg-[#111C44]">
-          <CardHeader className="py-5 px-10 border-b border-gray-50 dark:border-white/5 flex items-center gap-3">
-            <CardTitle className="text-lg font-bold text-[#1b254b] dark:text-white uppercase tracking-tighter">Premium Activation Log</CardTitle>
-          </CardHeader>
-          <CardContent className="p-8 px-10"><DataTable columns={premiumColumns} data={filtered.premium} /></CardContent>
-        </Card>
+          {/* Level 2: Performance & Fees */}
+          <div className="space-y-6">
+            <SectionHeader title="Growth & Efficiency" icon={TrendingUp} description="Reporting vs. prior periods and Stripe processing fee impact." />
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+              <Card className="rounded-[40px] border-none shadow-[0_10px_30px_0_rgba(11,20,55,0.06)] dark:bg-[#111C44]">
+                <CardHeader className="flex flex-row items-center justify-between px-8 pt-8 pb-4">
+                  <CardTitle className="text-sm font-bold text-[#1b254b] dark:text-white uppercase tracking-wider">Revenue Growth Performance</CardTitle>
+                  <div className={`flex items-center gap-1 ${data.summary[1].value.includes('-') ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'} text-[10px] font-black px-2 py-0.5 rounded-full`}>
+                    <ArrowUpRight className={`w-2 h-2 ${data.summary[1].value.includes('-') ? 'rotate-90' : ''}`} />
+                    {data.summary[1].value}
+                  </div>
+                </CardHeader>
+                <CardContent className="px-8 pb-8">
+                  <BaseBarChart
+                    title=""
+                    data={data.monthlyComparison}
+                    bars={[{ name: "Current Period", dataKey: "revenue", fill: "#4318FF", radius: [8, 8, 0, 0] }, { name: "Prior Period", dataKey: "prior", fill: "#6AD2FF", radius: [8, 8, 0, 0] }]}
+                    yAxisTickFormatter={(v: number) => `$${v / 1000}k`}
+                  />
+                </CardContent>
+              </Card>
+
+              <BaseLineChart title="Stripe Processing Fee Impact" data={data.stripeFeeImpact} lines={[
+                { name: "Gross Value ($)", dataKey: "gross", stroke: "#4318FF" },
+                { name: "Stripe Fees ($)", dataKey: "fees", stroke: "#6AD2FF" }
+              ]} />
+            </div>
+          </div>
+
+          {/* Level 3: Rankings */}
+          <div className="space-y-6">
+            <SectionHeader title="Platform Activity Standings" icon={Award} description="Leadership rankings for healers and retreat events." />
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+              <BaseHorizontalBarChart title="Top 10 High-Revenue Healers" data={data.topHealers} dataKey="revenue" nameKey="name" fill="#4318FF" />
+              <BaseHorizontalBarChart title="Top 10 High-Growth Retreat Events" data={data.topRetreats} dataKey="revenue" nameKey="name" fill="#6AD2FF" />
+            </div>
+          </div>
+        </div>
+
+        {/* 3. Transaction Audit (Evidence Rows) */}
+        <div className="space-y-8 pt-12 border-t border-gray-100 dark:border-white/5">
+          <SectionHeader title="Financial Evidence Logs" icon={Database} description="Transactional audit registry for bookings and premiums." />
+
+          <Card className="rounded-[40px] border-none shadow-[0_20px_50px_rgba(11,20,55,0.06)] dark:bg-[#111C44]">
+            <CardHeader className="p-10 border-b border-gray-50 dark:border-white/5 bg-white dark:bg-white/5 rounded-t-[40px]">
+              <div className="flex items-center justify-between">
+                <div className="flex flex-col gap-1">
+                  <CardTitle className="text-xl font-bold text-[#1b254b] dark:text-white uppercase tracking-tight">Booking Financial Registry</CardTitle>
+                  <span className="text-[10px] text-[#A3AED0] font-black tracking-[0.2em] uppercase opacity-70">Transactional Daily Audit Ledger</span>
+                </div>
+                <Wallet className="w-5 h-5 text-[#4318FF] opacity-30" />
+              </div>
+            </CardHeader>
+            <CardContent className="p-8 pb-10">
+              <DataTable columns={bookingColumns} data={data.bookingAudit} />
+            </CardContent>
+          </Card>
+
+          <Card className="rounded-[40px] border-none shadow-[0_20px_50px_rgba(11,20,55,0.06)] dark:bg-[#111C44]">
+            <CardHeader className="p-10 border-b border-gray-50 dark:border-white/5 bg-white dark:bg-white/5 rounded-t-[40px]">
+              <div className="flex items-center justify-between">
+                <div className="flex flex-col gap-1">
+                  <CardTitle className="text-xl font-bold text-[#1b254b] dark:text-white uppercase tracking-tight">Premium Activation Registry</CardTitle>
+                  <span className="text-[10px] text-[#A3AED0] font-black tracking-[0.2em] uppercase opacity-70">Membership Subscription Audit Ledger</span>
+                </div>
+                <Award className="w-5 h-5 text-amber-500 opacity-30" />
+              </div>
+            </CardHeader>
+            <CardContent className="p-8 pb-10">
+              <DataTable columns={premiumColumns} data={data.premiumLog} />
+            </CardContent>
+          </Card>
+        </div>
       </div>
     </div>
   );

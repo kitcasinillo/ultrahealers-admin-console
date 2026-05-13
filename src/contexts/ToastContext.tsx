@@ -11,7 +11,8 @@ interface Toast {
 }
 
 interface ToastContextType {
-  showToast: (message: string, type?: ToastType) => void;
+  showToast: (message: string, type?: ToastType) => string;
+  removeToast: (id: string) => void;
 }
 
 const ToastContext = createContext<ToastContextType | undefined>(undefined);
@@ -27,18 +28,20 @@ export const useToast = () => {
 export const ToastProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [toasts, setToasts] = useState<Toast[]>([]);
 
+  const removeToast = useCallback((id: string) => {
+    setToasts((prev) => prev.filter((toast) => toast.id !== id));
+  }, []);
+
   const showToast = useCallback((message: string, type: ToastType = 'success') => {
     const id = Math.random().toString(36).substring(2, 9);
     setToasts((prev) => [...prev, { id, message, type }]);
 
     setTimeout(() => {
-      setToasts((prev) => prev.filter((toast) => toast.id !== id));
+      removeToast(id);
     }, 5000);
-  }, []);
-
-  const removeToast = (id: string) => {
-    setToasts((prev) => prev.filter((toast) => toast.id !== id));
-  };
+    
+    return id;
+  }, [removeToast]);
 
   const getIcon = (type: ToastType) => {
     switch (type) {
@@ -59,7 +62,7 @@ export const ToastProvider: React.FC<{ children: ReactNode }> = ({ children }) =
   };
 
   return (
-    <ToastContext.Provider value={{ showToast }}>
+    <ToastContext.Provider value={{ showToast, removeToast }}>
       {children}
       <div className="fixed top-12 right-6 z-[9999] flex flex-col gap-3 max-w-sm w-full pointer-events-none">
         {toasts.map((toast) => (

@@ -23,11 +23,11 @@ import {
   DropdownMenuLabel 
 } from "../../../components/ui/dropdown-menu";
 import { cn } from "../../../lib/utils";
-import { useToast } from "../../../components/ui/toaster";
+import { useToast } from "../../../contexts/ToastContext";
 import { ConfirmModal } from "../../../components/modals/ConfirmModal";
 
 export function MediaLibraryTab() {
-  const { toast, removeToast } = useToast();
+  const { showToast: toast, removeToast } = useToast();
   const [activeFolder, setActiveFolder] = useState("all");
   const [activeTag, setActiveTag] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
@@ -63,12 +63,7 @@ export function MediaLibraryTab() {
 
   const handleDeleteConfirm = (id: number, name: string) => {
     setAssets(prev => prev.filter(a => a.id !== id));
-    toast({
-      title: "Asset Deleted",
-      description: `"${name}" has been removed from the library.`,
-      variant: "success",
-      duration: 3000
-    });
+    toast(`"${name}" has been removed from the library.`, "success");
     setAssetToDelete(null);
   };
 
@@ -81,11 +76,7 @@ export function MediaLibraryTab() {
     if (!files || files.length === 0) return;
 
     setIsUploading(true);
-    const toastId = toast({
-      title: "Uploading Assets",
-      description: `Uploading ${files.length} ${files.length === 1 ? 'file' : 'files'} to the library...`,
-      duration: Infinity
-    });
+    const toastId = toast(`Uploading ${files.length} ${files.length === 1 ? 'file' : 'files'} to the library...`, "info");
 
     try {
       // Mock validation: error if any file > 10MB
@@ -129,23 +120,13 @@ export function MediaLibraryTab() {
           (document.getElementById("library-upload-input") as HTMLInputElement).value = "";
         }
 
-        toast({
-          title: "Upload Successful",
-          description: "Your files have been added to the media library.",
-          variant: "success",
-          duration: 3000
-        });
+        toast("Your files have been added to the media library.", "success");
       }, 1500);
     } catch (err: any) {
       // Handle error
       setTimeout(() => {
         removeToast(toastId);
-        toast({
-          title: "Upload Error",
-          description: err.message || "There was a problem uploading your files. Please try again.",
-          variant: "destructive",
-          duration: 5000
-        });
+        toast(err.message || "There was a problem uploading your files. Please try again.", "error");
         setIsUploading(false);
         if (document.getElementById("library-upload-input")) {
           (document.getElementById("library-upload-input") as HTMLInputElement).value = "";
@@ -155,11 +136,7 @@ export function MediaLibraryTab() {
   };
 
   const handleToolAction = (action: string) => {
-    const toastId = toast({
-      title: "Running Tool",
-      description: `${action} is currently in progress...`,
-      duration: Infinity
-    });
+    const toastId = toast(`${action} is currently in progress...`, "info");
 
     try {
       // Mock random failure (1 in 5 chance)
@@ -168,28 +145,14 @@ export function MediaLibraryTab() {
       setTimeout(() => {
         removeToast(toastId);
         if (shouldFail) {
-          toast({
-            title: "Process Failed",
-            description: `${action} could not be completed at this time.`,
-            variant: "destructive",
-            duration: 4000
-          });
+          toast(`${action} could not be completed at this time.`, "error");
         } else {
-          toast({
-            title: "Process Complete",
-            description: `${action} task has finished successfully.`,
-            variant: "success",
-            duration: 3000
-          });
+          toast(`${action} task has finished successfully.`, "success");
         }
       }, 1200);
     } catch (err) {
        removeToast(toastId);
-       toast({
-        title: "System Error",
-        description: "An unexpected error occurred during processing.",
-        variant: "destructive"
-      });
+       toast("An unexpected error occurred during processing.", "error");
     }
   };
 

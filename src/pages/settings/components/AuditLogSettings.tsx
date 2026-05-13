@@ -143,7 +143,7 @@ export function AuditLogSettings() {
 
     const formatAuditValue = (value: any): string => {
         if (value === null || value === undefined) return "Not set";
-        
+
         // Handle diff objects { from, to }
         if (value && typeof value === "object" && "from" in value && "to" in value) {
             return `${formatAuditValue(value.from)} → ${formatAuditValue(value.to)}`;
@@ -164,9 +164,13 @@ export function AuditLogSettings() {
         return String(value);
     };
 
-    const flattenChanges = (changes: any, parentLabel = ""): Array<{ label: string; value: string }> => {
+    const flattenChanges = (changes: any, parentLabel = ""): Array<{ label: string; value: string; isDiff?: boolean }> => {
+        // Handle diff objects { from, to } as terminal nodes
+        if (changes && typeof changes === "object" && "from" in changes && "to" in changes) {
+            return [{ label: parentLabel, value: formatAuditValue(changes), isDiff: true }];
+        }
+
         if (changes === null || changes === undefined) {
-            if (!parentLabel) return [];
             return [{ label: parentLabel, value: "Not set" }];
         }
 
@@ -210,8 +214,8 @@ export function AuditLogSettings() {
         }, {} as Record<string, any>);
     }, []);
 
-    const { flattenedOtherChanges, groupedFeatureFlags, statusChanges } = useMemo(() => {
-        if (!selectedLog) return { flattenedOtherChanges: [], groupedFeatureFlags: {}, statusChanges: [] };
+    const { groupedFeatureFlags, statusChanges, groupedOtherChanges } = useMemo(() => {
+        if (!selectedLog) return { groupedFeatureFlags: {}, statusChanges: [], groupedOtherChanges: {} };
 
         const changes = { ...selectedLog.changes };
         
@@ -236,7 +240,7 @@ export function AuditLogSettings() {
             delete changes.newStatus;
         }
 
-        const grouped = (Array.isArray(featureFlags) ? featureFlags : []).reduce((acc: any, flag: any) => {
+        const featureFlagsGrouped = (Array.isArray(featureFlags) ? featureFlags : []).reduce((acc: any, flag: any) => {
             const meta = featureMetadata[flag.id] || flag;
             const tier = meta.tier || 'Other';
             if (!acc[tier]) acc[tier] = [];
@@ -244,12 +248,25 @@ export function AuditLogSettings() {
             return acc;
         }, {});
 
+        // 3. Handle Other Changes with grouping
+        const otherChangesFlat = flattenChanges(changes);
+        const groupedOther = otherChangesFlat.reduce((acc: any, item: any) => {
+            const parts = item.label.split(' / ');
+            const category = parts.length > 1 ? parts[0] : 'Configuration';
+            const displayLabel = parts.length > 1 ? parts.slice(1).join(' / ') : item.label;
+            
+            if (!acc[category]) acc[category] = [];
+            acc[category].push({ ...item, displayLabel });
+            return acc;
+        }, {});
+
         return {
-            flattenedOtherChanges: flattenChanges(changes),
-            groupedFeatureFlags: grouped,
-            statusChanges
+            groupedFeatureFlags: featureFlagsGrouped,
+            statusChanges,
+            groupedOtherChanges: groupedOther
         };
     }, [selectedLog, featureMetadata]);
+
 
     return (
         <div className="space-y-4">
@@ -292,8 +309,8 @@ export function AuditLogSettings() {
                                         key={filter}
                                         onClick={() => setActiveFilter(filter.toLowerCase())}
                                         className={`px-4 py-1.5 rounded-full text-xs font-bold transition-all whitespace-nowrap ${(filter === "All" ? activeFilter === "all" : activeFilter === filter.toLowerCase())
-                                                ? "bg-[#4318FF] text-white shadow-md shadow-[#4318FF]/20"
-                                                : "bg-gray-50 dark:bg-white/5 text-[#A3AED0] hover:bg-gray-100 dark:hover:bg-white/10"
+                                            ? "bg-[#4318FF] text-white shadow-md shadow-[#4318FF]/20"
+                                            : "bg-gray-50 dark:bg-white/5 text-[#A3AED0] hover:bg-gray-100 dark:hover:bg-white/10"
                                             }`}
                                     >
                                         {filter}
@@ -314,8 +331,8 @@ export function AuditLogSettings() {
                                     key={t.id}
                                     onClick={() => setTimeFilter(t.id)}
                                     className={`px-3 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider transition-all border ${timeFilter === t.id
-                                            ? "bg-emerald-50 text-emerald-700 border-emerald-200"
-                                            : "bg-transparent text-[#A3AED0] border-transparent hover:border-gray-100"
+                                        ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                                        : "bg-transparent text-[#A3AED0] border-transparent hover:border-gray-100"
                                         }`}
                                 >
                                     {t.label}
@@ -349,8 +366,8 @@ export function AuditLogSettings() {
                                     </TableRow>
                                 ) : (
                                     paginatedLogs.map((log) => (
-                                        <TableRow 
-                                            key={log.id} 
+                                        <TableRow
+                                            key={log.id}
                                             onClick={() => setSelectedLog(log)}
                                             className="border-gray-50 dark:border-white/5 hover:bg-gray-50/50 dark:hover:bg-white/[0.03] transition-colors group cursor-pointer"
                                         >
@@ -380,7 +397,7 @@ export function AuditLogSettings() {
                             </TableBody>
                         </Table>
                     </div>
-                    <Pagination 
+                    <Pagination
                         currentPage={currentPage}
                         totalItems={filteredLogs.length}
                         itemsPerPage={ITEMS_PER_PAGE}
@@ -446,7 +463,7 @@ export function AuditLogSettings() {
                                     </div>
                                 </div>
 
-                                 {/* Changes Diff View */}
+                                {/* Changes Diff View */}
                                 <div className="space-y-6">
                                     <div className="flex items-center justify-between">
                                         <h4 className="text-xs font-black uppercase text-[#1b254b] dark:text-white tracking-widest flex items-center gap-2">
@@ -454,7 +471,7 @@ export function AuditLogSettings() {
                                             Data Changes
                                         </h4>
                                     </div>
-                                    
+
                                     <div className="space-y-6">
                                         {/* Status Changes (Consolidated Card) */}
                                         {statusChanges.length > 0 && (
@@ -514,9 +531,8 @@ export function AuditLogSettings() {
                                                                             <p className="text-xs text-[#A3AED0] mt-0.5">{flag.description}</p>
                                                                         )}
                                                                     </div>
-                                                                    <Badge variant="outline" className={`text-[9px] font-black uppercase px-1.5 py-0 h-4 border-none shrink-0 ${
-                                                                        tier === 'free' ? 'bg-blue-50 text-blue-600 dark:bg-blue-900/20' : 'bg-amber-50 text-amber-600 dark:bg-amber-900/20'
-                                                                    }`}>
+                                                                    <Badge variant="outline" className={`text-[9px] font-black uppercase px-1.5 py-0 h-4 border-none shrink-0 ${tier === 'free' ? 'bg-blue-50 text-blue-600 dark:bg-blue-900/20' : 'bg-amber-50 text-amber-600 dark:bg-amber-900/20'
+                                                                        }`}>
                                                                         {tier}
                                                                     </Badge>
                                                                 </div>
@@ -543,27 +559,78 @@ export function AuditLogSettings() {
                                             </div>
                                         ))}
 
-                                        {/* Other Changes */}
-                                        {flattenedOtherChanges.length > 0 && (
-                                            <div className="space-y-3">
+                                        {/* Other Grouped Changes */}
+                                        {Object.entries(groupedOtherChanges).map(([category, items]: [string, any]) => (
+                                            <div key={category} className="space-y-3">
                                                 <div className="flex items-center gap-2 px-1">
-                                                    <span className="text-[10px] font-bold uppercase tracking-widest text-[#A3AED0]">Configuration Details</span>
+                                                    <span className="text-[10px] font-bold uppercase tracking-widest text-[#A3AED0]">{category} Details</span>
                                                     <div className="h-px flex-1 bg-gray-100 dark:bg-white/5" />
                                                 </div>
-                                                <div className="space-y-2">
-                                                    {flattenedOtherChanges.map(({ label, value }, index) => (
-                                                        <div key={`${label}-${index}`} className="p-4 bg-gray-50 dark:bg-white/5 rounded-2xl border border-gray-100 dark:border-white/5">
-                                                            <div className="text-[10px] font-black uppercase text-[#A3AED0] tracking-tighter mb-1">{label}</div>
-                                                            <div className="whitespace-pre-wrap text-xs font-bold text-[#1b254b] dark:text-white">
-                                                                {value}
+                                                <div className="space-y-3">
+                                                    {items.length === 1 && items[0].displayLabel === items[0].label ? (
+                                                        // Simple single item card
+                                                        <div className="p-5 bg-white dark:bg-white/5 rounded-2xl border border-gray-100 dark:border-white/10 shadow-sm transition-all hover:shadow-md">
+                                                            <div className="text-[10px] font-black uppercase text-[#A3AED0] tracking-widest mb-2">{items[0].label}</div>
+                                                            {items[0].value.includes(' → ') ? (
+                                                                <div className="flex items-center gap-4 mt-4 p-3 bg-gray-50 dark:bg-white/[0.02] rounded-xl border border-gray-100 dark:border-white/5">
+                                                                    <div className="flex-1 flex flex-col gap-1">
+                                                                        <span className="text-[9px] font-bold uppercase text-[#A3AED0] tracking-tight">Previous</span>
+                                                                        <span className="text-xs font-bold text-[#1b254b] dark:text-white capitalize">
+                                                                            {items[0].value.split(' → ')[0]}
+                                                                        </span>
+                                                                    </div>
+                                                                    <ArrowRight className="w-4 h-4 text-[#A3AED0] shrink-0" />
+                                                                    <div className="flex-1 flex flex-col gap-1">
+                                                                        <span className="text-[9px] font-bold uppercase text-[#A3AED0] tracking-tight">New</span>
+                                                                        <span className="text-xs font-bold text-[#4318FF] dark:text-blue-400 capitalize">
+                                                                            {items[0].value.split(' → ')[1]}
+                                                                        </span>
+                                                                    </div>
+                                                                </div>
+                                                            ) : (
+                                                                <div className="whitespace-pre-wrap text-sm font-bold text-[#1b254b] dark:text-white capitalize">
+                                                                    {items[0].value}
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    ) : (
+                                                        // Grouped multi-item card
+                                                        <div className="p-5 bg-white dark:bg-white/5 rounded-2xl border border-gray-100 dark:border-white/10 shadow-sm transition-all hover:shadow-md">
+                                                            <div className="space-y-4">
+                                                                {items.map((item: any, idx: number) => (
+                                                                    <div key={idx} className={`flex flex-col gap-1 ${idx !== 0 ? 'pt-4 border-t border-gray-50 dark:border-white/5' : ''}`}>
+                                                                        <div className="text-[10px] font-bold uppercase text-[#A3AED0] tracking-tight">{item.displayLabel}</div>
+                                                                        {item.value.includes(' → ') ? (
+                                                                            <div className="flex items-center gap-4 mt-3 p-3 bg-gray-50 dark:bg-white/[0.02] rounded-xl border border-gray-100 dark:border-white/5">
+                                                                                <div className="flex-1 flex flex-col gap-1">
+                                                                                    <span className="text-[9px] font-bold uppercase text-[#A3AED0] tracking-tight">Previous</span>
+                                                                                    <span className="text-xs font-bold text-[#1b254b] dark:text-white capitalize">
+                                                                                        {item.value.split(' → ')[0]}
+                                                                                    </span>
+                                                                                </div>
+                                                                                <ArrowRight className="w-4 h-4 text-[#A3AED0] shrink-0" />
+                                                                                <div className="flex-1 flex flex-col gap-1">
+                                                                                    <span className="text-[9px] font-bold uppercase text-[#A3AED0] tracking-tight">New</span>
+                                                                                    <span className="text-xs font-bold text-[#4318FF] dark:text-blue-400 capitalize">
+                                                                                        {item.value.split(' → ')[1]}
+                                                                                    </span>
+                                                                                </div>
+                                                                            </div>
+                                                                        ) : (
+                                                                            <div className="whitespace-pre-wrap text-sm font-bold text-[#1b254b] dark:text-white capitalize">
+                                                                                {item.value}
+                                                                            </div>
+                                                                        )}
+                                                                    </div>
+                                                                ))}
                                                             </div>
                                                         </div>
-                                                    ))}
+                                                    )}
                                                 </div>
                                             </div>
-                                        )}
+                                        ))}
 
-                                        {Object.keys(groupedFeatureFlags).length === 0 && flattenedOtherChanges.length === 0 && statusChanges.length === 0 && (
+                                        {Object.keys(groupedFeatureFlags).length === 0 && Object.keys(groupedOtherChanges).length === 0 && statusChanges.length === 0 && (
                                             <div className="p-8 text-center bg-gray-50 dark:bg-white/5 rounded-3xl border border-dashed border-gray-200 dark:border-white/10">
                                                 <p className="text-xs font-medium text-[#A3AED0]">No data changes recorded for this action.</p>
                                             </div>
@@ -573,9 +640,9 @@ export function AuditLogSettings() {
                             </div>
                         </div>
                     )}
-                    
+
                     <div className="p-6 bg-gray-50 dark:bg-white/5 flex justify-end">
-                        <Button 
+                        <Button
                             onClick={() => setSelectedLog(null)}
                             className="bg-[#4318FF] hover:bg-[#3311CC] text-white font-bold rounded-xl px-8"
                         >

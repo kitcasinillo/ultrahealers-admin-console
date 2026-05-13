@@ -1,17 +1,19 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
   Calendar,
   CheckCircle2,
   DollarSign,
   Users,
-  Award
+  Award,
+  Loader2,
+  AlertCircle
 } from "lucide-react";
 import { StatsCard } from "../../components/StatsCard";
 import {
   DateRangePicker,
-  GranularityTabs,
   ExportDropdown
 } from "../../components/common";
+import { ReportSkeleton } from "../../components/ui/skeleton";
 import {
   BaseAreaChart,
   BaseBarChart,
@@ -20,70 +22,7 @@ import {
   BasePieChart
 } from "../../components/Charts";
 import { exportBookingReportExcel, exportBookingReportPdf } from "../../lib/exportUtils";
-
-// --- Mock Data ---
-
-const bookingVolume = [
-  { name: "Mon", bookings: 145 },
-  { name: "Tue", bookings: 132 },
-  { name: "Wed", bookings: 164 },
-  { name: "Thu", bookings: 188 },
-  { name: "Fri", bookings: 210 },
-  { name: "Sat", bookings: 245 },
-  { name: "Sun", bookings: 198 },
-];
-
-const modalityPopularity = [
-  { modality: "Meditation", sessions: 850 },
-  { modality: "Yoga", sessions: 720 },
-  { modality: "Reiki", sessions: 450 },
-  { modality: "Astrology", sessions: 380 },
-  { modality: "Counseling", sessions: 310 },
-];
-
-const formatBreakdown = [
-  { name: "Remote", value: 65, color: "#4318FF" },
-  { name: "In-Person", value: 35, color: "#01A3B4" },
-];
-
-const durationDistribution = [
-  { length: "30m", count: 420 },
-  { length: "60m", count: 850 },
-  { length: "90m", count: 310 },
-  { length: "2h+", count: 145 },
-];
-
-const completionRate = [
-  { status: "Requested", rate: 100 },
-  { status: "Confirmed", rate: 88 },
-  { status: "Paid", rate: 85 },
-  { status: "Completed", rate: 82 },
-  { status: "Reviewed", rate: 65 },
-];
-
-const avgBookingValue = [
-  { name: "Week 1", value: 85 },
-  { name: "Week 2", value: 92 },
-  { name: "Week 3", value: 88 },
-  { name: "Week 4", value: 95 },
-  { name: "Week 5", value: 102 },
-  { name: "Week 6", value: 98 },
-];
-
-const topHealersByCount = [
-  { name: "Sarah Chen", count: 145, revenue: 12500, rating: 4.9 },
-  { name: "Marcus Thorne", count: 132, revenue: 11200, rating: 4.8 },
-  { name: "Elena Rodriguez", count: 118, revenue: 9800, rating: 4.7 },
-  { name: "Brother John", count: 105, revenue: 8400, rating: 4.6 },
-  { name: "Aria Moonsong", count: 98, revenue: 7600, rating: 4.9 },
-  { name: "David Kim", count: 85, revenue: 6800, rating: 4.5 },
-  { name: "Maya Patel", count: 72, revenue: 5900, rating: 4.8 },
-  { name: "Samuel Green", count: 65, revenue: 5200, rating: 4.4 },
-  { name: "Luna Star", count: 58, revenue: 4800, rating: 5.0 },
-  { name: "Zoe Rivers", count: 42, revenue: 3500, rating: 4.3 },
-];
-
-const topHealersByRevenue = [...topHealersByCount].sort((a, b) => b.revenue - a.revenue);
+import { getBookingReport, type BookingReportData } from "../../api/reports";
 
 // --- Column Definitions ---
 import { DataTable } from "../../components/DataTable";
@@ -118,30 +57,97 @@ const columns: ColumnDef<any>[] = [
 ];
 
 export function BookingReport() {
-  const [dateRange, setDateRange] = useState("This Month");
+  const [dateRange, setDateRange] = useState("Monthly");
   const [customStartDate, setCustomStartDate] = useState("");
   const [customEndDate, setCustomEndDate] = useState("");
-  const [granularity, setGranularity] = useState("Daily");
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [reportData, setReportData] = useState<BookingReportData | null>(null);
+  
+  const reportCache = useRef<Record<string, BookingReportData>>({});
 
-  const summaryData = [
-    { title: "Total Bookings", value: "1,245", description: "+8% from last month" },
-    { title: "Avg. Session Value", value: "$92.40", description: "Steady platform average" },
-    { title: "Repeat Rate", value: "24.5%", description: "Seekers with 2+ bookings" },
-    { title: "Completion Rate", value: "82%", description: "Request to successfully finished" },
-  ];
+  useEffect(() => {
+    const fetchData = async () => {
+      // Don't fetch if Custom is selected but dates are incomplete
+      if (dateRange === "Custom" && (!customStartDate || !customEndDate)) {
+        return;
+      }
+
+      const cacheKey = `${dateRange}-${customStartDate}-${customEndDate}`;
+      if (reportCache.current[cacheKey]) {
+        setReportData(reportCache.current[cacheKey]);
+        setIsLoading(false);
+        return;
+      }
+
+      setIsLoading(true);
+      setError(null);
+
+      try {
+        // Map common dateRange strings to backend expected range / granularity
+        let rangeParam = dateRange;
+        let granularityParam = "Weekly";
+
+        if (dateRange === "Daily" || dateRange === "Today") {
+          rangeParam = "Today";
+          granularityParam = "Hourly";
+        } else if (dateRange === "Weekly" || dateRange === "This Week") {
+          rangeParam = "This Week";
+          granularityParam = "Daily";
+        } else if (dateRange === "Monthly" || dateRange === "This Month") {
+          rangeParam = "This Month";
+          granularityParam = "Weekly";
+        } else if (dateRange === "Yearly" || dateRange === "This Year") {
+          rangeParam = "This Year";
+          granularityParam = "Monthly";
+        }
+
+        const data = await getBookingReport(
+          dateRange === "Custom" ? customStartDate : undefined,
+          dateRange === "Custom" ? customEndDate : undefined,
+          granularityParam,
+          rangeParam
+        );
+        
+        reportCache.current[cacheKey] = data;
+        setReportData(data);
+      } catch (err: any) {
+        setError(err.message || "Failed to load booking report data.");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchData();
+  }, [dateRange, customStartDate, customEndDate]);
+
+  const handleRetry = () => {
+    const cacheKey = `${dateRange}-${customStartDate}-${customEndDate}`;
+    delete reportCache.current[cacheKey];
+    setDateRange((prev) => prev); // force re-trigger
+  };
+
+  const getExportDateRange = () => {
+    if (dateRange === "Custom") {
+      return `${customStartDate || "Start"} to ${customEndDate || "End"}`;
+    }
+    return dateRange;
+  };
 
   return (
     <div className="space-y-6 pb-12">
       {/* Header Section */}
       <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4">
         <div>
-          <h2 className="text-3xl font-extrabold tracking-tight text-[#1b254b] dark:text-white">Booking & Session Report</h2>
+          <div className="flex items-center gap-3">
+            <h2 className="text-3xl font-extrabold tracking-tight text-[#1b254b] dark:text-white">Booking & Session Report</h2>
+            {isLoading && <Loader2 className="h-5 w-5 animate-spin text-[#4318FF]" />}
+          </div>
           <p className="text-[#A3AED0] text-sm mt-1 font-medium italic">
             Monitor platform booking volume, practitioner performance, and session demographics.
           </p>
         </div>
         <div className="flex flex-col sm:flex-row items-center gap-3">
-          <GranularityTabs granularity={granularity} setGranularity={setGranularity} />
           <DateRangePicker
             dateRange={dateRange}
             setDateRange={setDateRange}
@@ -151,35 +157,54 @@ export function BookingReport() {
             setCustomEndDate={setCustomEndDate}
           />
           <ExportDropdown 
-            onExportExcel={() => exportBookingReportExcel({ 
-              summaryData, 
-              bookingVolume, 
-              avgBookingValue,
-              modalityPopularity, 
-              durationDistribution, 
-              completionRate, 
-              formatBreakdown,
-              topHealersByCount,
-              topHealersByRevenue
+            onExportExcel={() => reportData && exportBookingReportExcel({ 
+              dateRange: getExportDateRange(),
+              summaryData: reportData.summaryData, 
+              bookingVolume: reportData.bookingVolume, 
+              avgBookingValue: reportData.avgBookingValue,
+              modalityPopularity: reportData.modalityPopularity, 
+              durationDistribution: reportData.durationDistribution, 
+              completionRate: reportData.completionRate, 
+              formatBreakdown: reportData.formatBreakdown,
+              topHealersByCount: reportData.topHealersByCount,
+              topHealersByRevenue: reportData.topHealersByRevenue
             })} 
-            onExportPdf={() => exportBookingReportPdf({ 
-              summaryData, 
-              bookingVolume, 
-              avgBookingValue,
-              modalityPopularity, 
-              durationDistribution, 
-              completionRate, 
-              formatBreakdown,
-              topHealersByCount,
-              topHealersByRevenue
+            onExportPdf={() => reportData && exportBookingReportPdf({ 
+              dateRange: getExportDateRange(),
+              summaryData: reportData.summaryData, 
+              bookingVolume: reportData.bookingVolume, 
+              avgBookingValue: reportData.avgBookingValue,
+              modalityPopularity: reportData.modalityPopularity, 
+              durationDistribution: reportData.durationDistribution, 
+              completionRate: reportData.completionRate, 
+              formatBreakdown: reportData.formatBreakdown,
+              topHealersByCount: reportData.topHealersByCount,
+              topHealersByRevenue: reportData.topHealersByRevenue
             })} 
           />
         </div>
       </div>
 
+      {error ? (
+        <div className="flex flex-col items-center justify-center p-12 bg-white dark:bg-[#111C44] rounded-3xl shadow-[0_10px_30px_0_rgba(11,20,55,0.06)] dark:shadow-none border border-transparent dark:border-white/5">
+          <AlertCircle className="h-12 w-12 text-red-500 mb-4" />
+          <h3 className="text-xl font-bold text-[#1b254b] dark:text-white mb-2">Error Loading Report</h3>
+          <p className="text-[#A3AED0] mb-6 text-center max-w-md">{error}</p>
+          <button 
+            onClick={handleRetry}
+            className="px-6 py-2.5 bg-[#4318FF] hover:bg-[#3311DB] text-white rounded-xl font-medium transition-colors"
+          >
+            Retry
+          </button>
+        </div>
+      ) : isLoading && !reportData ? (
+        <ReportSkeleton />
+      ) : reportData ? (
+        <div className="space-y-12 animate-in fade-in slide-in-from-bottom-4 duration-700">
+
       {/* Stats Cards */}
       <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-4">
-        {summaryData.map((card, idx) => (
+        {reportData.summaryData.map((card, idx) => (
           <StatsCard
             key={idx}
             title={card.title}
@@ -199,12 +224,12 @@ export function BookingReport() {
       <div className="grid gap-5 md:grid-cols-1 lg:grid-cols-2">
         <BaseBarChart
           title="Booking Volume"
-          data={bookingVolume}
+          data={reportData.bookingVolume}
           bars={[{ name: "Bookings", dataKey: "bookings", fill: "#4318FF" }]}
         />
         <BaseLineChart
           title="Average Booking Value ($)"
-          data={avgBookingValue}
+          data={reportData.avgBookingValue}
           lines={[{ name: "Avg Value", dataKey: "value", stroke: "#01A3B4" }]}
         />
       </div>
@@ -213,14 +238,14 @@ export function BookingReport() {
       <div className="grid gap-5 md:grid-cols-1 lg:grid-cols-2">
         <BaseHorizontalBarChart
           title="Modality Popularity (Sessions count)"
-          data={modalityPopularity}
+          data={reportData.modalityPopularity}
           dataKey="sessions"
           nameKey="modality"
           fill="#4318FF"
         />
         <BaseBarChart
           title="Session Length Distribution"
-          data={durationDistribution.map(d => ({ ...d, name: d.length }))}
+          data={reportData.durationDistribution.map(d => ({ ...d, name: d.length }))}
           bars={[{ name: "Sessions", dataKey: "count", fill: "#01A3B4" }]}
         />
       </div>
@@ -229,12 +254,12 @@ export function BookingReport() {
       <div className="grid gap-5 md:grid-cols-1 xl:grid-cols-[1fr_400px]">
         <BaseAreaChart
           title="Booking Lifecycle Completion Rate (%)"
-          data={completionRate.map(c => ({ ...c, name: c.status }))}
+          data={reportData.completionRate.map(c => ({ ...c, name: c.status }))}
           areas={[{ name: "Success %", dataKey: "rate", stroke: "#7C3AED" }]}
         />
         <BasePieChart
           title="Format Breakdown (Remote vs In-Person)"
-          data={formatBreakdown}
+          data={reportData.formatBreakdown}
         />
       </div>
 
@@ -242,14 +267,14 @@ export function BookingReport() {
       <div className="grid gap-5 md:grid-cols-1 lg:grid-cols-2">
         <BaseHorizontalBarChart
           title="Top 10 Practitioners by Booking Count"
-          data={topHealersByCount}
+          data={reportData.topHealersByCount}
           dataKey="count"
           nameKey="name"
           fill="#4318FF"
         />
         <BaseHorizontalBarChart
           title="Top 10 Practitioners by Revenue ($)"
-          data={topHealersByRevenue}
+          data={reportData.topHealersByRevenue}
           dataKey="revenue"
           nameKey="name"
           fill="#01A3B4"
@@ -266,10 +291,11 @@ export function BookingReport() {
           </div>
         </div>
         <div className="overflow-x-auto -mx-6 px-6">
-          <DataTable columns={columns} data={topHealersByCount} />
+          <DataTable columns={columns} data={reportData.topHealersByCount} />
         </div>
       </div>
-
+      </div>
+      ) : null}
     </div>
   );
 }

@@ -230,3 +230,39 @@ export const getDisputeReport = async (
     throw error;
   }
 };
+
+export interface BookingReportData {
+  summaryData: { title: string; value: string; description: string }[];
+  bookingVolume: { name: string; bookings: number }[];
+  avgBookingValue: { name: string; value: number }[];
+  modalityPopularity: { modality: string; sessions: number }[];
+  durationDistribution: { length: string; count: number }[];
+  formatBreakdown: { name: string; value: number; color: string }[];
+  completionRate: { status: string; rate: number }[];
+  topHealersByCount: { name: string; count: number; revenue: number; rating: number }[];
+  topHealersByRevenue: { name: string; count: number; revenue: number; rating: number }[];
+}
+
+/**
+ * Fetch booking report data from the backend
+ */
+export const getBookingReport = async (
+  startDate?: string,
+  endDate?: string,
+  granularity?: string,
+  range?: string
+): Promise<BookingReportData> => {
+  try {
+    const response = await api.get("/api/admin/reports/bookings", {
+      params: { startDate, endDate, granularity, range }
+    });
+
+    if (response.data.success) {
+      return response.data.data;
+    }
+    throw new Error(response.data.error || "Failed to fetch booking report data");
+  } catch (error) {
+    console.error("Error fetching booking report:", error);
+    throw error;
+  }
+};

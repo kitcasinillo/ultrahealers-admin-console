@@ -1,7 +1,31 @@
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import * as XLSX from 'xlsx';
+// Helper to auto-fit Excel columns based on data length
+const getAutoFitColumns = (json: any[]) => {
+  if (!json || json.length === 0) return [];
+  const keys = Object.keys(json[0]);
+  return keys.map(key => {
+    let maxLength = key.length;
+    json.forEach(row => {
+      const val = row[key];
+      const length = val ? String(val).length : 0;
+      if (length > maxLength) maxLength = length;
+    });
+    return { wch: maxLength + 2 }; // padding
+  });
+};
 
+// Helper to check for meaningful data (non-zero/non-empty)
+const hasMeaningfulData = (arr: any[]) => {
+  if (!arr || arr.length === 0) return false;
+  return arr.some(item => {
+    return Object.values(item).some(v => 
+      (typeof v === 'number' && v > 0) || 
+      (typeof v === 'string' && v.trim() !== '' && v !== '0' && v !== '0%')
+    );
+  });
+};
 export interface ReportDataPayload {
   dateRange: string;
   summaryData: Array<{ title: string; value: string; description?: string }>;
@@ -1220,6 +1244,7 @@ export const exportGrowthCsv = (payload: GrowthExportPayload) => {
  */
 
 export interface BookingExportPayload {
+  dateRange?: string;
   summaryData: any[];
   bookingVolume: any[];
   avgBookingValue: any[];
@@ -1233,6 +1258,7 @@ export interface BookingExportPayload {
 
 export const exportBookingReportPdf = (payload: BookingExportPayload) => {
   const { 
+    dateRange,
     summaryData, 
     bookingVolume, 
     avgBookingValue, 
@@ -1252,131 +1278,142 @@ export const exportBookingReportPdf = (payload: BookingExportPayload) => {
   doc.setFontSize(10);
   doc.setTextColor(163, 174, 208);
   doc.text(`Generated on: ${new Date().toLocaleString()}`, 14, 28);
+  if (dateRange) {
+    doc.text(`Reporting Period: ${dateRange}`, 14, 34);
+  }
 
-    // 1. Summary Metrics
-    doc.setFontSize(14);
-    doc.setTextColor(27, 37, 75);
-    doc.text("1. Key Performance Summary", 14, 40);
+  let currentY = dateRange ? 44 : 38;
 
-    autoTable(doc, {
-      startY: 45,
-      head: [['Metric', 'Value', 'Context']],
-      body: summaryData.map(s => [s.title, s.value, s.description || '-']),
-      theme: 'grid',
-      headStyles: { fillColor: [67, 24, 255] },
-      styles: { fontSize: 9 }
-    });
+  const noDataBody = (colSpan: number) => [[{ 
+    content: 'No data available for the selected period', 
+    colSpan, 
+    styles: { halign: 'center' as const, fontStyle: 'italic' as const } 
+  }]];
 
-    let currentY = (doc as any).lastAutoTable.finalY + 15;
+  // 1. Summary Metrics
+  doc.setFontSize(14);
+  doc.setTextColor(27, 37, 75);
+  doc.text("1. Key Performance Summary", 14, currentY);
 
-    // 2. Booking Volume
-    doc.text("2. Booking Volume", 14, currentY);
-    autoTable(doc, {
-      startY: currentY + 5,
-      head: [['Period', 'Total Bookings']],
-      body: bookingVolume.map(v => [v.name, String(v.bookings)]),
-      theme: 'striped',
-      headStyles: { fillColor: [67, 24, 255] },
-      styles: { fontSize: 9 }
-    });
+  autoTable(doc, {
+    startY: currentY + 5,
+    head: [['Metric', 'Value', 'Context']],
+    body: hasMeaningfulData(summaryData) ? summaryData.map(s => [s.title, s.value, s.description || '-']) : noDataBody(3),
+    theme: 'grid',
+    headStyles: { fillColor: [67, 24, 255] },
+    styles: { fontSize: 9 }
+  });
 
-    currentY = (doc as any).lastAutoTable.finalY + 15;
-    if (currentY > 240) { doc.addPage(); currentY = 20; }
+  currentY = (doc as any).lastAutoTable.finalY + 15;
 
-    // 3. Avg Booking Value
-    doc.text("3. Average Booking Value ($)", 14, currentY);
-    autoTable(doc, {
-      startY: currentY + 5,
-      head: [['Period', 'Value ($)']],
-      body: avgBookingValue.map(v => [v.name, `$${v.value}`]),
-      theme: 'striped',
-      headStyles: { fillColor: [1, 163, 180] },
-      styles: { fontSize: 9 }
-    });
+  // 2. Booking Volume
+  doc.text("2. Booking Volume", 14, currentY);
+  autoTable(doc, {
+    startY: currentY + 5,
+    head: [['Period', 'Total Bookings']],
+    body: hasMeaningfulData(bookingVolume) ? bookingVolume.map(v => [v.name, String(v.bookings)]) : noDataBody(2),
+    theme: 'striped',
+    headStyles: { fillColor: [67, 24, 255] },
+    styles: { fontSize: 9 }
+  });
 
     currentY = (doc as any).lastAutoTable.finalY + 15;
     if (currentY > 240) { doc.addPage(); currentY = 20; }
 
-    // 4. Modality Popularity
-    doc.text("4. Modality Popularity", 14, currentY);
-    autoTable(doc, {
-      startY: currentY + 5,
-      head: [['Modality', 'Sessions Count']],
-      body: modalityPopularity.map(m => [m.modality, String(m.sessions)]),
-      theme: 'striped',
-      headStyles: { fillColor: [67, 24, 255] },
-      styles: { fontSize: 9 }
-    });
+  // 3. Avg Booking Value
+  doc.text("3. Average Booking Value ($)", 14, currentY);
+  autoTable(doc, {
+    startY: currentY + 5,
+    head: [['Period', 'Value ($)']],
+    body: hasMeaningfulData(avgBookingValue) ? avgBookingValue.map(v => [v.name, `$${v.value}`]) : noDataBody(2),
+    theme: 'striped',
+    headStyles: { fillColor: [1, 163, 180] },
+    styles: { fontSize: 9 }
+  });
 
     currentY = (doc as any).lastAutoTable.finalY + 15;
     if (currentY > 240) { doc.addPage(); currentY = 20; }
 
-    // 5. Session Length Distribution
-    doc.text("5. Session Length Distribution", 14, currentY);
-    autoTable(doc, {
-      startY: currentY + 5,
-      head: [['Length', 'Count']],
-      body: durationDistribution.map(d => [d.length, String(d.count)]),
-      theme: 'striped',
-      headStyles: { fillColor: [1, 163, 180] },
-      styles: { fontSize: 9 }
-    });
+  // 4. Modality Popularity
+  doc.text("4. Modality Popularity", 14, currentY);
+  autoTable(doc, {
+    startY: currentY + 5,
+    head: [['Modality', 'Sessions Count']],
+    body: hasMeaningfulData(modalityPopularity) ? modalityPopularity.map(m => [m.modality, String(m.sessions)]) : noDataBody(2),
+    theme: 'striped',
+    headStyles: { fillColor: [67, 24, 255] },
+    styles: { fontSize: 9 }
+  });
 
     currentY = (doc as any).lastAutoTable.finalY + 15;
     if (currentY > 240) { doc.addPage(); currentY = 20; }
 
-    // 6. Completion Rate
-    doc.text("6. Booking Lifecycle Completion Rate (%)", 14, currentY);
-    autoTable(doc, {
-      startY: currentY + 5,
-      head: [['Status', 'Rate (%)']],
-      body: completionRate.map(c => [c.status, `${c.rate}%`]),
-      theme: 'striped',
-      headStyles: { fillColor: [124, 58, 237] },
-      styles: { fontSize: 9 }
-    });
+  // 5. Session Length Distribution
+  doc.text("5. Session Length Distribution", 14, currentY);
+  autoTable(doc, {
+    startY: currentY + 5,
+    head: [['Length', 'Count']],
+    body: hasMeaningfulData(durationDistribution) ? durationDistribution.map(d => [d.length, String(d.count)]) : noDataBody(2),
+    theme: 'striped',
+    headStyles: { fillColor: [1, 163, 180] },
+    styles: { fontSize: 9 }
+  });
 
     currentY = (doc as any).lastAutoTable.finalY + 15;
     if (currentY > 240) { doc.addPage(); currentY = 20; }
 
-    // 7. Format Breakdown
-    doc.text("7. Format Breakdown (Remote vs In-Person)", 14, currentY);
-    autoTable(doc, {
-      startY: currentY + 5,
-      head: [['Format', 'Value (%)']],
-      body: formatBreakdown.map(f => [f.name, `${f.value}%`]),
-      theme: 'striped',
-      headStyles: { fillColor: [1, 163, 180] },
-      styles: { fontSize: 9 }
-    });
+  // 6. Completion Rate
+  doc.text("6. Booking Lifecycle Completion Rate (%)", 14, currentY);
+  autoTable(doc, {
+    startY: currentY + 5,
+    head: [['Status', 'Rate (%)']],
+    body: hasMeaningfulData(completionRate) ? completionRate.map(c => [c.status, `${c.rate}%`]) : noDataBody(2),
+    theme: 'striped',
+    headStyles: { fillColor: [124, 58, 237] },
+    styles: { fontSize: 9 }
+  });
+
+    currentY = (doc as any).lastAutoTable.finalY + 15;
+    if (currentY > 240) { doc.addPage(); currentY = 20; }
+
+  // 7. Format Breakdown
+  doc.text("7. Format Breakdown (Remote vs In-Person)", 14, currentY);
+  autoTable(doc, {
+    startY: currentY + 5,
+    head: [['Format', 'Value (%)']],
+    body: hasMeaningfulData(formatBreakdown) ? formatBreakdown.map(f => [f.name, `${f.value}%`]) : noDataBody(2),
+    theme: 'striped',
+    headStyles: { fillColor: [1, 163, 180] },
+    styles: { fontSize: 9 }
+  });
 
     doc.addPage();
     currentY = 20;
 
-    // 8. Top Healers by Count
-    doc.text("8. Top 10 Practitioners by Booking Count", 14, currentY);
-    autoTable(doc, {
-      startY: currentY + 5,
-      head: [['Practitioner', 'Bookings', 'Rating']],
-      body: topHealersByCount.map(h => [h.name, String(h.count), `${h.rating}`]),
-      theme: 'striped',
-      headStyles: { fillColor: [67, 24, 255] },
-      styles: { fontSize: 9 }
-    });
+  // 8. Top Healers by Count
+  doc.text("8. Top 10 Practitioners by Booking Count", 14, currentY);
+  autoTable(doc, {
+    startY: currentY + 5,
+    head: [['Practitioner', 'Bookings', 'Rating']],
+    body: hasMeaningfulData(topHealersByCount) ? topHealersByCount.map(h => [h.name, String(h.count), `${h.rating}`]) : noDataBody(3),
+    theme: 'striped',
+    headStyles: { fillColor: [67, 24, 255] },
+    styles: { fontSize: 9 }
+  });
 
     currentY = (doc as any).lastAutoTable.finalY + 15;
     if (currentY > 240) { doc.addPage(); currentY = 20; }
 
-    // 9. Top Healers by Revenue
-    doc.text("9. Top 10 Practitioners by Revenue ($)", 14, currentY);
-    autoTable(doc, {
-      startY: currentY + 5,
-      head: [['Practitioner', 'Revenue ($)', 'Rating']],
-      body: topHealersByRevenue.map(h => [h.name, `$${h.revenue.toLocaleString()}`, `${h.rating}`]),
-      theme: 'striped',
-      headStyles: { fillColor: [1, 163, 180] },
-      styles: { fontSize: 9 }
-    });
+  // 9. Top Healers by Revenue
+  doc.text("9. Top 10 Practitioners by Revenue ($)", 14, currentY);
+  autoTable(doc, {
+    startY: currentY + 5,
+    head: [['Practitioner', 'Revenue ($)', 'Rating']],
+    body: hasMeaningfulData(topHealersByRevenue) ? topHealersByRevenue.map(h => [h.name, `$${h.revenue.toLocaleString()}`, `${h.rating}`]) : noDataBody(3),
+    theme: 'striped',
+    headStyles: { fillColor: [1, 163, 180] },
+    styles: { fontSize: 9 }
+  });
 
     currentY = (doc as any).lastAutoTable.finalY + 15;
     if (currentY > 240) { doc.addPage(); currentY = 20; }
@@ -1402,6 +1439,7 @@ export const exportBookingReportPdf = (payload: BookingExportPayload) => {
 
 export const exportBookingReportExcel = (payload: BookingExportPayload) => {
   const { 
+    dateRange,
     summaryData, 
     bookingVolume, 
     avgBookingValue, 
@@ -1414,41 +1452,37 @@ export const exportBookingReportExcel = (payload: BookingExportPayload) => {
   } = payload;
   const wb = XLSX.utils.book_new();
 
-  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(
-    summaryData.map(s => ({ 'Metric': s.title, 'Value': s.value, 'Context': s.description || '-' }))
-  ), "Summary Metrics");
+  // Add Date Range sheet if present
+  if (dateRange) {
+    const metaData = [
+      ["Booking Report Metadata"],
+      ["Generated On", new Date().toLocaleString()],
+      ["Reporting Period", dateRange]
+    ];
+    const wsMeta = XLSX.utils.aoa_to_sheet(metaData);
+    wsMeta['!cols'] = [{ wch: 20 }, { wch: 30 }];
+    XLSX.utils.book_append_sheet(wb, wsMeta, "Metadata");
+  }
 
-  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(
-    bookingVolume.map(v => ({ 'Period': v.name, 'Total Bookings': v.bookings }))
-  ), "Booking Volume");
+  const addSheet = (arr: any[], sheetName: string) => {
+    const finalData = hasMeaningfulData(arr) 
+      ? arr 
+      : [{ 'Message': 'No data available for the selected period' }];
+    const ws = XLSX.utils.json_to_sheet(finalData);
+    ws['!cols'] = getAutoFitColumns(finalData);
+    XLSX.utils.book_append_sheet(wb, ws, sheetName);
+  };
 
-  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(
-    avgBookingValue.map(v => ({ 'Period': v.name, 'Value ($)': v.value }))
-  ), "Avg Booking Value");
+  addSheet(summaryData.map(s => ({ 'Metric': s.title, 'Value': s.value, 'Context': s.description || '-' })), "Summary Metrics");
 
-  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(
-    modalityPopularity.map(m => ({ 'Modality': m.modality, 'Sessions Count': m.sessions }))
-  ), "Modality Popularity");
-
-  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(
-    durationDistribution.map(d => ({ 'Length': d.length, 'Count': d.count }))
-  ), "Length Distribution");
-
-  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(
-    completionRate.map(c => ({ 'Status': c.status, 'Rate (%)': c.rate }))
-  ), "Completion Rate");
-
-  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(
-    formatBreakdown.map(f => ({ 'Format': f.name, 'Value (%)': f.value }))
-  ), "Format Breakdown");
-
-  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(
-    topHealersByCount.map(h => ({ 'Practitioner': h.name, 'Bookings': h.count, 'Rating': h.rating }))
-  ), "Top Healers by Count");
-
-  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(
-    topHealersByRevenue.map(h => ({ 'Practitioner': h.name, 'Revenue ($)': h.revenue, 'Rating': h.rating }))
-  ), "Top Healers by Revenue");
+  addSheet(bookingVolume.map(v => ({ 'Period': v.name, 'Total Bookings': v.bookings })), "Booking Volume");
+  addSheet(avgBookingValue.map(v => ({ 'Period': v.name, 'Value ($)': v.value })), "Avg Booking Value");
+  addSheet(modalityPopularity.map(m => ({ 'Modality': m.modality, 'Sessions Count': m.sessions })), "Modality Popularity");
+  addSheet(durationDistribution.map(d => ({ 'Length': d.length, 'Count': d.count })), "Session Lengths");
+  addSheet(completionRate.map(c => ({ 'Status': c.status, 'Rate (%)': c.rate })), "Completion Rate");
+  addSheet(formatBreakdown.map(f => ({ 'Format': f.name, 'Sessions': f.value })), "Format Breakdown");
+  addSheet(topHealersByCount.map(h => ({ 'Name': h.name, 'Bookings': h.count, 'Revenue': `$${h.revenue}`, 'Rating': h.rating })), "Top Healers (Volume)");
+  addSheet(topHealersByRevenue.map(h => ({ 'Name': h.name, 'Revenue': `$${h.revenue}`, 'Bookings': h.count, 'Rating': h.rating })), "Top Healers (Revenue)");
 
   // Practitioner Performance Summary (Table)
   const performanceData = topHealersByCount.map(h => ({

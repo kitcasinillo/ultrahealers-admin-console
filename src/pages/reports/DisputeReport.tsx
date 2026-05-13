@@ -89,8 +89,10 @@ export function DisputeReport() {
   };
 
   if (isLoading && !reportData) return <ReportSkeleton />;
+  if (error) return <div className="p-8 text-center text-red-500 font-bold bg-red-50 rounded-xl mt-8">Error: {error}</div>;
+  if (!reportData) return null;
 
-  const data = reportData!;
+  const data = reportData;
 
   return (
     <div className={`p-4 sm:p-6 lg:p-8 space-y-12 animate-in fade-in duration-700 max-w-[1700px] mx-auto overflow-hidden ${isLoading ? 'opacity-50 pointer-events-none' : ''}`}>

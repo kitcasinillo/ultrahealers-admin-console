@@ -768,7 +768,6 @@ export const exportDisputePdf = (payload: DisputeExportPayload) => {
     summaryData,
     disputeRateTrend, 
     disputesByType, 
-    disputesBySeverity, 
     outcomeBreakdown, 
     modalityDisputeRate, 
     healerRepeatDisputes 
@@ -896,7 +895,6 @@ export const exportDisputePdf = (payload: DisputeExportPayload) => {
 
 export const exportDisputeExcel = (payload: DisputeExportPayload) => {
   const { 
-    dateRange,
     summaryData,
     disputeRateTrend, 
     disputesByType, 

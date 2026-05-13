@@ -148,7 +148,6 @@ export const getRetreatsReport = async (
     const response = await api.get("/api/admin/reports/retreats", {
       params: { startDate, endDate, granularity, range }
     });
-
     if (response.data.success) {
       return response.data.data;
     }
@@ -174,7 +173,32 @@ export const getFinancialReport = async (
     });
 
     if (response.data.success) {
-      return response.data.data;
+      const data = response.data.data;
+
+      // Ensure healer names are populated from various possible fields
+      if (data.topHealers) {
+        data.topHealers = data.topHealers.map((h: any) => ({
+          ...h,
+          name: h.name || h.healerName || h.practitionerName || (h.healer as any)?.name || 'Unknown healer'
+        }));
+      }
+
+      if (data.bookingAudit) {
+        data.bookingAudit = data.bookingAudit.map((b: any) => ({
+          ...b,
+          healer: b.healer || b.healerName || (b.healer as any)?.name || 'Unknown healer',
+          seeker: b.seeker || b.seekerName || (b.seeker as any)?.name || 'Unknown seeker'
+        }));
+      }
+
+      if (data.premiumLog) {
+        data.premiumLog = data.premiumLog.map((p: any) => ({
+          ...p,
+          healer: p.healer || p.healerName || (p.healer as any)?.name || 'Unknown healer'
+        }));
+      }
+
+      return data;
     }
     throw new Error(response.data.error || "Failed to fetch financial report data");
   } catch (error) {
@@ -222,7 +246,43 @@ export const getDisputeReport = async (
     });
 
     if (response.data.success) {
-      return response.data.data;
+      const data = response.data.data;
+
+      // Handle missing healer names in the repeat disputes watchlist
+      if (data.healerRepeatDisputes) {
+        data.healerRepeatDisputes = data.healerRepeatDisputes.map((h: any) => {
+          const rawName = h.name || h.healerName || h.practitionerName || (h.healer as any)?.name || h.healer_name || h.practitioner;
+          const idFallback = h.id || h.healerId || h.healer_id || '';
+
+          return {
+            ...h,
+            name: (rawName && rawName !== 'Unknown' && rawName !== 'Unknown Healer')
+              ? rawName
+              : (idFallback ? `ID: ${idFallback}` : 'Unknown Healer')
+          };
+        });
+      }
+
+      // Handle missing modality names
+      if (data.modalityDisputeRate) {
+        data.modalityDisputeRate = data.modalityDisputeRate.map((m: any) => {
+          const rawName = m.name || m.modality || m.modalityName || m.serviceType;
+          return {
+            ...m,
+            name: rawName || 'Other'
+          };
+        });
+      }
+
+      // Handle missing dispute type names
+      if (data.disputesByType) {
+        data.disputesByType = data.disputesByType.map((t: any) => ({
+          ...t,
+          name: (t.name && t.name !== 'Unknown') ? (t.name || t.type || t.category || t.label) : (t.type || t.category || 'Other')
+        }));
+      }
+
+      return data;
     }
     throw new Error(response.data.error || "Failed to fetch dispute report data");
   } catch (error) {
@@ -258,7 +318,18 @@ export const getBookingReport = async (
     });
 
     if (response.data.success) {
-      return response.data.data;
+      const data = response.data.data;
+
+      // Ensure top healers have names
+      const fixHealerName = (h: any) => ({
+        ...h,
+        name: h.name || h.healerName || h.practitionerName || (h.healer as any)?.name || 'Unknown healer'
+      });
+
+      if (data.topHealersByCount) data.topHealersByCount = data.topHealersByCount.map(fixHealerName);
+      if (data.topHealersByRevenue) data.topHealersByRevenue = data.topHealersByRevenue.map(fixHealerName);
+
+      return data;
     }
     throw new Error(response.data.error || "Failed to fetch booking report data");
   } catch (error) {

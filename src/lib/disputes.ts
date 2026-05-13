@@ -2,13 +2,13 @@ import api from "./api";
 import { rtdb } from "./firebase";
 import { ref, get, query } from "firebase/database";
 
-export type DisputeType = 
+export type DisputeType =
   'no_show' | 'quality' | 'safety' | 'refund_request' | 'other';
 
 export type DisputeSeverity = 'normal' | 'safety';
 
-export type DisputeStatus = 
-  'open' | 'in_review' | 'resolved_refunded' | 
+export type DisputeStatus =
+  'open' | 'in_review' | 'resolved_refunded' |
   'resolved_partial_refund' | 'resolved_credit' | 'denied';
 
 export interface Dispute {
@@ -40,8 +40,8 @@ export interface Evidence {
 }
 
 export interface TimelineEvent {
-  step: 'submitted' | 'healer_responded' | 
-        'in_review' | 'decision_rendered';
+  step: 'submitted' | 'healer_responded' |
+  'in_review' | 'decision_rendered';
   completedAt: string | null;
   label: string;
 }
@@ -248,9 +248,9 @@ export const exportDisputes = async (filters: GetDisputesFilters): Promise<Blob>
   const headers = [
     'Dispute ID', 'Type', 'Severity', 'Booking', 'Seeker', 'Healer', 'Amount', 'Status', 'Submitted At', 'Response Due'
   ];
-  
+
   const csvRows = [headers.join(',')];
-  
+
   disputes.forEach(d => {
     // Format amount
     const formattedAmount = new Intl.NumberFormat("en-US", {
@@ -279,7 +279,7 @@ export const exportDisputes = async (filters: GetDisputesFilters): Promise<Blob>
     ];
     csvRows.push(row.join(','));
   });
-  
+
   return new Blob([csvRows.join('\n')], { type: 'text/csv' });
 };
 
@@ -296,14 +296,14 @@ export const getDisputeById = async (id: string): Promise<DisputeDetail> => {
 
   const allEvidence: Evidence[] = Array.isArray(d.evidence)
     ? d.evidence.map((ev: any, idx: number) => ({
-        id: String(ev.id || `ev-${idx}`),
-        url: ev.url || '',
-        filename: ev.filename || `evidence-${idx}`,
-        fileType: ev.fileType || 'other',
-        fileSize: Number(ev.fileSize || 0),
-        uploadedBy: ev.party === 'healer' ? 'healer' : 'seeker',
-        uploadedAt: ev.createdAt || submittedAt,
-      }))
+      id: String(ev.id || `ev-${idx}`),
+      url: ev.url || '',
+      filename: ev.filename || `evidence-${idx}`,
+      fileType: ev.fileType || 'other',
+      fileSize: Number(ev.fileSize || 0),
+      uploadedBy: ev.party === 'healer' ? 'healer' : 'seeker',
+      uploadedAt: ev.createdAt || submittedAt,
+    }))
     : [];
 
   const seekerEvidence = allEvidence.filter((ev) => ev.uploadedBy === 'seeker');
@@ -361,23 +361,23 @@ export const getDisputeById = async (id: string): Promise<DisputeDetail> => {
 export const renderDecision = async (id: string, payload: DecisionPayload): Promise<DisputeDetail> => {
   // In a real app, this is the trigger that fires the n8n event and emails both parties
   await api.post(`/api/disputes/${id}/decision`, {
-     outcome: payload.outcome,
-     refundAmount: payload.refundAmount,
-     creditAmount: payload.creditAmount,
-     notes: payload.adminNotes
+    outcome: payload.outcome,
+    refundAmount: payload.refundAmount,
+    creditAmount: payload.creditAmount,
+    notes: payload.adminNotes
   }).catch(() => {
-     console.warn("Backend decision endpoint failed or not present. Simulating success in mock mode.");
+    console.warn("Backend decision endpoint failed or not present. Simulating success in mock mode.");
   });
 
   const base = await getDisputeById(id);
   return {
-      ...base,
-      status: payload.outcome === 'deny' ? 'denied' : (payload.outcome === 'credit' ? 'resolved_credit' : (payload.outcome === 'partial_refund' ? 'resolved_partial_refund' : 'resolved_refunded')),
-      decision: {
-          ...payload,
-          renderedAt: new Date().toISOString(),
-          renderedBy: "Admin Investigator",
-      }
+    ...base,
+    status: payload.outcome === 'deny' ? 'denied' : (payload.outcome === 'credit' ? 'resolved_credit' : (payload.outcome === 'partial_refund' ? 'resolved_partial_refund' : 'resolved_refunded')),
+    decision: {
+      ...payload,
+      renderedAt: new Date().toISOString(),
+      renderedBy: "Admin Investigator",
+    }
   };
 };
 
@@ -404,5 +404,5 @@ export const getChatTranscript = async (bookingId: string) => {
     })).sort((a: any, b: any) => (a.createdAt || 0) - (b.createdAt || 0));
     return messages;
   }
-  return []; 
+  return [];
 };

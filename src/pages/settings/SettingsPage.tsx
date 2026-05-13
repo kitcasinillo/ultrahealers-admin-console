@@ -101,13 +101,16 @@ export function SettingsPage() {
 
     const getChangedSettings = (original: any, current: any): any => {
         if (original === current) return undefined;
+
+        // Handle primitive values by returning a diff object
         if (typeof original !== "object" || original === null || typeof current !== "object" || current === null) {
-            return current;
+            return { from: original, to: current };
         }
 
+        // Handle arrays (specifically for feature flags)
         if (Array.isArray(original) || Array.isArray(current)) {
-            if (!Array.isArray(original) || !Array.isArray(current)) return current;
-            if (original.length !== current.length) return current;
+            if (!Array.isArray(original) || !Array.isArray(current)) return { from: original, to: current };
+            if (original.length !== current.length) return { from: original, to: current };
 
             const isIdentifiable = (item: any) =>
                 item && typeof item === "object" && !Array.isArray(item) &&
@@ -117,6 +120,7 @@ export function SettingsPage() {
                 .map((item: any, index: number) => {
                     const diff = getChangedSettings(original[index], item);
                     if (diff === undefined) return null;
+                    
                     if (isIdentifiable(item) && typeof diff === "object" && diff !== null) {
                         const identity: Record<string, any> = {};
                         if (typeof item.id === "string") identity.id = item.id;
@@ -134,6 +138,7 @@ export function SettingsPage() {
             return changedArray.length ? changedArray : undefined;
         }
 
+        // Handle objects recursively
         const nextChanges: Record<string, any> = {};
         const keys = new Set([...Object.keys(original), ...Object.keys(current)]);
 

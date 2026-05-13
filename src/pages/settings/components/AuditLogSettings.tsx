@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { collection, query, orderBy, limit, getDocs, Timestamp } from "firebase/firestore";
 import {
     Table,
@@ -13,9 +13,10 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { format } from "date-fns";
-import { Search, Filter, RotateCcw, ShieldCheck, Eye, Terminal, Clock, User as UserIcon, Tag } from "lucide-react";
+import { Search, Filter, RotateCcw, ShieldCheck, Eye, Terminal, Clock, User as UserIcon, Tag, ArrowRight } from "lucide-react";
 import { db } from "../../../lib/firebase";
 import { Pagination } from "@/components/common/Pagination";
+import { defaultValues } from "../schema";
 import {
     Dialog,
     DialogContent,
@@ -142,10 +143,16 @@ export function AuditLogSettings() {
 
     const formatAuditValue = (value: any): string => {
         if (value === null || value === undefined) return "Not set";
+        
+        // Handle diff objects { from, to }
+        if (value && typeof value === "object" && "from" in value && "to" in value) {
+            return `${formatAuditValue(value.from)} → ${formatAuditValue(value.to)}`;
+        }
+
         if (typeof value === "boolean") return value ? "Enabled" : "Disabled";
         if (Array.isArray(value)) {
             if (value.every((item) => item && typeof item === "object" && "label" in item && "enabled" in item)) {
-                return value.map((item) => `${item.label}: ${item.enabled ? "Enabled" : "Disabled"}`).join("\n");
+                return value.map((item) => `${item.label}: ${formatAuditValue(item.enabled)}`).join("\n");
             }
             return value.map((item) => formatAuditValue(item)).join(", ");
         }
@@ -196,7 +203,53 @@ export function AuditLogSettings() {
         );
     };
 
-    const flattenedSelectedLogChanges = selectedLog ? flattenChanges(selectedLog.changes) : [];
+    const featureMetadata = useMemo(() => {
+        return defaultValues.featureFlags.reduce((acc, flag) => {
+            acc[flag.id] = flag;
+            return acc;
+        }, {} as Record<string, any>);
+    }, []);
+
+    const { flattenedOtherChanges, groupedFeatureFlags, statusChanges } = useMemo(() => {
+        if (!selectedLog) return { flattenedOtherChanges: [], groupedFeatureFlags: {}, statusChanges: [] };
+
+        const changes = { ...selectedLog.changes };
+        
+        // 1. Handle Feature Flags
+        const featureFlags = changes.featureFlags;
+        delete changes.featureFlags;
+
+        // 2. Handle Status Changes (Healers/Seekers/Listings)
+        const statusChanges: any[] = [];
+        if (changes.previousStatus !== undefined || changes.newStatus !== undefined) {
+            statusChanges.push({
+                id: 'status-change',
+                label: 'Status Update',
+                description: `Modification of ${selectedLog.module.replace('s', '')} operational state.`,
+                enabled: {
+                    from: changes.previousStatus,
+                    to: changes.newStatus
+                },
+                isStatus: true
+            });
+            delete changes.previousStatus;
+            delete changes.newStatus;
+        }
+
+        const grouped = (Array.isArray(featureFlags) ? featureFlags : []).reduce((acc: any, flag: any) => {
+            const meta = featureMetadata[flag.id] || flag;
+            const tier = meta.tier || 'Other';
+            if (!acc[tier]) acc[tier] = [];
+            acc[tier].push({ ...meta, ...flag });
+            return acc;
+        }, {});
+
+        return {
+            flattenedOtherChanges: flattenChanges(changes),
+            groupedFeatureFlags: grouped,
+            statusChanges
+        };
+    }, [selectedLog, featureMetadata]);
 
     return (
         <div className="space-y-4">
@@ -234,7 +287,7 @@ export function AuditLogSettings() {
                             </div>
                             <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-hide">
                                 <Filter className="w-4 h-4 text-[#A3AED0] shrink-0" />
-                                {["All", "Settings", "Listings", "Healers", "Seekers", "Users", "Disputes", "Campaigns"].map((filter) => (
+                                {["All", "Settings", "Listings", "Healers", "Seekers", "Disputes", "Campaigns"].map((filter) => (
                                     <button
                                         key={filter}
                                         onClick={() => setActiveFilter(filter.toLowerCase())}
@@ -393,8 +446,8 @@ export function AuditLogSettings() {
                                     </div>
                                 </div>
 
-                                {/* Changes Diff View */}
-                                <div className="space-y-4">
+                                 {/* Changes Diff View */}
+                                <div className="space-y-6">
                                     <div className="flex items-center justify-between">
                                         <h4 className="text-xs font-black uppercase text-[#1b254b] dark:text-white tracking-widest flex items-center gap-2">
                                             <span className="w-2 h-2 bg-[#4318FF] rounded-full" />
@@ -402,17 +455,115 @@ export function AuditLogSettings() {
                                         </h4>
                                     </div>
                                     
-                                    <div className="space-y-2">
-                                        {flattenedSelectedLogChanges.length > 0 ? (
-                                            flattenedSelectedLogChanges.map(({ label, value }, index) => (
-                                                <div key={`${label}-${index}`} className="p-4 bg-gray-50 dark:bg-white/5 rounded-2xl border border-gray-100 dark:border-white/5">
-                                                    <div className="text-[10px] font-black uppercase text-[#A3AED0] tracking-tighter mb-1">{label}</div>
-                                                    <div className="whitespace-pre-wrap text-xs font-bold text-[#1b254b] dark:text-white">
-                                                        {value}
-                                                    </div>
+                                    <div className="space-y-6">
+                                        {/* Status Changes (Consolidated Card) */}
+                                        {statusChanges.length > 0 && (
+                                            <div className="space-y-3">
+                                                <div className="flex items-center gap-2 px-1">
+                                                    <span className="text-[10px] font-bold uppercase tracking-widest text-[#A3AED0]">Status Update</span>
+                                                    <div className="h-px flex-1 bg-gray-100 dark:bg-white/5" />
                                                 </div>
-                                            ))
-                                        ) : (
+                                                <div className="space-y-3">
+                                                    {statusChanges.map((change: any) => (
+                                                        <div key={change.id} className="p-5 bg-white dark:bg-white/5 rounded-2xl border border-gray-100 dark:border-white/10 shadow-sm">
+                                                            <div className="mb-2">
+                                                                <h5 className="text-sm font-bold text-[#1b254b] dark:text-white">{change.label}</h5>
+                                                                <p className="text-xs text-[#A3AED0] mt-0.5">{change.description}</p>
+                                                            </div>
+
+                                                            <div className="flex items-center gap-4 mt-4 p-3 bg-gray-50 dark:bg-white/[0.02] rounded-xl border border-gray-100 dark:border-white/5">
+                                                                <div className="flex-1 flex flex-col gap-1">
+                                                                    <span className="text-[9px] font-bold uppercase text-[#A3AED0] tracking-tight">Previous</span>
+                                                                    <span className="text-xs font-bold text-[#1b254b] dark:text-white">
+                                                                        {change.enabled.from || 'N/A'}
+                                                                    </span>
+                                                                </div>
+                                                                <ArrowRight className="w-4 h-4 text-[#A3AED0] shrink-0" />
+                                                                <div className="flex-1 flex flex-col gap-1">
+                                                                    <span className="text-[9px] font-bold uppercase text-[#A3AED0] tracking-tight">New</span>
+                                                                    <span className="text-xs font-bold text-[#4318FF] dark:text-blue-400">
+                                                                        {change.enabled.to || 'N/A'}
+                                                                    </span>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {/* Feature Flags Grouped by Tier */}
+                                        {Object.entries(groupedFeatureFlags).map(([tier, flags]: [string, any]) => (
+                                            <div key={tier} className="space-y-3">
+                                                <div className="flex items-center gap-2 px-1">
+                                                    <span className="text-[10px] font-bold uppercase tracking-widest text-[#A3AED0]">{tier} Plan Features</span>
+                                                    <div className="h-px flex-1 bg-gray-100 dark:bg-white/5" />
+                                                </div>
+                                                <div className="space-y-3">
+                                                    {flags.map((flag: any, idx: number) => {
+                                                        const isNewFormat = flag.enabled && typeof flag.enabled === "object" && "from" in flag.enabled;
+                                                        const beforeVal = isNewFormat ? flag.enabled.from : !flag.enabled; // Fallback for old format
+                                                        const afterVal = isNewFormat ? flag.enabled.to : flag.enabled;
+
+                                                        return (
+                                                            <div key={flag.id || idx} className="p-5 bg-white dark:bg-white/5 rounded-2xl border border-gray-100 dark:border-white/10 shadow-sm transition-all hover:shadow-md">
+                                                                <div className="flex items-start justify-between mb-2 gap-4">
+                                                                    <div className="flex-1">
+                                                                        <h5 className="text-sm font-bold text-[#1b254b] dark:text-white">{flag.label || flag.id}</h5>
+                                                                        {flag.description && (
+                                                                            <p className="text-xs text-[#A3AED0] mt-0.5">{flag.description}</p>
+                                                                        )}
+                                                                    </div>
+                                                                    <Badge variant="outline" className={`text-[9px] font-black uppercase px-1.5 py-0 h-4 border-none shrink-0 ${
+                                                                        tier === 'free' ? 'bg-blue-50 text-blue-600 dark:bg-blue-900/20' : 'bg-amber-50 text-amber-600 dark:bg-amber-900/20'
+                                                                    }`}>
+                                                                        {tier}
+                                                                    </Badge>
+                                                                </div>
+
+                                                                <div className="flex items-center gap-4 mt-4 p-3 bg-gray-50 dark:bg-white/[0.02] rounded-xl border border-gray-100 dark:border-white/5">
+                                                                    <div className="flex-1 flex flex-col gap-1">
+                                                                        <span className="text-[9px] font-bold uppercase text-[#A3AED0] tracking-tight">Before</span>
+                                                                        <span className={`text-xs font-bold ${!beforeVal ? 'text-red-500' : 'text-emerald-500'}`}>
+                                                                            {beforeVal ? 'Enabled' : 'Disabled'}
+                                                                        </span>
+                                                                    </div>
+                                                                    <ArrowRight className="w-4 h-4 text-[#A3AED0] shrink-0" />
+                                                                    <div className="flex-1 flex flex-col gap-1">
+                                                                        <span className="text-[9px] font-bold uppercase text-[#A3AED0] tracking-tight">After</span>
+                                                                        <span className={`text-xs font-bold ${!afterVal ? 'text-red-500' : 'text-emerald-500'}`}>
+                                                                            {afterVal ? 'Enabled' : 'Disabled'}
+                                                                        </span>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        );
+                                                    })}
+                                                </div>
+                                            </div>
+                                        ))}
+
+                                        {/* Other Changes */}
+                                        {flattenedOtherChanges.length > 0 && (
+                                            <div className="space-y-3">
+                                                <div className="flex items-center gap-2 px-1">
+                                                    <span className="text-[10px] font-bold uppercase tracking-widest text-[#A3AED0]">Configuration Details</span>
+                                                    <div className="h-px flex-1 bg-gray-100 dark:bg-white/5" />
+                                                </div>
+                                                <div className="space-y-2">
+                                                    {flattenedOtherChanges.map(({ label, value }, index) => (
+                                                        <div key={`${label}-${index}`} className="p-4 bg-gray-50 dark:bg-white/5 rounded-2xl border border-gray-100 dark:border-white/5">
+                                                            <div className="text-[10px] font-black uppercase text-[#A3AED0] tracking-tighter mb-1">{label}</div>
+                                                            <div className="whitespace-pre-wrap text-xs font-bold text-[#1b254b] dark:text-white">
+                                                                {value}
+                                                            </div>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {Object.keys(groupedFeatureFlags).length === 0 && flattenedOtherChanges.length === 0 && statusChanges.length === 0 && (
                                             <div className="p-8 text-center bg-gray-50 dark:bg-white/5 rounded-3xl border border-dashed border-gray-200 dark:border-white/10">
                                                 <p className="text-xs font-medium text-[#A3AED0]">No data changes recorded for this action.</p>
                                             </div>

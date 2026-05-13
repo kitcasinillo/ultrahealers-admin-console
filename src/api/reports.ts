@@ -1,5 +1,16 @@
 import api from "../lib/api";
 
+export type DisputeReportData = {
+  summaryData: any[];
+  disputeRateTrend: Array<{ name: string; rate: number }>;
+  disputesByType: Array<{ name: string; value: number }>;
+  disputesBySeverity: Array<{ name: string; normal: number; safety: number }>;
+  resolutionTimeTrend: Array<{ name: string; hours: number }>;
+  outcomeBreakdown: Array<{ name: string; refund: number; partial: number; credit: number; deny: number }>;
+  modalityDisputeRate: Array<{ name: string; value: number }>;
+  healerRepeatDisputes: Array<{ name: string; disputes: number; status: string }>;
+};
+
 export interface UserReportData {
   summary: Array<{
     title: string;
@@ -35,6 +46,7 @@ export interface UserReportData {
     m1: number | null;
     m2: number | null;
     m3: number | null;
+    m4: number | null;
   }>;
 }
 
@@ -89,17 +101,6 @@ export interface FinancialReportData {
     amount: number;
     stripeSessionId: string;
   }>;
-}
-
-export interface DisputeReportData {
-  summaryData: any[];
-  disputeRateTrend: Array<{ name: string; rate: number }>;
-  disputesByType: Array<{ name: string; value: number }>;
-  disputesBySeverity: Array<{ name: string; normal: number; safety: number }>;
-  resolutionTimeTrend: Array<{ name: string; hours: number }>;
-  outcomeBreakdown: Array<{ name: string; refund: number; partial: number; credit: number; deny: number }>;
-  modalityDisputeRate: Array<{ name: string; value: number }>;
-  healerRepeatDisputes: Array<{ name: string; disputes: number; status: string }>;
 }
 
 export interface PlatformOverviewData {
@@ -210,12 +211,14 @@ export const getPlatformOverview = async (
  * Fetch dispute report data from the backend
  */
 export const getDisputeReport = async (
-  startDate?: string, 
-  endDate?: string
+  startDate?: string,
+  endDate?: string,
+  granularity?: string,
+  range?: string
 ): Promise<DisputeReportData> => {
   try {
     const response = await api.get("/api/admin/reports/disputes", {
-      params: { startDate, endDate }
+      params: { startDate, endDate, granularity, range }
     });
 
     if (response.data.success) {

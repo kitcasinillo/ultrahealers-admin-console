@@ -727,6 +727,7 @@ export const exportCampaignExcel = (payload: CampaignExportPayload) => {
  */
 
 export interface DisputeExportPayload {
+  dateRange: string;
   summaryData: any[];
   disputeRateTrend: any[];
   disputesByType: any[];
@@ -739,15 +740,27 @@ export interface DisputeExportPayload {
 
 export const exportDisputePdf = (payload: DisputeExportPayload) => {
   const { 
+    dateRange,
+    summaryData,
     disputeRateTrend, 
     disputesByType, 
     disputesBySeverity, 
-    resolutionTimeTrend, 
     outcomeBreakdown, 
     modalityDisputeRate, 
     healerRepeatDisputes 
   } = payload;
   const doc = new jsPDF('l', 'mm', 'a4');
+
+  // Helper to check for meaningful data
+  const hasMeaningfulData = (arr: any[]) => {
+    if (!arr || arr.length === 0) return false;
+    return arr.some(item => {
+      return Object.values(item).some(v => 
+        (typeof v === 'number' && v > 0) || 
+        (typeof v === 'string' && v.trim() !== '' && v !== '0' && v !== '0%')
+      );
+    });
+  };
 
   doc.setFontSize(22);
   doc.setTextColor(27, 37, 75);
@@ -756,30 +769,50 @@ export const exportDisputePdf = (payload: DisputeExportPayload) => {
   doc.setFontSize(10);
   doc.setTextColor(163, 174, 208);
   doc.text(`Generated on: ${new Date().toLocaleString()}`, 14, 28);
+  doc.text(`Reporting Period: ${dateRange}`, 14, 34);
 
   import('jspdf-autotable').then(({ default: autoTable }) => {
-    // 1. Dispute Rate Trend
+    // 1. Summary Metrics
     doc.setFontSize(14);
     doc.setTextColor(27, 37, 75);
-    doc.text("1. Dispute Rate Trend", 14, 40);
+    doc.text("1. Key Performance Metrics", 14, 40);
 
     autoTable(doc, {
       startY: 45,
-      head: [['Period', 'Dispute Rate (%)']],
-      body: disputeRateTrend.map(d => [d.name, `${d.rate}%`]),
-      theme: 'striped',
+      head: [['Metric', 'Value', 'Details']],
+      body: hasMeaningfulData(summaryData)
+        ? summaryData.map(s => [s.title, s.value, s.description || '-'])
+        : [[{ content: 'No data available', colSpan: 3, styles: { halign: 'center' as const, fontStyle: 'italic' as const } }]],
+      theme: 'grid',
       headStyles: { fillColor: [67, 24, 255] },
       styles: { fontSize: 9 }
     });
 
     let currentY = (doc as any).lastAutoTable.finalY + 15;
 
-    // 2. Disputes by Type
-    doc.text("2. Disputes by Type", 14, currentY);
+    // 2. Dispute Rate Trend
+    doc.text("2. Dispute Rate Trend", 14, currentY);
     autoTable(doc, {
       startY: currentY + 5,
-      head: [['Type', 'Count']],
-      body: disputesByType.map(d => [d.name, String(d.value)]),
+      head: [['Period', 'Dispute Rate (%)']],
+      body: hasMeaningfulData(disputeRateTrend)
+        ? disputeRateTrend.map(d => [d.name, `${d.rate}%`])
+        : [[{ content: 'No data available', colSpan: 2, styles: { halign: 'center' as const, fontStyle: 'italic' as const } }]],
+      theme: 'striped',
+      headStyles: { fillColor: [67, 24, 255] },
+      styles: { fontSize: 9 }
+    });
+
+    currentY = (doc as any).lastAutoTable.finalY + 15;
+
+    // 3. Disputes by Type
+    doc.text("3. Disputes by Type", 14, currentY);
+    autoTable(doc, {
+      startY: currentY + 5,
+      head: [['Dispute Type', 'Total Count']],
+      body: hasMeaningfulData(disputesByType)
+        ? disputesByType.map(d => [d.name, String(d.value)])
+        : [[{ content: 'No data available', colSpan: 2, styles: { halign: 'center' as const, fontStyle: 'italic' as const } }]],
       theme: 'striped',
       headStyles: { fillColor: [67, 24, 255] },
       styles: { fontSize: 9 }
@@ -788,12 +821,14 @@ export const exportDisputePdf = (payload: DisputeExportPayload) => {
     currentY = (doc as any).lastAutoTable.finalY + 15;
     if (currentY > 160) { doc.addPage(); currentY = 20; }
 
-    // 3. Resolution Outcomes
-    doc.text("3. Resolution Outcomes", 14, currentY);
+    // 4. Resolution Outcomes
+    doc.text("4. Resolution Outcomes", 14, currentY);
     autoTable(doc, {
       startY: currentY + 5,
-      head: [['Period', 'Refund', 'Partial', 'Credit', 'Denied']],
-      body: outcomeBreakdown.map(o => [o.name, String(o.refund), String(o.partial), String(o.credit), String(o.deny)]),
+      head: [['Period', 'Refunded', 'Partial Refund', 'Platform Credit', 'Denied/Rejected']],
+      body: hasMeaningfulData(outcomeBreakdown)
+        ? outcomeBreakdown.map(o => [o.name, String(o.refund), String(o.partial), String(o.credit), String(o.deny)])
+        : [[{ content: 'No data available', colSpan: 5, styles: { halign: 'center' as const, fontStyle: 'italic' as const } }]],
       theme: 'striped',
       headStyles: { fillColor: [67, 24, 255] },
       styles: { fontSize: 9 }
@@ -802,128 +837,99 @@ export const exportDisputePdf = (payload: DisputeExportPayload) => {
     currentY = (doc as any).lastAutoTable.finalY + 15;
     if (currentY > 160) { doc.addPage(); currentY = 20; }
 
-    // 4. Disputes by Severity
-    doc.text("4. Disputes by Severity", 14, currentY);
-    autoTable(doc, {
-      startY: currentY + 5,
-      head: [['Period', 'Normal', 'Safety']],
-      body: disputesBySeverity.map(d => [d.name, String(d.normal), String(d.safety)]),
-      theme: 'striped',
-      headStyles: { fillColor: [67, 24, 255] },
-      styles: { fontSize: 9 }
-    });
-
-    currentY = (doc as any).lastAutoTable.finalY + 15;
-    if (currentY > 160) { doc.addPage(); currentY = 20; }
-
-    // 5. Avg. Resolution Time
-    doc.text("5. Avg. Resolution Time Trend", 14, currentY);
-    autoTable(doc, {
-      startY: currentY + 5,
-      head: [['Period', 'Hours']],
-      body: resolutionTimeTrend.map(r => [r.name, String(r.hours)]),
-      theme: 'striped',
-      headStyles: { fillColor: [67, 24, 255] },
-      styles: { fontSize: 9 }
-    });
-
-    currentY = (doc as any).lastAutoTable.finalY + 15;
-    if (currentY > 160) { doc.addPage(); currentY = 20; }
-
-    // 6. Dispute Rate by Modality
-    doc.text("6. Dispute Rate by Modality", 14, currentY);
+    // 5. Dispute Rate by Modality
+    doc.text("5. Dispute Rate by Modality", 14, currentY);
     autoTable(doc, {
       startY: currentY + 5,
       head: [['Modality', 'Dispute Rate (%)']],
-      body: modalityDisputeRate.map(m => [m.name, `${m.value}%`]),
+      body: hasMeaningfulData(modalityDisputeRate)
+        ? modalityDisputeRate.map(m => [m.name, `${m.value}%`])
+        : [[{ content: 'No data available', colSpan: 2, styles: { halign: 'center' as const, fontStyle: 'italic' as const } }]],
       theme: 'striped',
-      headStyles: { fillColor: [124, 58, 237] },
+      headStyles: { fillColor: [1, 163, 180] },
       styles: { fontSize: 9 }
     });
 
     currentY = (doc as any).lastAutoTable.finalY + 15;
     if (currentY > 160) { doc.addPage(); currentY = 20; }
 
-    // 7. Healer Repeat Disputes
-    doc.text("7. Healer Repeat Disputes (Flagged)", 14, currentY);
+    // 6. Practitioner Risk Watchlist
+    doc.text("6. Practitioner Risk Watchlist", 14, currentY);
     autoTable(doc, {
       startY: currentY + 5,
-      head: [['Healer Name', 'Disputes', 'Status']],
-      body: healerRepeatDisputes.map(h => [h.name, String(h.disputes), h.status]),
-      theme: 'striped',
-      headStyles: { fillColor: [239, 68, 68] },
+      head: [['Healer Name', 'Total Disputes', 'Risk Status']],
+      body: hasMeaningfulData(healerRepeatDisputes)
+        ? healerRepeatDisputes.filter(h => h.disputes >= 2).map(h => [h.name, String(h.disputes), h.status.toUpperCase()])
+        : [[{ content: 'No flagged practitioners in this period', colSpan: 3, styles: { halign: 'center' as const, fontStyle: 'italic' as const } }]],
+      theme: 'grid',
+      headStyles: { fillColor: [255, 91, 91] },
       styles: { fontSize: 9 }
     });
 
-    doc.save(`Dispute_Report_${new Date().getTime()}.pdf`);
+    doc.save(`Dispute_Analysis_Report_${new Date().getTime()}.pdf`);
   });
 };
 
 export const exportDisputeExcel = (payload: DisputeExportPayload) => {
   const { 
+    dateRange,
+    summaryData,
     disputeRateTrend, 
     disputesByType, 
-    disputesBySeverity, 
-    resolutionTimeTrend, 
     outcomeBreakdown, 
     modalityDisputeRate, 
     healerRepeatDisputes 
   } = payload;
   const wb = XLSX.utils.book_new();
 
-  // 1. Dispute Rate Trend
-  const formattedRate = disputeRateTrend.map(d => ({
-    'Period': d.name,
-    'Dispute Rate (%)': d.rate
-  }));
-  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(formattedRate), "Dispute Rate Trend");
+  // Helper to check for meaningful data
+  const hasMeaningfulData = (arr: any[]) => {
+    if (!arr || arr.length === 0) return false;
+    return arr.some(item => {
+      return Object.values(item).some(v => 
+        (typeof v === 'number' && v > 0) || 
+        (typeof v === 'string' && v.trim() !== '' && v !== '0')
+      );
+    });
+  };
 
-  // 2. Disputes by Type
-  const formattedType = disputesByType.map(d => ({
-    'Type': d.name,
-    'Count': d.value
-  }));
-  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(formattedType), "Disputes by Type");
+  const addSheet = (arr: any[], sheetName: string) => {
+    const finalData = hasMeaningfulData(arr) 
+      ? arr 
+      : [{ 'Status': 'No data available for the selected period' }];
+    const ws = XLSX.utils.json_to_sheet(finalData);
 
-  // 3. Disputes by Severity
-  const formattedSeverity = disputesBySeverity.map(d => ({
-    'Period': d.name,
-    'Normal Disputes': d.normal,
-    'Safety Disputes': d.safety
-  }));
-  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(formattedSeverity), "Disputes by Severity");
+    // Auto-width
+    const keys = Object.keys(finalData[0]);
+    ws['!cols'] = keys.map((key) => {
+      const maxLength = Math.max(
+        key.length,
+        ...finalData.map(d => String(d[key] || '').length)
+      );
+      return { wch: maxLength + 2 };
+    });
 
-  // 4. Resolution Time Trend
-  const formattedTime = resolutionTimeTrend.map(d => ({
-    'Period': d.name,
-    'Avg. Resolution Time (Hours)': d.hours
-  }));
-  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(formattedTime), "Resolution Time Trend");
+    XLSX.utils.book_append_sheet(wb, ws, sheetName);
+  };
 
-  // 5. Outcome Breakdown
-  const formattedOutcomes = outcomeBreakdown.map(o => ({
-    'Period': o.name,
-    'Refund': o.refund,
-    'Partial Refund': o.partial,
-    'Credit': o.credit,
-    'Denied': o.deny
-  }));
-  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(formattedOutcomes), "Outcome Breakdown");
-
-  // 6. Dispute Rate by Modality
-  const formattedModality = modalityDisputeRate.map(m => ({
-    'Modality': m.name,
-    'Dispute Rate (%)': m.value
-  }));
-  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(formattedModality), "Dispute Rate by Modality");
-
-  // 7. Healer Repeat Disputes
-  const formattedHealers = healerRepeatDisputes.map(h => ({
-    'Healer Name': h.name,
-    'Dispute Count': h.disputes,
-    'Risk Status': h.status
-  }));
-  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(formattedHealers), "Healer Repeat Disputes");
+  addSheet(summaryData.map(s => ({ 'Metric': s.title, 'Value': s.value, 'Details': s.description || '-' })), "Summary Metrics");
+  addSheet(disputeRateTrend.map(d => ({ 'Period': d.name, 'Dispute Rate (%)': d.rate })), "Dispute Trends");
+  addSheet(disputesByType.map(d => ({ 'Dispute Type': d.name, 'Count': d.value })), "Disputes by Type");
+  addSheet(payload.disputesBySeverity.map(d => ({ 'Period': d.name, 'Normal': d.normal, 'Safety': d.safety })), "Severity Distribution");
+  addSheet(payload.resolutionTimeTrend.map(r => ({ 'Period': r.name, 'Hours': r.hours })), "Resolution Times");
+  addSheet(outcomeBreakdown.map(o => ({ 
+    'Period': o.name, 
+    'Refunded': o.refund, 
+    'Partial Refund': o.partial, 
+    'Platform Credit': o.credit, 
+    'Denied': o.deny 
+  })), "Resolution Outcomes");
+  addSheet(modalityDisputeRate.map(m => ({ 'Modality': m.name, 'Dispute Rate (%)': m.value })), "Modality Density");
+  addSheet(healerRepeatDisputes.filter(h => h.disputes >= 2).map(h => ({ 
+    'Healer Name': h.name, 
+    'Total Disputes': h.disputes, 
+    'Status': h.status.toUpperCase() 
+  })), "Risk Watchlist");
 
   XLSX.writeFile(wb, `Dispute_Report_${new Date().getTime()}.xlsx`);
 };

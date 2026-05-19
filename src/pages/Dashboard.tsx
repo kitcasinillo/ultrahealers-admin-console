@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useAdminAuth } from "../contexts/AdminAuthContext";
 import { StatsCard } from "../components/StatsCard";
 import { Users, UserCheck, DollarSign, AlertCircle, Activity, Loader2, Calendar, ChevronDown, Check } from "lucide-react";
-import { fetchDashboardStats, exportDashboardStats, type DashboardStats } from "../lib/dashboard";
+import { fetchDashboardStats, exportDashboardStats, exportDashboardPdf, type DashboardStats } from "../lib/dashboard";
 import { ExportDropdown } from "../components/common/ExportDropdown";
 import {
     DropdownMenu,
@@ -27,6 +27,9 @@ const formatCurrency = (val: number) => {
         maximumFractionDigits: 0
     }).format(val);
 };
+
+const formatStatusLabel = (status: string) =>
+    status.replace(/_/g, ' ').replace(/\b\w/g, (match) => match.toUpperCase());
 
 export function Dashboard() {
     useAdminAuth();
@@ -66,9 +69,15 @@ export function Dashboard() {
         return () => { mounted = false; };
     }, [range]);
 
-    const handleDownloadReport = () => {
+    const handleExportExcel = () => {
         if (stats) {
             exportDashboardStats(stats);
+        }
+    };
+
+    const handleExportPdf = () => {
+        if (stats) {
+            exportDashboardPdf(stats);
         }
     };
 
@@ -106,8 +115,8 @@ export function Dashboard() {
                         </DropdownMenuContent>
                     </DropdownMenu>
                     <ExportDropdown
-                        onExportExcel={handleDownloadReport}
-                        onExportPdf={handleDownloadReport}
+                        onExportExcel={handleExportExcel}
+                        onExportPdf={handleExportPdf}
                     />
                 </div>
             </div>
@@ -191,7 +200,7 @@ export function Dashboard() {
                                             {activity.title}
                                         </span>
                                         <span className="text-xs font-medium text-[#A3AED0]">
-                                            {new Date(activity.timestamp).toLocaleString()} • {typeof activity.status === 'string' ? activity.status : 'active'}
+                                            {new Date(activity.timestamp).toLocaleString()} • {typeof activity.status === 'string' ? formatStatusLabel(activity.status) : 'Active'}
                                         </span>
                                     </div>
                                 )) : (

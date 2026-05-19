@@ -58,8 +58,8 @@ export function ListingDetail() {
     const handleStatusChange = async (nextStatus: AdminListingDetail["status"]) => {
         if (!id || !data) return
         try {
-            setSaving(true)
-            await updateListingStatus(id, source, nextStatus)
+            setSaving(true);
+            await updateListingStatus(id, source, nextStatus);
 
             // Log the action to the audit trail
             if (admin) {
@@ -68,8 +68,8 @@ export function ListingDetail() {
                     adminEmail: admin.email || "unknown",
                     action: 'UPDATE_LISTING_STATUS',
                     module: 'Listings',
-                    targetId: id,
-                    targetName: data.title,
+                    targetId: id || 'unknown',
+                    targetName: String(data.title || 'Unknown'),
                     changes: { 
                         previousStatus: data.status,
                         newStatus: nextStatus,
@@ -98,9 +98,13 @@ export function ListingDetail() {
                 </Button>
                 <div className="flex-1">
                     <div className="flex items-center gap-3">
-                        <h2 className="text-2xl font-bold tracking-tight">{data?.title || "Listing Details"}</h2>
-                        {data && <Badge variant={data.status === "Active" ? "outline" : data.status === "Pending" ? "secondary" : "destructive"}>{data.status}</Badge>}
-                        {data && <Badge variant="secondary">{data.source === "retreat" ? "Retreat" : "Session"}</Badge>}
+                        <h2 className="text-2xl font-bold tracking-tight">{String(data?.title || "Listing Details")}</h2>
+                        {data && (
+                            <Badge variant={data.status === "Active" ? "outline" : data.status === "Pending" ? "secondary" : "destructive"}>
+                                {String(data.status || 'Pending')}
+                            </Badge>
+                        )}
+                        {data && <Badge variant="secondary">{String(data.source === "retreat" ? "Retreat" : "Session")}</Badge>}
                     </div>
                     <p className="text-muted-foreground text-sm">Listing ID: {id}</p>
                 </div>
@@ -131,13 +135,13 @@ export function ListingDetail() {
                                     <span className="text-sm text-muted-foreground flex items-center gap-2 mb-1">
                                         <User className="h-4 w-4" /> Healer
                                     </span>
-                                    <span className="font-medium text-primary">{data.healerName}</span>
+                                    <span className="font-medium text-primary">{String(data.healerName || '—')}</span>
                                 </div>
                                 <div>
                                     <span className="text-sm text-muted-foreground flex items-center gap-2 mb-1">
                                         <Tag className="h-4 w-4" /> Category
                                     </span>
-                                    <span className="font-medium">{data.category}</span>
+                                    <span className="font-medium">{String(data.category || '—')}</span>
                                 </div>
                                 <div>
                                     <span className="text-sm text-muted-foreground flex items-center gap-2 mb-1">
@@ -155,7 +159,7 @@ export function ListingDetail() {
                                     <span className="text-sm text-muted-foreground flex items-center gap-2 mb-1">
                                         <MapPin className="h-4 w-4" /> Location
                                     </span>
-                                    <span className="font-medium">{data.location || "—"}</span>
+                                    <span className="font-medium">{String(data.location || "—")}</span>
                                 </div>
                                 <div>
                                     <span className="text-sm text-muted-foreground flex items-center gap-2 mb-1">Created</span>
@@ -165,13 +169,13 @@ export function ListingDetail() {
 
                             <h4 className="font-medium text-sm text-muted-foreground mb-2">Description</h4>
                             <p className="text-sm leading-relaxed mb-6 whitespace-pre-wrap">
-                                {data.description || "No description found in the backend listing record."}
+                                {String(data.description || "No description found in the backend listing record.")}
                             </p>
 
                             <h4 className="font-medium text-sm text-muted-foreground mb-2 mt-4">Required Information from Seeker</h4>
-                            {data.requiredInformation.length > 0 ? (
+                            {Array.isArray(data.requiredInformation) && data.requiredInformation.length > 0 ? (
                                 <ul className="list-disc list-inside text-sm text-muted-foreground space-y-1">
-                                    {data.requiredInformation.map((item, index) => <li key={`${item}-${index}`}>{item}</li>)}
+                                    {data.requiredInformation.map((item, index) => <li key={`${String(item)}-${index}`}>{String(item)}</li>)}
                                 </ul>
                             ) : (
                                 <p className="text-sm text-muted-foreground">No required information is stored for this listing.</p>
@@ -183,11 +187,13 @@ export function ListingDetail() {
                                 <h3 className="font-semibold text-lg">Recent Booking Activity</h3>
                             </div>
                             <div className="space-y-4">
-                                {data.recentBookings.length > 0 ? data.recentBookings.map((booking) => (
+                                {Array.isArray(data.recentBookings) && data.recentBookings.length > 0 ? data.recentBookings.map((booking) => (
                                     <div key={booking.id} className="flex justify-between border-b pb-4 last:border-0 border-border">
                                         <div>
-                                            <p className="text-sm font-medium">{booking.seekerName || "Unknown seeker"}</p>
-                                            <p className="text-xs text-muted-foreground">Status: {booking.status}</p>
+                                            <p className="text-sm font-medium">{String(booking.seekerName || "Unknown seeker")}</p>
+                                            <p className="text-xs text-muted-foreground">
+                                                Status: {typeof booking.status === 'string' ? booking.status : 'unknown'}
+                                            </p>
                                         </div>
                                         <div className="text-right">
                                             <span className="text-sm font-medium block">{formatCurrency(booking.amount)}</span>
@@ -211,7 +217,7 @@ export function ListingDetail() {
                                 <div>
                                     <label className="text-sm font-medium mb-1 block">Override Status</label>
                                     <select
-                                        value={data.status}
+                                        value={String(data.status || 'Pending')}
                                         onChange={(e) => handleStatusChange(e.target.value as AdminListingDetail["status"])}
                                         className="w-full border rounded-md p-2 bg-background text-sm"
                                         disabled={saving}
@@ -226,7 +232,7 @@ export function ListingDetail() {
 
                                 <div className="pt-4 border-t text-sm text-muted-foreground space-y-2">
                                     <p>Featured: <span className="font-medium text-foreground">{data.featured ? "Yes" : "No"}</span></p>
-                                    <p>Healer Email: <span className="font-medium text-foreground break-all">{data.healerEmail || "—"}</span></p>
+                                    <p>Healer Email: <span className="font-medium text-foreground break-all">{String(data.healerEmail || "—")}</span></p>
                                 </div>
                             </div>
                         </div>
@@ -236,11 +242,11 @@ export function ListingDetail() {
                             <div className="space-y-3">
                                 <div className="flex justify-between items-center text-sm">
                                     <span className="text-muted-foreground">Total Bookings</span>
-                                    <span className="font-medium bg-muted px-2 py-1 rounded">{data.performance.totalBookings}</span>
+                                    <span className="font-medium bg-muted px-2 py-1 rounded">{String(data.performance.totalBookings || 0)}</span>
                                 </div>
                                 <div className="flex justify-between items-center text-sm">
                                     <span className="text-muted-foreground">Completion Rate</span>
-                                    <span className="font-medium bg-muted px-2 py-1 rounded">{data.performance.completionRate}%</span>
+                                    <span className="font-medium bg-muted px-2 py-1 rounded">{String(data.performance.completionRate || 0)}%</span>
                                 </div>
                                 <div className="flex justify-between items-center text-sm border-t pt-3">
                                     <span className="text-muted-foreground">Earned (All Time)</span>

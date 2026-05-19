@@ -81,7 +81,11 @@ export function SessionBookings() {
     {
       accessorKey: 'status',
       header: 'Status',
-      cell: ({ row }) => <Badge variant={row.original.status === 'completed' ? 'outline' : row.original.status === 'confirmed' ? 'default' : 'secondary'}>{row.original.status}</Badge>,
+      cell: ({ row }) => (
+        <Badge variant={row.original.status === 'completed' ? 'outline' : row.original.status === 'confirmed' ? 'default' : 'secondary'}>
+          {typeof row.original.status === 'string' ? row.original.status : 'pending'}
+        </Badge>
+      ),
     },
     {
       accessorKey: 'paymentStatus',

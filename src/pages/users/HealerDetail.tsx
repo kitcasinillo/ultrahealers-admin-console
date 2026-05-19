@@ -79,8 +79,8 @@ export function HealerDetail() {
                     adminEmail: admin.email || "unknown",
                     action: auditAction,
                     module: "Healers",
-                    targetId: id,
-                    targetName: data.name,
+                    targetId: id || 'unknown',
+                    targetName: String(data.name || 'Unknown'),
                     reason,
                     changes: {
                         previousStatus: currentStatus,
@@ -140,12 +140,12 @@ export function HealerDetail() {
                         <div className="border border-border/50 bg-card/60 backdrop-blur-sm shadow-sm rounded-xl p-6 text-center">
                             <div className="w-24 h-24 bg-muted rounded-full mx-auto mb-4 overflow-hidden flex items-center justify-center">
                                 {data.avatarUrl ? (
-                                    <img src={data.avatarUrl} alt={data.name} className="h-full w-full object-cover" />
+                                    <img src={data.avatarUrl} alt={String(data.name || 'avatar')} className="h-full w-full object-cover" />
                                 ) : (
                                     <User className="h-10 w-10 text-muted-foreground" />
                                 )}
                             </div>
-                            <h3 className="text-xl font-bold">{data.name}</h3>
+                            <h3 className="text-xl font-bold">{String(data.name || 'Unknown')}</h3>
                             <p className="text-muted-foreground text-sm mt-1">
                                 Rating {data.rating ? data.rating.toFixed(1) : "—"} ({data.reviewCount || 0} reviews)
                             </p>
@@ -157,19 +157,19 @@ export function HealerDetail() {
                                     ? "bg-red-50 text-red-700 border-red-200 dark:bg-red-900/20 dark:text-red-400 dark:border-red-800"
                                     : "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-900/20 dark:text-amber-400 dark:border-amber-800"
                                 }`}>
-                                    {data.status}
+                                    {String(data.status || 'Active')}
                                 </Badge>
-                                <Badge variant={data.subscription === "Premium" ? "default" : "secondary"}>{data.subscription}{data.subscription === "Premium" ? " 🏅" : ""}</Badge>
+                                <Badge variant={data.subscription === "Premium" ? "default" : "secondary"}>{String(data.subscription || 'Free')}{data.subscription === "Premium" ? " 🏅" : ""}</Badge>
                             </div>
 
                             <div className="mt-6 space-y-3 text-sm text-left border-t pt-6">
                                 <div className="flex items-center gap-3">
                                     <Mail className="h-4 w-4 text-muted-foreground" />
-                                    <span>{data.email || "—"}</span>
+                                    <span>{String(data.email || "—")}</span>
                                 </div>
                                 <div className="flex items-center gap-3">
                                     <MapPin className="h-4 w-4 text-muted-foreground" />
-                                    <span>{data.location || "—"}</span>
+                                    <span>{String(data.location || "—")}</span>
                                 </div>
                                 <div className="flex items-center gap-3">
                                     <Calendar className="h-4 w-4 text-muted-foreground" />
@@ -191,7 +191,7 @@ export function HealerDetail() {
                                 </div>
                                 <div className="flex justify-between">
                                     <span className="text-muted-foreground text-sm">Stripe Status</span>
-                                    <span className="font-medium capitalize">{data.stripeStatus || "not_connected"}</span>
+                                    <span className="font-medium capitalize">{String(data.stripeStatus || "not_connected")}</span>
                                 </div>
                             </div>
                         </div>
@@ -201,30 +201,33 @@ export function HealerDetail() {
                         <div className="border border-border/50 bg-card/60 backdrop-blur-sm shadow-sm rounded-xl p-6">
                             <h3 className="font-semibold mb-4 text-lg">Bio & Modalities</h3>
                             <p className="text-muted-foreground text-sm leading-relaxed mb-6 whitespace-pre-wrap">
-                                {data.bio || "No healer bio is currently stored in the backend profile."}
+                                {String(data.bio || "No healer bio is currently stored in the backend profile.")}
                             </p>
                             <div className="flex flex-wrap gap-2 mb-4">
-                                {data.modalities.length > 0 ? data.modalities.map((modality) => (
-                                    <Badge key={modality} variant="secondary">{modality}</Badge>
+                                {Array.isArray(data.modalities) && data.modalities.length > 0 ? data.modalities.map((modality) => (
+                                    <Badge key={String(modality)} variant="secondary">{String(modality)}</Badge>
                                 )) : <span className="text-sm text-muted-foreground">No modalities found.</span>}
                             </div>
                             <div className="text-sm text-muted-foreground">
-                                Languages: {data.languages.length > 0 ? data.languages.join(", ") : "—"}
+                                Languages: {Array.isArray(data.languages) && data.languages.length > 0 ? data.languages.join(", ") : "—"}
                             </div>
                         </div>
 
                         <div className="border border-border/50 bg-card/60 backdrop-blur-sm shadow-sm rounded-xl p-6">
                             <h3 className="font-semibold mb-4 text-lg">Recent Booking Activity</h3>
                             <div className="space-y-4">
-                                {data.recentBookings.length > 0 ? (
+                                {Array.isArray(data.recentBookings) && data.recentBookings.length > 0 ? (
                                     <>
                                         {data.recentBookings
                                             .slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE)
                                             .map((booking) => (
                                                 <div key={booking.id} className="flex justify-between border-b pb-4 border-gray-50 dark:border-white/5 last:border-0 last:pb-0 transition-all hover:bg-gray-50/50 dark:hover:bg-white/[0.02] p-2 rounded-lg">
                                                     <div>
-                                                        <p className="text-sm font-bold text-[#1b254b] dark:text-white">{booking.title}</p>
-                                                        <p className="text-[10px] font-medium text-[#A3AED0]">Seeker: {booking.seekerName || booking.seekerId || "Unknown"}</p>
+                                                        <p className="text-sm font-bold text-[#1b254b] dark:text-white">{String(booking.title || 'Booking')}</p>
+                                                        <p className="text-[10px] font-medium text-[#A3AED0]">Seeker: {String(booking.seekerName || booking.seekerId || "Unknown")}</p>
+                                                        <p className="text-[10px] font-medium text-[#A3AED0]">
+                                                            Status: {typeof booking.status === 'string' ? booking.status : 'unknown'}
+                                                        </p>
                                                     </div>
                                                     <div className="text-right">
                                                         <span className="text-sm font-black text-[#4318FF] dark:text-white block">{formatCurrency(booking.amount)}</span>

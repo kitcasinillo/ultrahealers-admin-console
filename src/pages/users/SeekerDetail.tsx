@@ -75,8 +75,8 @@ export function SeekerDetail() {
                         adminEmail: admin.email || "unknown",
                         action: auditAction,
                         module: "Seekers",
-                        targetId: id,
-                        targetName: data.name || "Unknown Seeker",
+                        targetId: id || 'unknown',
+                        targetName: String(data.name || "Unknown Seeker"),
                         changes: {
                             previousStatus: currentStatus,
                             newStatus: result.status
@@ -138,12 +138,12 @@ export function SeekerDetail() {
                         <div className="border border-border/50 bg-card/60 backdrop-blur-sm shadow-sm rounded-xl p-6 text-center">
                             <div className="w-24 h-24 bg-muted rounded-full mx-auto mb-4 overflow-hidden flex items-center justify-center">
                                 {data.avatarUrl ? (
-                                    <img src={data.avatarUrl} alt={data.name} className="h-full w-full object-cover" />
+                                    <img src={data.avatarUrl} alt={String(data.name || 'avatar')} className="h-full w-full object-cover" />
                                 ) : (
                                     <User className="h-10 w-10 text-muted-foreground" />
                                 )}
                             </div>
-                            <h3 className="text-xl font-bold">{data.name}</h3>
+                            <h3 className="text-xl font-bold">{String(data.name || 'Unknown')}</h3>
                             <div className="flex items-center justify-center gap-2 mt-4">
                                 <Badge className={`font-bold uppercase text-[10px] px-2 py-0.5 rounded-full ${
                                     data.status === "Active" 
@@ -152,18 +152,18 @@ export function SeekerDetail() {
                                     ? "bg-red-50 text-red-700 border-red-200 dark:bg-red-900/20 dark:text-red-400 dark:border-red-800"
                                     : "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-900/20 dark:text-amber-400 dark:border-amber-800"
                                 }`}>
-                                    {data.status}
+                                    {String(data.status || 'Active')}
                                 </Badge>
                             </div>
 
                             <div className="mt-6 space-y-3 text-sm text-left border-t pt-6">
                                 <div className="flex items-center gap-3">
                                     <Mail className="h-4 w-4 text-muted-foreground" />
-                                    <span>{data.email || "—"}</span>
+                                    <span>{String(data.email || "—")}</span>
                                 </div>
                                 <div className="flex items-center gap-3">
                                     <MapPin className="h-4 w-4 text-muted-foreground" />
-                                    <span>{data.location || "—"}</span>
+                                    <span>{String(data.location || "—")}</span>
                                 </div>
                                 <div className="flex items-center gap-3">
                                     <Calendar className="h-4 w-4 text-muted-foreground" />
@@ -181,11 +181,11 @@ export function SeekerDetail() {
                                 </div>
                                 <div className="flex justify-between">
                                     <span className="text-muted-foreground text-sm">Sessions Booked</span>
-                                    <span className="font-medium">{data.sessionsBooked}</span>
+                                    <span className="font-medium">{String(data.sessionsBooked || 0)}</span>
                                 </div>
                                 <div className="flex justify-between">
                                     <span className="text-muted-foreground text-sm">Retreats Attended</span>
-                                    <span className="font-medium">{data.retreatsAttended}</span>
+                                    <span className="font-medium">{String(data.retreatsAttended || 0)}</span>
                                 </div>
                             </div>
                         </div>
@@ -195,18 +195,21 @@ export function SeekerDetail() {
                         <div className="border border-border/50 bg-card/60 backdrop-blur-sm shadow-sm rounded-xl p-6">
                             <h3 className="font-semibold mb-4 text-lg">Profile Notes</h3>
                             <p className="text-muted-foreground text-sm leading-relaxed whitespace-pre-wrap">
-                                {data.bio || "No seeker bio is currently stored in the backend profile."}
+                                {String(data.bio || "No seeker bio is currently stored in the backend profile.")}
                             </p>
                         </div>
 
                         <div className="border border-border/50 bg-card/60 backdrop-blur-sm shadow-sm rounded-xl p-6">
                             <h3 className="font-semibold mb-4 text-lg">Booking History</h3>
                             <div className="space-y-4">
-                                {data.recentBookings.length > 0 ? data.recentBookings.map((booking) => (
-                                    <div key={booking.id} className="flex justify-between border-b pb-4 last:border-0">
+                                {Array.isArray(data.recentBookings) && data.recentBookings.length > 0 ? data.recentBookings.map((booking) => (
+                                    <div key={booking.id} className="flex justify-between border-b pb-4 last:border-0 border-border">
                                         <div>
-                                            <p className="text-sm font-medium">{booking.title}</p>
-                                            <p className="text-xs text-muted-foreground">Healer: {booking.healerName || booking.healerId || "Unknown"}</p>
+                                            <p className="text-sm font-medium">{String(booking.title || 'Booking')}</p>
+                                            <p className="text-xs text-muted-foreground">Healer: {String(booking.healerName || booking.healerId || "Unknown")}</p>
+                                            <p className="text-xs text-muted-foreground">
+                                                Status: {typeof booking.status === 'string' ? booking.status : 'unknown'}
+                                            </p>
                                         </div>
                                         <div className="text-right">
                                             <span className="text-sm font-medium block">{formatCurrency(booking.amount)}</span>

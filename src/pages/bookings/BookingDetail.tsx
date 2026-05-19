@@ -25,6 +25,8 @@ export function BookingDetail() {
   const [error, setError] = useState<string | null>(null);
   const { showToast } = useToast();
 
+  console.log('DEBUG: BookingDetail rendering with data:', data);
+
   useEffect(() => {
     let mounted = true;
 
@@ -63,6 +65,17 @@ export function BookingDetail() {
     }
   };
 
+  const renderStatus = (status: any) => {
+    if (typeof status === 'string') return status;
+    if (status && typeof status === 'object') {
+      if (status['booking-marked-as-complete-by-healer'] || status['booking-marked-as-complete-by-seeker']) return 'completed';
+      if (status['booking-confirmed-by-healer']) return 'confirmed';
+      if (status['invite-email-to-healer'] || status['invite-email-to-seeker']) return 'pending_confirmation';
+      return 'created';
+    }
+    return 'unknown';
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-4">
@@ -73,9 +86,13 @@ export function BookingDetail() {
         </Button>
         <div className="flex-1">
           <div className="flex items-center gap-3">
-            <h2 className="text-2xl font-bold tracking-tight">{data?.listingTitle || 'Booking Detail'}</h2>
-            {data && <Badge variant={data.status === 'completed' ? 'outline' : data.status === 'confirmed' ? 'default' : 'secondary'}>{data.status}</Badge>}
-            {data && <Badge variant="secondary">{data.bookingType}</Badge>}
+            <h2 className="text-2xl font-bold tracking-tight">{String(data?.listingTitle || 'Booking Detail')}</h2>
+            {data && (
+              <Badge variant={renderStatus(data.status) === 'completed' ? 'outline' : renderStatus(data.status) === 'confirmed' ? 'default' : 'secondary'}>
+                {renderStatus(data.status)}
+              </Badge>
+            )}
+            {data && <Badge variant="secondary">{String(data.bookingType || '')}</Badge>}
           </div>
           <p className="text-muted-foreground text-sm">Booking ID: {id}</p>
         </div>
@@ -90,16 +107,16 @@ export function BookingDetail() {
             <div className="border border-border/50 bg-card/60 backdrop-blur-sm shadow-sm rounded-xl p-6">
               <h3 className="font-semibold mb-4 text-lg">Booking Details</h3>
               <div className="grid grid-cols-2 gap-y-4 text-sm">
-                <div><span className="text-muted-foreground block mb-1">Listing</span><span className="font-medium">{data.listingTitle}</span></div>
-                <div><span className="text-muted-foreground block mb-1">Listing ID</span><span className="font-medium">{data.listingId || '—'}</span></div>
-                <div><span className="text-muted-foreground block mb-1">Healer</span><span className="font-medium">{data.healerName}</span></div>
-                <div><span className="text-muted-foreground block mb-1">Seeker</span><span className="font-medium">{data.seekerName}</span></div>
+                <div><span className="text-muted-foreground block mb-1">Listing</span><span className="font-medium">{String(data.listingTitle || '—')}</span></div>
+                <div><span className="text-muted-foreground block mb-1">Listing ID</span><span className="font-medium">{String(data.listingId || '—')}</span></div>
+                <div><span className="text-muted-foreground block mb-1">Healer</span><span className="font-medium">{String(data.healerName || '—')}</span></div>
+                <div><span className="text-muted-foreground block mb-1">Seeker</span><span className="font-medium">{String(data.seekerName || '—')}</span></div>
                 <div><span className="text-muted-foreground block mb-1">Amount</span><span className="font-medium">{formatCurrency(data.amount, data.currency)}</span></div>
-                <div><span className="text-muted-foreground block mb-1">Payment Status</span><span className="font-medium">{data.paymentStatus}</span></div>
+                <div><span className="text-muted-foreground block mb-1">Payment Status</span><span className="font-medium">{String(data.paymentStatus || '—')}</span></div>
                 <div><span className="text-muted-foreground block mb-1">Session Date</span><span className="font-medium">{formatDate(data.sessionDate)}</span></div>
-                <div><span className="text-muted-foreground block mb-1">Session Time</span><span className="font-medium">{data.sessionTime || '—'}</span></div>
-                <div><span className="text-muted-foreground block mb-1">Format</span><span className="font-medium">{data.format || '—'}</span></div>
-                <div><span className="text-muted-foreground block mb-1">Modality</span><span className="font-medium">{data.modality || '—'}</span></div>
+                <div><span className="text-muted-foreground block mb-1">Session Time</span><span className="font-medium">{String(data.sessionTime || '—')}</span></div>
+                <div><span className="text-muted-foreground block mb-1">Format</span><span className="font-medium">{String(data.format || '—')}</span></div>
+                <div><span className="text-muted-foreground block mb-1">Modality</span><span className="font-medium">{String(data.modality || '—')}</span></div>
                 <div><span className="text-muted-foreground block mb-1">Created</span><span className="font-medium">{formatDate(data.createdAt)}</span></div>
                 <div><span className="text-muted-foreground block mb-1">Updated</span><span className="font-medium">{formatDate(data.updatedAt)}</span></div>
               </div>
@@ -128,7 +145,12 @@ export function BookingDetail() {
               <div className="space-y-4">
                 <div>
                   <label className="text-sm font-medium mb-1 block">Override Status</label>
-                  <select value={data.status} onChange={(e) => handleStatusChange(e.target.value)} className="w-full border rounded-md p-2 bg-background text-sm" disabled={saving}>
+                  <select 
+                    value={typeof data.status === 'string' ? data.status : renderStatus(data.status)} 
+                    onChange={(e) => handleStatusChange(e.target.value)} 
+                    className="w-full border rounded-md p-2 bg-background text-sm" 
+                    disabled={saving}
+                  >
                     <option value="created">created</option>
                     <option value="pending_confirmation">pending_confirmation</option>
                     <option value="confirmed">confirmed</option>
@@ -137,8 +159,8 @@ export function BookingDetail() {
                   <p className="text-xs text-muted-foreground mt-1">Updates the backend booking status flags.</p>
                 </div>
                 <div className="pt-4 border-t text-sm text-muted-foreground space-y-2">
-                  <p>Healer Email: <span className="font-medium text-foreground break-all">{data.healerEmail || '—'}</span></p>
-                  <p>Seeker Email: <span className="font-medium text-foreground break-all">{data.seekerEmail || '—'}</span></p>
+                  <p>Healer Email: <span className="font-medium text-foreground break-all">{String(data.healerEmail || '—')}</span></p>
+                  <p>Seeker Email: <span className="font-medium text-foreground break-all">{String(data.seekerEmail || '—')}</span></p>
                 </div>
               </div>
             </div>

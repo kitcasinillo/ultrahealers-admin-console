@@ -1,0 +1,42 @@
+ULTRAHEALERS ADMIN CONSOLE: PROJECT SUMMARY
+
+The UltraHealers Admin Console is a robust, centralized management platform and Content Management System (CMS) designed to oversee the UltraHealers ecosystem. Built with a modern, type-safe stack, it provides administrators with high-level visibility and granular control over users, bookings, financial operations, and platform-wide configurations.
+
+Core Functionality
+
+  1. Authentication & Security
+  The console employs a Firebase-backed authentication system. Access is strictly controlled via an AdminGuard middleware and a
+  centralized AdminAuthContext, ensuring only authorized personnel can access sensitive platform data and controls.
+
+  2. Operational Dashboard
+  A data-rich command center providing real-time KPIs, including total healer/seeker registration trends, monthly revenue metrics, and  
+  active dispute tracking. It features interactive revenue charts and a "Recent Activity" feed for high-level monitoring.
+
+  3. Entity & Content Management
+   * User Management: Dedicated workflows for managing Healers and Seekers, including detailed profile views and status controls.       
+   * Retreats & Listings: Comprehensive moderation tools for healing retreats and service listings, supporting approval workflows,      
+     status updates, and enrollment monitoring.
+   * Modalities: A specialized module for managing platform healing modalities, featuring drag-and-drop reordering for frontend display 
+     control.
+
+  4. Financial Operations
+  A centralized financial suite for monitoring platform health. Features include:
+   * Revenue and commission tracking.
+   * Premium subscription management.
+   * Payout processing and history.
+   * Exporting capabilities for accounting (Excel and PDF).
+
+  5. Campaign & Marketing Builder
+  A built-in marketing engine that allows administrators to design and deploy communication campaigns. It includes a rich-text editor   
+  (TipTap), template management, audience segmentation tools, and unsubscribe tracking.
+
+  6. Dispute Resolution
+  A structured system for managing platform conflicts. Administrators can track, investigate, and resolve disputes between healers and  
+  seekers, with integrated status tracking and escalation paths.
+
+  7. Platform Configuration & Governance
+  The most mature module of the console, the Settings area, allows for global control over:
+   * General Limits: Image limits, file sizes, and listing caps.
+   * Financial Toggles: Commission percentages, seeker fees, and processing costs.
+   * Feature Flags: Real-time enabling/disabling of platform features.
+   * System Integrity: Audit logs that track every administrative change for security and accountability.

@@ -66,27 +66,37 @@ export function RetreatBookings() {
       header: 'Retreat',
       cell: ({ row }) => (
         <Link to={`/bookings/retreats/${row.original.id}`} className="font-medium text-primary hover:underline">
-          {row.original.listingTitle}
+          {String(row.original.listingTitle || 'Untitled')}
         </Link>
       ),
     },
     {
       accessorKey: 'healerName',
       header: 'Host',
+      cell: ({ row }) => String(row.original.healerName || 'Unknown'),
     },
     {
       accessorKey: 'seekerName',
       header: 'Guest',
+      cell: ({ row }) => String(row.original.seekerName || 'Unknown'),
     },
     {
       accessorKey: 'status',
       header: 'Status',
-      cell: ({ row }) => <Badge variant={row.original.status === 'completed' ? 'outline' : row.original.status === 'confirmed' ? 'default' : 'secondary'}>{row.original.status}</Badge>,
+      cell: ({ row }) => (
+        <Badge variant={row.original.status === 'completed' ? 'outline' : row.original.status === 'confirmed' ? 'default' : 'secondary'}>
+          {typeof row.original.status === 'string' ? row.original.status : 'pending'}
+        </Badge>
+      ),
     },
     {
       accessorKey: 'paymentStatus',
       header: 'Payment',
-      cell: ({ row }) => <Badge variant={row.original.paymentStatus === 'succeeded' ? 'outline' : 'secondary'}>{row.original.paymentStatus}</Badge>,
+      cell: ({ row }) => (
+        <Badge variant={row.original.paymentStatus === 'succeeded' ? 'outline' : 'secondary'}>
+          {String(row.original.paymentStatus || 'unknown')}
+        </Badge>
+      ),
     },
     {
       accessorKey: 'amount',

@@ -31,6 +31,7 @@ export function SettingsPage() {
     const [isSaving, setIsSaving] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
     const [isResetDialogOpen, setIsResetDialogOpen] = useState(false);
+    const [initialSettings, setInitialSettings] = useState<SettingsFormValues | null>(null);
 
     const form = useForm<SettingsFormValues>({
         resolver: zodResolver(formSchema) as unknown as Resolver<SettingsFormValues>,
@@ -52,7 +53,7 @@ export function SettingsPage() {
                 const featureFlags = Array.isArray(data.featureFlags) ? data.featureFlags : defaultValues.featureFlags;
                 const pricing = data.pricing || defaultValues.general.pricing;
 
-                form.reset({
+                const loadedSettings: SettingsFormValues = {
                     general: {
                         listing_limit_free: data.listing_limit_free ?? defaultValues.general.listing_limit_free,
                         listing_limit_premium: data.listing_limit_premium ?? defaultValues.general.listing_limit_premium,
@@ -84,7 +85,10 @@ export function SettingsPage() {
                         seeded_at: data.admin_bootstrap?.seeded_at ?? defaultValues.adminBootstrap.seeded_at,
                         last_seed_error: data.admin_bootstrap?.last_seed_error ?? defaultValues.adminBootstrap.last_seed_error,
                     },
-                });
+                };
+
+                form.reset(loadedSettings);
+                setInitialSettings(loadedSettings);
             } catch (error) {
                 console.error("Fetch Error:", error);
                 toast.error("Failed to load settings from backend.");
@@ -94,6 +98,59 @@ export function SettingsPage() {
         };
         fetchSettings();
     }, [form]);
+
+    const getChangedSettings = (original: any, current: any): any => {
+        if (original === current) return undefined;
+
+        // Handle primitive values by returning a diff object
+        if (typeof original !== "object" || original === null || typeof current !== "object" || current === null) {
+            return { from: original, to: current };
+        }
+
+        // Handle arrays (specifically for feature flags)
+        if (Array.isArray(original) || Array.isArray(current)) {
+            if (!Array.isArray(original) || !Array.isArray(current)) return { from: original, to: current };
+            if (original.length !== current.length) return { from: original, to: current };
+
+            const isIdentifiable = (item: any) =>
+                item && typeof item === "object" && !Array.isArray(item) &&
+                (typeof item.id === "string" || typeof item.label === "string");
+
+            const changedArray = current
+                .map((item: any, index: number) => {
+                    const diff = getChangedSettings(original[index], item);
+                    if (diff === undefined) return null;
+                    
+                    if (isIdentifiable(item) && typeof diff === "object" && diff !== null) {
+                        const identity: Record<string, any> = {};
+                        if (typeof item.id === "string") identity.id = item.id;
+                        if (typeof item.label === "string") {
+                            identity.label = item.label;
+                        } else if (original[index] && typeof original[index].label === "string") {
+                            identity.label = original[index].label;
+                        }
+                        return { ...identity, ...diff };
+                    }
+                    return diff;
+                })
+                .filter((item: any) => item !== null);
+
+            return changedArray.length ? changedArray : undefined;
+        }
+
+        // Handle objects recursively
+        const nextChanges: Record<string, any> = {};
+        const keys = new Set([...Object.keys(original), ...Object.keys(current)]);
+
+        keys.forEach((key) => {
+            const diff = getChangedSettings(original[key], current[key]);
+            if (diff !== undefined) {
+                nextChanges[key] = diff;
+            }
+        });
+
+        return Object.keys(nextChanges).length ? nextChanges : undefined;
+    };
 
     const onSubmit = async (data: SettingsFormValues) => {
         setIsSaving(true);
@@ -123,6 +180,8 @@ export function SettingsPage() {
                 throw new Error(payload.error || "Failed to update settings");
             }
             
+            const changes = initialSettings ? getChangedSettings(initialSettings, data) ?? {} : data;
+
             // Log the action for security and audit trail
             if (user) {
                 await addDoc(collection(db, "admin_audit_logs"), {
@@ -130,9 +189,13 @@ export function SettingsPage() {
                     adminEmail: user.email,
                     action: 'UPDATE_SETTINGS',
                     module: 'Platform Settings',
-                    changes: data,
+                    changes,
                     timestamp: serverTimestamp(),
                 });
+            }
+
+            if (initialSettings) {
+                setInitialSettings(data);
             }
 
             if (payload.data?.admin_bootstrap) {

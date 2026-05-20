@@ -20,6 +20,8 @@ interface BaseHorizontalBarChartProps {
   className?: string;
 }
 
+import { ChartEmptyState } from './ChartEmptyState';
+
 export function BaseHorizontalBarChart({ 
   title, 
   data, 
@@ -29,6 +31,8 @@ export function BaseHorizontalBarChart({
   yAxisWidth = 120,
   className
 }: BaseHorizontalBarChartProps) {
+  const hasData = data && data.length > 0;
+
   return (
     <Card className={`rounded-3xl border-none shadow-[0_10px_30px_0_rgba(11,20,55,0.06)] dark:bg-[#111C44] min-w-0 h-full flex flex-col ${className || ""}`}>
       <CardHeader className="shrink-0">
@@ -36,36 +40,40 @@ export function BaseHorizontalBarChart({
       </CardHeader>
       <CardContent className="flex-1">
         <div className="h-[400px] w-full mt-4">
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart 
-              data={data} 
-              layout="vertical" 
-              margin={{ top: 5, right: 30, left: 10, bottom: 5 }}
-            >
-              <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} stroke="#E2E8F0" opacity={0.5} />
-              <XAxis type="number" hide />
-              <YAxis 
-                dataKey={nameKey} 
-                type="category" 
-                axisLine={false} 
-                tickLine={false} 
-                width={yAxisWidth} 
-                tick={{ fill: '#4b5563', fontSize: 12, fontWeight: 500 }} 
-              />
-              <Tooltip 
-                contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)' }}
-                cursor={{ fill: '#F4F7FE' }}
-              />
-              <Bar 
-                dataKey={dataKey} 
-                fill={fill} 
-                radius={[0, 4, 4, 0]} 
-                barSize={15} 
+          {!hasData ? (
+            <ChartEmptyState />
+          ) : (
+            <ResponsiveContainer width="100%" height="100%" minWidth={0}>
+              <BarChart 
+                data={data} 
+                layout="vertical" 
+                margin={{ top: 5, right: 30, left: 10, bottom: 5 }}
               >
-                <LabelList dataKey={dataKey} position="right" fill="#4b5563" fontSize={12} fontWeight={700} />
-              </Bar>
-            </BarChart>
-          </ResponsiveContainer>
+                <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} stroke="#E2E8F0" opacity={0.5} />
+                <XAxis type="number" hide />
+                <YAxis 
+                  dataKey={nameKey} 
+                  type="category" 
+                  axisLine={false} 
+                  tickLine={false} 
+                  width={yAxisWidth} 
+                  tick={{ fill: '#4b5563', fontSize: 12, fontWeight: 500 }} 
+                />
+                <Tooltip 
+                  contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)' }}
+                  cursor={{ fill: '#F4F7FE' }}
+                />
+                <Bar 
+                  dataKey={dataKey} 
+                  fill={fill} 
+                  radius={[0, 4, 4, 0]} 
+                  barSize={15} 
+                >
+                  <LabelList dataKey={dataKey} position="right" fill="#4b5563" fontSize={12} fontWeight={700} />
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          )}
         </div>
       </CardContent>
     </Card>

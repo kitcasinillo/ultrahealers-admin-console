@@ -23,7 +23,7 @@ export function DateRangePicker({
   customEndDate,
   setCustomEndDate,
 }: DateRangePickerProps) {
-  const rangeOptions = ['Today', 'This Week', 'This Month'];
+  const rangeOptions = ['Daily', 'Weekly', 'Monthly'];
 
   // Format date to a simpler, shorter format (e.g. "Feb 12")
   const formatShortDate = (dateStr: string) => {

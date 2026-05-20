@@ -1,5 +1,7 @@
 import { getAuth } from "firebase/auth";
 import axios from "axios";
+import { jsPDF } from 'jspdf';
+import autoTable from 'jspdf-autotable';
 
 export interface DashboardStats {
   totalHealers: number;
@@ -143,5 +145,89 @@ export const exportDashboardStats = (stats: DashboardStats) => {
     // Generate and Download
     XLSX.writeFile(wb, `UltraHealer_Dashboard_Report_${new Date().toISOString().split('T')[0]}.xlsx`);
   });
+};
+
+export const exportDashboardPdf = (stats: DashboardStats) => {
+  const doc = new jsPDF('p', 'mm', 'a4');
+
+  doc.setFontSize(20);
+  doc.setTextColor(27, 37, 75);
+  doc.text("Dashboard Overview Report", 14, 20);
+
+  doc.setFontSize(10);
+  doc.setTextColor(115, 124, 170);
+  doc.text(`Generated on: ${new Date().toLocaleDateString()}`, 14, 28);
+  doc.text(`Exported from UltraHealer Dashboard`, 14, 34);
+
+  doc.setFontSize(12);
+  doc.setTextColor(27, 37, 75);
+  doc.text("Summary Metrics", 14, 44);
+
+  autoTable(doc, {
+    startY: 48,
+    head: [["Metric", "Value"]],
+    body: [
+      ["Total Registered Healers", String(stats.totalHealers)],
+      ["Total Registered Seekers", String(stats.totalSeekers)],
+      ["Revenue This Month", `$${stats.revenueThisMonth.toLocaleString()}`],
+      ["Active Disputes", String(stats.activeDisputes)],
+    ],
+    theme: "grid",
+    headStyles: { fillColor: [67, 24, 255], textColor: 255 },
+    styles: { fontSize: 9 },
+    margin: { left: 14, right: 14 },
+  });
+
+  const revenueStart = (doc as any).lastAutoTable.finalY + 12;
+  doc.setFontSize(12);
+  doc.setTextColor(27, 37, 75);
+  doc.text("Revenue Trend", 14, revenueStart);
+
+  autoTable(doc, {
+    startY: revenueStart + 6,
+    head: [["Date", "Revenue"]],
+    body: stats.chartData.map((row) => [row.name, `$${row.revenue.toLocaleString()}`]),
+    theme: "striped",
+    headStyles: { fillColor: [67, 24, 255], textColor: 255 },
+    styles: { fontSize: 9 },
+    margin: { left: 14, right: 14 },
+  });
+
+  const activityStart = (doc as any).lastAutoTable.finalY + 12;
+  doc.setFontSize(12);
+  doc.setTextColor(27, 37, 75);
+  doc.text("Recent Activity", 14, activityStart);
+
+  const formatStatusLabel = (status: string) =>
+    status
+      .replace(/_/g, ' ')
+      .replace(/\b\w/g, (match) => match.toUpperCase());
+
+  const activityRows = stats.recentActivity.length
+    ? stats.recentActivity.map((activity) => [
+        new Date(activity.timestamp).toLocaleString(),
+        activity.type.charAt(0).toUpperCase() + activity.type.slice(1),
+        activity.title,
+        typeof activity.status === 'string' ? formatStatusLabel(activity.status) : 'Active',
+      ])
+    : [["-", "-", "No recent activity", "-"]];
+
+  autoTable(doc, {
+    startY: activityStart + 6,
+    head: [["Timestamp", "Activity Type", "Title", "Status"]],
+    body: activityRows,
+    theme: "grid",
+    headStyles: { fillColor: [67, 24, 255], textColor: 255 },
+    styles: { fontSize: 8 },
+    columnStyles: {
+      0: { cellWidth: 45 },
+      1: { cellWidth: 30 },
+      2: { cellWidth: 75 },
+      3: { cellWidth: 30 },
+    },
+    margin: { left: 14, right: 14 },
+  });
+
+  doc.save(`UltraHealer_Dashboard_Report_${new Date().toISOString().split('T')[0]}.pdf`);
 };
 

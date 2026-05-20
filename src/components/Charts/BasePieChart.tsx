@@ -16,6 +16,8 @@ interface BasePieChartProps {
   className?: string;
 }
 
+import { ChartEmptyState } from './ChartEmptyState';
+
 export function BasePieChart({ 
   title, 
   data, 
@@ -23,6 +25,8 @@ export function BasePieChart({
   outerRadius = 80,
   className
 }: BasePieChartProps) {
+  const hasData = data && data.length > 0 && data.some(d => d.value > 0);
+
   return (
     <Card className={`rounded-3xl border-none shadow-[0_10px_30px_0_rgba(11,20,55,0.06)] dark:bg-[#111C44] min-w-0 h-full flex flex-col ${className || ""}`}>
       <CardHeader className="shrink-0">
@@ -30,27 +34,31 @@ export function BasePieChart({
       </CardHeader>
       <CardContent className="flex-1">
         <div className="h-[250px] sm:h-[300px] w-full mt-4">
-          <ResponsiveContainer width="100%" height="100%">
-            <PieChart>
-              <Pie
-                data={data}
-                cx="50%"
-                cy="50%"
-                innerRadius={innerRadius}
-                outerRadius={outerRadius}
-                paddingAngle={5}
-                dataKey="value"
-              >
-                {data.map((entry, index) => (
-                  <Cell key={`cell-${index}`} fill={entry.color} />
-                ))}
-              </Pie>
-              <Tooltip 
-                contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)' }}
-              />
-              <Legend iconType="circle" wrapperStyle={{ paddingTop: '10px' }} />
-            </PieChart>
-          </ResponsiveContainer>
+          {!hasData ? (
+            <ChartEmptyState />
+          ) : (
+            <ResponsiveContainer width="100%" height="100%" minWidth={0}>
+              <PieChart>
+                <Pie
+                  data={data}
+                  cx="50%"
+                  cy="50%"
+                  innerRadius={innerRadius}
+                  outerRadius={outerRadius}
+                  paddingAngle={5}
+                  dataKey="value"
+                >
+                  {data.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={entry.color} />
+                  ))}
+                </Pie>
+                <Tooltip 
+                  contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)' }}
+                />
+                <Legend iconType="circle" wrapperStyle={{ paddingTop: '10px' }} />
+              </PieChart>
+            </ResponsiveContainer>
+          )}
         </div>
       </CardContent>
     </Card>

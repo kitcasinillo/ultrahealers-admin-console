@@ -8,6 +8,8 @@ export interface DashboardStats {
   totalSeekers: number;
   revenueThisMonth: number;
   activeDisputes: number;
+  todayTraffic?: number;
+  trafficChange?: string;
   healersChange: string;
   seekersChange: string;
   revenueChange: string;
@@ -116,6 +118,7 @@ export const exportDashboardStats = (stats: DashboardStats) => {
       { Metric: "Total Registered Seekers", Value: stats.totalSeekers, "Trend/Change": stats.seekersChange },
       { Metric: "Revenue This Month", Value: stats.revenueThisMonth, "Trend/Change": stats.revenueChange },
       { Metric: "Active Disputes", Value: stats.activeDisputes, "Trend/Change": stats.disputesChange },
+      { Metric: "Today's Traffic", Value: stats.todayTraffic || 0, "Trend/Change": stats.trafficChange || "" },
     ];
     const wsSummary = XLSX.utils.json_to_sheet(summaryData);
     formatNumericCells(wsSummary);
@@ -171,6 +174,7 @@ export const exportDashboardPdf = (stats: DashboardStats) => {
       ["Total Registered Seekers", String(stats.totalSeekers)],
       ["Revenue This Month", `$${stats.revenueThisMonth.toLocaleString()}`],
       ["Active Disputes", String(stats.activeDisputes)],
+      ["Today's Traffic", String(stats.todayTraffic || 0)],
     ],
     theme: "grid",
     headStyles: { fillColor: [67, 24, 255], textColor: 255 },

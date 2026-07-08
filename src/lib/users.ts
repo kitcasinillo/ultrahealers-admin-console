@@ -65,17 +65,31 @@ export type UserListFilters = {
   q?: string;
   status?: '' | 'Active' | 'Suspended' | 'Pending';
   subscription?: '' | 'Free' | 'Premium';
+  startDate?: string;
+  endDate?: string;
 };
 
-export async function fetchHealers(filters: UserListFilters = {}) {
-  const { data } = await api.get<{ success: boolean; results: AdminHealer[] }>('/api/users/healers', {
+export type UsersResponse<T> = {
+  results: T[];
+  totalCountInRange: number;
+  newSignupsInRange: number;
+};
+
+export async function fetchHealers(filters: UserListFilters = {}): Promise<UsersResponse<AdminHealer>> {
+  const { data } = await api.get<{ success: boolean; results: AdminHealer[]; totalCountInRange: number; newSignupsInRange: number }>('/api/users/healers', {
     params: {
       q: filters.q || undefined,
       status: filters.status || undefined,
       subscription: filters.subscription || undefined,
+      startDate: filters.startDate || undefined,
+      endDate: filters.endDate || undefined,
     },
   });
-  return data.results || [];
+  return {
+    results: data.results || [],
+    totalCountInRange: data.totalCountInRange || 0,
+    newSignupsInRange: data.newSignupsInRange || 0,
+  };
 }
 
 export async function fetchHealerDetail(id: string) {
@@ -83,14 +97,20 @@ export async function fetchHealerDetail(id: string) {
   return data.data;
 }
 
-export async function fetchSeekers(filters: UserListFilters = {}) {
-  const { data } = await api.get<{ success: boolean; results: AdminSeeker[] }>('/api/users/seekers', {
+export async function fetchSeekers(filters: UserListFilters = {}): Promise<UsersResponse<AdminSeeker>> {
+  const { data } = await api.get<{ success: boolean; results: AdminSeeker[]; totalCountInRange: number; newSignupsInRange: number }>('/api/users/seekers', {
     params: {
       q: filters.q || undefined,
       status: filters.status || undefined,
+      startDate: filters.startDate || undefined,
+      endDate: filters.endDate || undefined,
     },
   });
-  return data.results || [];
+  return {
+    results: data.results || [],
+    totalCountInRange: data.totalCountInRange || 0,
+    newSignupsInRange: data.newSignupsInRange || 0,
+  };
 }
 
 export async function fetchSeekerDetail(id: string) {

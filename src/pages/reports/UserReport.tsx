@@ -3,7 +3,8 @@ import {
   TrendingUp,
   UserCheck,
   UserMinus,
-  CreditCard
+  CreditCard,
+  Users
 } from "lucide-react";
 import { StatsCard } from "../../components/StatsCard";
 import {
@@ -25,10 +26,10 @@ import { ReportSkeleton } from "../../components/ui/skeleton";
 // --- Components ---
 
 export function UserReport() {
-  const [dateRange, setDateRange] = useState("Monthly");
-  const [customStartDate, setCustomStartDate] = useState("");
-  const [customEndDate, setCustomEndDate] = useState("");
-  const [granularity, setGranularity] = useState("Monthly");
+  const [dateRange, setDateRange] = useState("Custom Range");
+  const [customStartDate, setCustomStartDate] = useState(`${new Date().getFullYear()}-03-01`);
+  const [customEndDate, setCustomEndDate] = useState(new Date().toISOString().split('T')[0]);
+  const [granularity, setGranularity] = useState("Weekly");
   const [reportData, setReportData] = useState<UserReportData | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -86,6 +87,11 @@ export function UserReport() {
     summary: [
       {
         title: "New Healers (Daily)",
+        value: "0",
+        description: "Total for selected daily period"
+      },
+      {
+        title: "New Seekers (Daily)",
         value: "0",
         description: "Total for selected daily period"
       },
@@ -202,7 +208,7 @@ export function UserReport() {
         </div>
 
         {/* Top Cards Grid */}
-        <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-5 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
           {summaryData.map((card, idx) => (
             <StatsCard
               key={idx}
@@ -211,9 +217,10 @@ export function UserReport() {
               description={card.description || ""}
               icon={
                 card.title.includes("Healers") ? <TrendingUp className="h-6 w-6 text-emerald-500" /> :
-                  card.title.includes("Conversion") ? <UserCheck className="h-6 w-6 text-[#4318FF]" /> :
-                    card.title.includes("Risk") ? <UserMinus className="h-6 w-6 text-amber-500" /> :
-                      <CreditCard className="h-6 w-6 text-[#01A3B4]" />
+                  card.title.includes("Seekers") ? <Users className="h-6 w-6 text-[#4318FF]" /> :
+                    card.title.includes("Conversion") ? <UserCheck className="h-6 w-6 text-[#4318FF]" /> :
+                      card.title.includes("Risk") ? <UserMinus className="h-6 w-6 text-amber-500" /> :
+                        <CreditCard className="h-6 w-6 text-[#01A3B4]" />
               }
             />
           ))}

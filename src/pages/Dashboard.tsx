@@ -127,7 +127,7 @@ export function Dashboard() {
                 </div>
             ) : (
                 <>
-                    <div className="grid gap-5 grid-cols-1 sm:grid-cols-2 xl:grid-cols-4">
+                    <div className="grid gap-5 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
                         <StatsCard
                             title="Total Registered Healers"
                             value={stats?.totalHealers?.toString() || "0"}
@@ -155,6 +155,13 @@ export function Dashboard() {
                             description={stats?.disputesChange || ""}
                             icon={<AlertCircle className="h-6 w-6" />}
                             trend={stats?.disputesChange?.startsWith('-') ? "up" : "down"}
+                        />
+                        <StatsCard
+                            title="Today's Traffic"
+                            value={stats?.todayTraffic?.toString() || "0"}
+                            description={stats?.trafficChange || ""}
+                            icon={<Activity className="h-6 w-6" />}
+                            trend={stats?.trafficChange?.startsWith('-') ? "down" : "up"}
                         />
                     </div>
 

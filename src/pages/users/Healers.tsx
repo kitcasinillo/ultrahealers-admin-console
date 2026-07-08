@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react"
 import { type ColumnDef } from "@tanstack/react-table"
-import { Download, MoreHorizontal, Search, X } from "lucide-react"
+import { Download, MoreHorizontal, Search, X, TrendingUp, UserCheck } from "lucide-react"
 import { Link } from "react-router-dom"
 import { DataTable } from "../../components/DataTable"
 import { Badge } from "../../components/ui/badge"
@@ -8,6 +8,8 @@ import { Button } from "../../components/ui/button"
 import { useToast } from "../../contexts/ToastContext"
 import { exportHealersCsv } from "../../lib/userExports"
 import { fetchHealers, type AdminHealer } from "../../lib/users"
+import { StatsCard } from "../../components/StatsCard"
+import { DateRangePicker } from "../../components/common"
 
 const formatCurrency = (amount: number) => new Intl.NumberFormat("en-US", {
     style: "currency",
@@ -27,6 +29,16 @@ export function Healers() {
     const [search, setSearch] = useState("")
     const [statusFilter, setStatusFilter] = useState<"" | "Active" | "Suspended" | "Pending">("")
     const [subscriptionFilter, setSubscriptionFilter] = useState<"" | "Free" | "Premium">("")
+    
+    // Date Range Filters
+    const [dateRange, setDateRange] = useState("Custom Range")
+    const [customStartDate, setCustomStartDate] = useState(`${new Date().getFullYear()}-03-01`)
+    const [customEndDate, setCustomEndDate] = useState(new Date().toISOString().split('T')[0])
+    
+    // Summary Metrics
+    const [totalCount, setTotalCount] = useState(0)
+    const [newSignups, setNewSignups] = useState(0)
+    
     const { showToast } = useToast()
 
     useEffect(() => {
@@ -37,13 +49,17 @@ export function Healers() {
                 try {
                     setLoading(true)
                     setError(null)
-                    const results = await fetchHealers({
+                    const response = await fetchHealers({
                         q: search,
                         status: statusFilter,
                         subscription: subscriptionFilter,
+                        startDate: customStartDate,
+                        endDate: customEndDate,
                     })
                     if (!mounted) return
-                    setData(results)
+                    setData(response.results)
+                    setTotalCount(response.totalCountInRange)
+                    setNewSignups(response.newSignupsInRange)
                 } catch (err: any) {
                     console.error("Failed to load healers:", err)
                     if (!mounted) return
@@ -60,7 +76,7 @@ export function Healers() {
             mounted = false
             clearTimeout(timeout)
         }
-    }, [search, statusFilter, subscriptionFilter])
+    }, [search, statusFilter, subscriptionFilter, customStartDate, customEndDate])
 
     const columns = useMemo<ColumnDef<AdminHealer>[]>(() => [
         {
@@ -139,7 +155,12 @@ export function Healers() {
         setSearch("")
         setStatusFilter("")
         setSubscriptionFilter("")
+        setDateRange("Custom Range")
+        setCustomStartDate(`${new Date().getFullYear()}-03-01`)
+        setCustomEndDate(new Date().toISOString().split('T')[0])
     }
+
+    const canClear = search || statusFilter || subscriptionFilter || customStartDate !== `${new Date().getFullYear()}-03-01` || customEndDate !== new Date().toISOString().split('T')[0]
 
     return (
         <div className="space-y-6">
@@ -167,8 +188,24 @@ export function Healers() {
                 </div>
             </div>
 
+            {/* Summary Cards */}
+            <div className="grid gap-5 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
+                <StatsCard
+                    title="Total Healers (Filtered)"
+                    value={totalCount.toString()}
+                    description="Matches filters and search in range"
+                    icon={<UserCheck className="h-6 w-6 text-[#4318FF]" />}
+                />
+                <StatsCard
+                    title="New Signups (In Range)"
+                    value={newSignups.toString()}
+                    description="Registrations in date range"
+                    icon={<TrendingUp className="h-6 w-6 text-emerald-500" />}
+                />
+            </div>
+
             <div className="bg-white dark:bg-[#111C44] rounded-[24px] p-4 shadow-[0_10px_30px_0_rgba(11,20,55,0.06)] dark:shadow-none border border-transparent dark:border-white/5">
-                <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_180px_180px_auto]">
+                <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_auto_180px_180px_auto] items-center">
                     <div className="relative">
                         <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#A3AED0]" />
                         <input
@@ -178,6 +215,15 @@ export function Healers() {
                             className="h-11 w-full rounded-xl border border-slate-200 bg-white pl-10 pr-4 text-sm outline-none transition focus:border-[#4318FF] dark:border-white/10 dark:bg-white/5 dark:text-white"
                         />
                     </div>
+
+                    <DateRangePicker
+                        dateRange={dateRange}
+                        setDateRange={setDateRange}
+                        customStartDate={customStartDate}
+                        setCustomStartDate={setCustomStartDate}
+                        customEndDate={customEndDate}
+                        setCustomEndDate={setCustomEndDate}
+                    />
 
                     <select
                         value={statusFilter}
@@ -200,7 +246,7 @@ export function Healers() {
                         <option value="Premium">Premium</option>
                     </select>
 
-                    <Button type="button" variant="ghost" onClick={clearFilters} disabled={!search && !statusFilter && !subscriptionFilter}>
+                    <Button type="button" variant="ghost" onClick={clearFilters} disabled={!canClear}>
                         <X className="h-4 w-4" />
                         Clear
                     </Button>
@@ -216,6 +262,10 @@ export function Healers() {
             <div className="bg-white dark:bg-[#111C44] rounded-[24px] p-6 shadow-[0_10px_30px_0_rgba(11,20,55,0.06)] dark:shadow-none border border-transparent dark:border-white/5">
                 {loading ? (
                     <div className="py-16 text-center text-sm text-[#A3AED0]">Loading healers...</div>
+                ) : data.length === 0 ? (
+                    <div className="py-16 text-center text-sm text-[#A3AED0] font-medium">
+                        No signups in this range
+                    </div>
                 ) : (
                     <DataTable columns={columns} data={data} />
                 )}

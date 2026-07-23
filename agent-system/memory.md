@@ -18,6 +18,17 @@ This file persists key architectural discoveries, long-term project context, and
   - Includes user reports, registered user data reporting, and agent persona specifications.
   - Configuration stored in `.env` and `.env.example`.
 
+### MEM-002: Registered Users Auth Report Feature Implementation
+- **Date Recorded**: 2026-07-23
+- **Source**: `registered-user-report.md` Feature Implementation
+- **Importance Level**: High
+- **Tags**: `[reports, firebase-auth, user-management, csv-export]`
+- **Summary**: Registered user account directory fetched via `/api/users/auth-list` and rendered in `UsersAuthReport.tsx`.
+- **Full Context**:
+  - Integrated `UsersAuthReport.tsx` component into `UserReport.tsx` under sub-tab "Registered User Accounts (Firebase Auth)".
+  - Displays Email, UID, Created Date, Last Sign-In Date, and Email Verification Status.
+  - Features real-time search, verification status filter, 5-minute client-side caching, and one-click CSV export via `PapaParse`.
+
 ---
 
 ## 📥 Template for New Entries

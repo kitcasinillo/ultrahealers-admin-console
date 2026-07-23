@@ -21,11 +21,10 @@ import { exportGrowthExcel, exportGrowthPdf } from "../../lib/exportUtils";
 import { getUserReport } from "../../api/reports";
 import type { UserReportData } from "../../api/reports";
 import { ReportSkeleton } from "../../components/ui/skeleton";
-
-
-// --- Components ---
+import { UsersAuthReport } from "../../components/reports/UsersAuthReport";
 
 export function UserReport() {
+  const [activeTab, setActiveTab] = useState<"overview" | "registered_auth">("overview");
   const [dateRange, setDateRange] = useState("Custom Range");
   const [customStartDate, setCustomStartDate] = useState(`${new Date().getFullYear()}-03-01`);
   const [customEndDate, setCustomEndDate] = useState(new Date().toISOString().split('T')[0]);
@@ -207,24 +206,52 @@ export function UserReport() {
           </div>
         </div>
 
-        {/* Top Cards Grid */}
-        <div className="grid gap-5 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
-          {summaryData.map((card, idx) => (
-            <StatsCard
-              key={idx}
-              title={card.title}
-              value={card.value}
-              description={card.description || ""}
-              icon={
-                card.title.includes("Healers") ? <TrendingUp className="h-6 w-6 text-emerald-500" /> :
-                  card.title.includes("Seekers") ? <Users className="h-6 w-6 text-[#4318FF]" /> :
-                    card.title.includes("Conversion") ? <UserCheck className="h-6 w-6 text-[#4318FF]" /> :
-                      card.title.includes("Risk") ? <UserMinus className="h-6 w-6 text-amber-500" /> :
-                        <CreditCard className="h-6 w-6 text-[#01A3B4]" />
-              }
-            />
-          ))}
+        {/* Sub-Tab Navigation Bar */}
+        <div className="flex items-center gap-2 border-b border-gray-100 dark:border-white/5 pb-3">
+          <button
+            onClick={() => setActiveTab("overview")}
+            className={`px-4 py-2.5 text-xs font-extrabold rounded-xl transition-all ${
+              activeTab === "overview"
+                ? "bg-[#4318FF] text-white shadow-md shadow-[#4318FF]/20"
+                : "text-[#A3AED0] hover:text-[#1b254b] dark:hover:text-white bg-gray-100/50 dark:bg-white/5"
+            }`}
+          >
+            Overview & Analytics
+          </button>
+          <button
+            onClick={() => setActiveTab("registered_auth")}
+            className={`px-4 py-2.5 text-xs font-extrabold rounded-xl transition-all ${
+              activeTab === "registered_auth"
+                ? "bg-[#4318FF] text-white shadow-md shadow-[#4318FF]/20"
+                : "text-[#A3AED0] hover:text-[#1b254b] dark:hover:text-white bg-gray-100/50 dark:bg-white/5"
+            }`}
+          >
+            Registered User Accounts (Firebase Auth)
+          </button>
         </div>
+
+        {activeTab === "registered_auth" ? (
+          <UsersAuthReport />
+        ) : (
+          <>
+            {/* Top Cards Grid */}
+            <div className="grid gap-5 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+              {summaryData.map((card, idx) => (
+                <StatsCard
+                  key={idx}
+                  title={card.title}
+                  value={card.value}
+                  description={card.description || ""}
+                  icon={
+                    card.title.includes("Healers") ? <TrendingUp className="h-6 w-6 text-emerald-500" /> :
+                      card.title.includes("Seekers") ? <Users className="h-6 w-6 text-[#4318FF]" /> :
+                        card.title.includes("Conversion") ? <UserCheck className="h-6 w-6 text-[#4318FF]" /> :
+                          card.title.includes("Risk") ? <UserMinus className="h-6 w-6 text-amber-500" /> :
+                            <CreditCard className="h-6 w-6 text-[#01A3B4]" />
+                  }
+                />
+              ))}
+            </div>
 
         {/* Charts Main Grid */}
         <div className="grid gap-5 md:grid-cols-1 lg:grid-cols-2">
@@ -318,6 +345,8 @@ export function UserReport() {
             </div>
           </div>
         </div>
+      </>
+    )}
 
       </div>
     </div>

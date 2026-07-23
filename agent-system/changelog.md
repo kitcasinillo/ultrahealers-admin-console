@@ -4,6 +4,15 @@ All notable updates to agent capabilities, skills, memory, lessons learned, and 
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to Semantic Knowledge Versioning.
 
+## [1.4.0] - 2026-07-23
+
+### Added
+- Implemented **Registered Users Auth Report** feature specified in `registered-user-report.md`:
+  - Created [src/components/reports/UsersAuthReport.tsx](file:///C:/Users/ItechMediaLogic/prods/ultrahealers-admin-console/src/components/reports/UsersAuthReport.tsx) component.
+  - Added `getAuthUsersReport()` API helper method and `AuthUserRecord` type in [src/api/reports.ts](file:///C:/Users/ItechMediaLogic/prods/ultrahealers-admin-console/src/api/reports.ts).
+  - Integrated sub-tabbed navigation in [src/pages/reports/UserReport.tsx](file:///C:/Users/ItechMediaLogic/prods/ultrahealers-admin-console/src/pages/reports/UserReport.tsx).
+  - Supported email/name/UID search, verification status filters, 5-minute client-side caching, and one-click CSV export via `PapaParse`.
+
 ## [1.3.0] - 2026-07-23
 
 ### Added

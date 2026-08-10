@@ -1,6 +1,8 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { type User, onAuthStateChanged, getIdTokenResult } from "firebase/auth";
-import { auth } from "../lib/firebase";
+import { doc, getDoc } from "firebase/firestore";
+import { auth, db } from "../lib/firebase";
+import { setAnalyticsUserRole } from "../lib/analytics";
 
 interface AdminUser extends User {
     isAdmin: boolean;
@@ -49,6 +51,22 @@ export const AdminAuthProvider: React.FC<{ children: React.ReactNode }> = ({ chi
                         isAdmin: isAuthorized,
                         superAdmin: isSuperAdminClaim || isAllowedEmail,
                     } as AdminUser);
+
+                    // Fetch user profile from Firestore (READ ONLY) for GA4 role tracking
+                    try {
+                        const profileSnap = await getDoc(doc(db, "profiles", firebaseUser.uid));
+                        if (profileSnap.exists()) {
+                            const profileData = profileSnap.data();
+                            const role = profileData?.role || profileData?.profile?.role;
+                            setAnalyticsUserRole(role);
+                        } else {
+                            // Fallback: check token claims if role was included
+                            const role = (idTokenResult.claims as any)?.role;
+                            setAnalyticsUserRole(role);
+                        }
+                    } catch (profileErr) {
+                        console.warn("[Analytics] Unable to fetch user profile for GA4 role tracking:", profileErr);
+                    }
                 } catch (error) {
                     console.error("Error fetching custom claims:", error);
                     setUser({ ...firebaseUser, isAdmin: false, superAdmin: false } as AdminUser);

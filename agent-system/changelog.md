@@ -4,6 +4,24 @@ All notable updates to agent capabilities, skills, memory, lessons learned, and 
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to Semantic Knowledge Versioning.
 
+## [1.6.0] - 2026-08-10
+
+### Fixed
+- Restored responsive **HTML styled welcome email templates** (`generateWelcomeSeekerEmail` & `generateWelcomeHealerEmail`) while retaining anti-spam headers:
+  - Included both `html` and `text` parts in [`utils/notificationService.js`](file:///C:/Users/ItechMediaLogic/prods/backend-server/utils/notificationService.js) for full email client compatibility.
+  - Retained strict sender address alignment (`"Ultra Healers" <${process.env.EMAIL_USER}>`) and `replyTo` header.
+  - Kept clean, emoji-free subject lines to prevent automated spam categorization.
+
+## [1.5.0] - 2026-08-06
+
+### Added
+- Implemented automated **Welcome & Thank You Email** dispatch system for Seekers & Healers:
+  - Created responsive HTML welcome email templates (`generateWelcomeSeekerEmail` and `generateWelcomeHealerEmail`) in [`utils/emailTemplates.js`](file:///C:/Users/ItechMediaLogic/prods/backend-server/utils/emailTemplates.js).
+  - Integrated automated signup event parsing (`signup_seeker`, `signup_healer`, `account.signup`) in [`controllers/notificationController.js`](file:///C:/Users/ItechMediaLogic/prods/backend-server/controllers/notificationController.js).
+  - Added robust multi-URL fallback dispatcher in [`seeker-app/src/lib/n8n.js`](file:///C:/Users/ItechMediaLogic/prods/seeker-app/src/lib/n8n.js) and [`healer-app/src/lib/n8n.js`](file:///C:/Users/ItechMediaLogic/prods/healer-app/src/lib/n8n.js).
+  - Supported dual delivery channels: n8n Workflow Webhooks (`sendEvent`) and direct Nodemailer SMTP fallback.
+  - Added `/api/notifications/test-welcome-email` debugging endpoint in [`routes/notificationRoutes.js`](file:///C:/Users/ItechMediaLogic/prods/backend-server/routes/notificationRoutes.js).
+
 ## [1.4.0] - 2026-07-23
 
 ### Added

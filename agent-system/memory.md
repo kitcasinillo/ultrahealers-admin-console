@@ -29,6 +29,17 @@ This file persists key architectural discoveries, long-term project context, and
   - Displays Email, UID, Created Date, Last Sign-In Date, and Email Verification Status.
   - Features real-time search, verification status filter, 5-minute client-side caching, and one-click CSV export via `PapaParse`.
 
+### MEM-003: Self-Hosted Native Web Analytics Platform
+- **Date Recorded**: 2026-08-11
+- **Source**: `admin-analytics.md` Custom Self-Hosted Web Analytics Implementation
+- **Importance Level**: High
+- **Tags**: `[analytics, self-hosted, cross-subdomain, ingestion-beacon, admin-dashboard]`
+- **Summary**: Custom self-hosted analytics engine replacing legacy third-party Google Analytics across all subdomains.
+- **Full Context**:
+  - Ingestion API endpoint: `POST /api/v1/analytics/collect` in `backend-server` (`controllers/analyticsController.js`).
+  - Native tracking snippet: `public/uh-analytics.js` deployed across `seeker-app`, `healer-app`, and `ultrahealers-admin-console`.
+  - Admin UI: `AnalyticsDashboard.tsx` in `src/pages/reports/AnalyticsDashboard.tsx` with date range & subdomain filters, user acquisition metrics (Healers vs Seekers), traffic sources, pageview stats, click interactions, and exit drop-off pages.
+
 ---
 
 ## 📥 Template for New Entries

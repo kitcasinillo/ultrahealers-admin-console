@@ -28,6 +28,7 @@ import { RetreatBookings } from "./pages/bookings/RetreatBookings";
 import { BookingDetail } from "./pages/bookings/BookingDetail";
 
 import { PlatformOverview } from "./pages/reports/PlatformOverview";
+import { AnalyticsDashboard } from "./pages/reports/AnalyticsDashboard";
 import { Payments } from "./pages/payments/Payments";
 import Modalities from "./pages/modalities/Modalities";
 import { Notifications } from "./pages/notifications/Notifications";
@@ -90,6 +91,8 @@ function App() {
             <Route path="reports">
               <Route index element={<Navigate to="overview" replace />} />
               <Route path="overview" element={<PlatformOverview />} />
+              <Route path="analytics" element={<AnalyticsDashboard />} />
+              <Route path="web-analytics" element={<AnalyticsDashboard />} />
               <Route path="financial" element={<FinancialReport />} />
               <Route path="campaigns" element={<CampaignReport />} />
               <Route path="disputes" element={<DisputeReport />} />

@@ -4,6 +4,23 @@ All notable updates to agent capabilities, skills, memory, lessons learned, and 
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to Semantic Knowledge Versioning.
 
+## [1.8.0] - 2026-08-11
+
+### Added
+- Implemented **Core Web Vitals, Exception Monitoring, Rage Click & Conversion Tracking** (`platform-audit-analytics.md`):
+  - Upgraded native tracker script [`public/uh-analytics.js`](file:///C:/Users/ItechMediaLogic/prods/ultrahealers-admin-console/public/uh-analytics.js) across `ultrahealers-admin-console`, `healer-app`, and `seeker-app` with `PerformanceObserver` (LCP, CLS, FID), global `error` & `unhandledrejection` exception handlers, rapid click spatial rage-click detection, and `UHAnalytics.trackConversion()` helper.
+  - Updated backend analytics controller [`controllers/analyticsController.js`](file:///C:/Users/ItechMediaLogic/prods/backend-server/controllers/analyticsController.js) to store and aggregate performance vitals, client error logs, rage click spots, and conversion goals.
+  - Updated frontend API [`src/api/analytics.ts`](file:///C:/Users/ItechMediaLogic/prods/ultrahealers-admin-console/src/api/analytics.ts) and Admin Console Dashboard [`src/pages/reports/AnalyticsDashboard.tsx`](file:///C:/Users/ItechMediaLogic/prods/ultrahealers-admin-console/src/pages/reports/AnalyticsDashboard.tsx) with Core Web Vitals status cards, JS Error log list, Rage Click hotspots table, and Conversion milestone metrics.
+
+## [1.7.0] - 2026-08-11
+
+### Added
+- Implemented custom **Self-Hosted Web Analytics Platform** (`admin-analytics.md`):
+  - Created backend ingestion endpoint `POST /api/v1/analytics/collect` and stats aggregator `GET /api/v1/analytics/stats` in [`controllers/analyticsController.js`](file:///C:/Users/ItechMediaLogic/prods/backend-server/controllers/analyticsController.js).
+  - Deployed lightweight native tracker `public/uh-analytics.js` across `seeker-app`, `healer-app`, and `ultrahealers-admin-console`.
+  - Replaced legacy Google Analytics (`gtag.js`) scripts in [`seeker-app/index.html`](file:///C:/Users/ItechMediaLogic/prods/seeker-app/index.html) and [`healer-app/index.html`](file:///C:/Users/ItechMediaLogic/prods/healer-app/index.html).
+  - Built real-time analytics dashboard [`AnalyticsDashboard.tsx`](file:///C:/Users/ItechMediaLogic/prods/ultrahealers-admin-console/src/pages/reports/AnalyticsDashboard.tsx) with date range and subdomain filters, user acquisition metrics (Healers vs Seekers), traffic sources, pageview stats, click interactions, and exit drop-off pages.
+
 ## [1.6.0] - 2026-08-10
 
 ### Fixed

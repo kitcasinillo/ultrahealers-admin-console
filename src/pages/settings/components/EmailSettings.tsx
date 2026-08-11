@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import type { Control } from "react-hook-form";
 import { Controller, useWatch } from "react-hook-form";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
@@ -102,7 +102,7 @@ export function EmailSettings({ control, onSave }: EmailSettingsProps) {
         }
     };
 
-    const insertVariable = (fieldName: "welcomeEmails.seeker_body" | "welcomeEmails.healer_body", variable: string, onChange: (val: string) => void, currentValue: string) => {
+    const insertVariable = (_fieldName: "welcomeEmails.seeker_body" | "welcomeEmails.healer_body", variable: string, onChange: (val: string) => void, currentValue: string) => {
         const newValue = currentValue ? `${currentValue} ${variable}` : variable;
         onChange(newValue);
         toast.success(`Added ${variable} to email body`);

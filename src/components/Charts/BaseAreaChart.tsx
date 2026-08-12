@@ -58,6 +58,7 @@ export function BaseAreaChart({ title, data, areas, yAxisTickFormatter }: BaseAr
                   dy={10}
                 />
                 <YAxis 
+                  allowDecimals={false}
                   axisLine={false} 
                   tickLine={false} 
                   tick={{ fill: '#A3AED0', fontSize: 12 }}

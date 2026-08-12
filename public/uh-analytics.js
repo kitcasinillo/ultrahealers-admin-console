@@ -30,62 +30,152 @@
     };
   }
 
+  function toSnakeCase(str) {
+    if (!str) return '';
+    return str
+      .replace(/[^a-zA-Z0-9\s-_]/g, '')
+      .trim()
+      .replace(/[\s-_]+/g, '_')
+      .toLowerCase();
+  }
+
+  function getPageSectionPrefix() {
+    var path = window.location.pathname || '/';
+
+    if (path === '/' || path === '') return 'home';
+    if (path.includes('/reports/analytics') || path.includes('/reports/web-analytics')) return 'reports_analytics';
+    if (path.includes('/reports/overview')) return 'reports_overview';
+    if (path.includes('/reports/financial')) return 'reports_financial';
+    if (path.includes('/reports/users')) return 'reports_users';
+    if (path.includes('/reports/bookings')) return 'reports_bookings';
+    if (path.includes('/reports/retreats')) return 'reports_retreats';
+    if (path.includes('/users/healers')) return 'users_healers';
+    if (path.includes('/users/seekers')) return 'users_seekers';
+    if (path.includes('/bookings/sessions')) return 'bookings_sessions';
+    if (path.includes('/bookings/retreats')) return 'bookings_retreats';
+    if (path.includes('/bookings')) return 'bookings';
+    if (path.includes('/retreats') || path.includes('/listings')) return 'retreats';
+    if (path.includes('/disputes')) return 'disputes';
+    if (path.includes('/finance')) return 'finance';
+    if (path.includes('/campaigns')) return 'campaigns';
+    if (path.includes('/modalities')) return 'modalities';
+    if (path.includes('/settings')) return 'settings';
+    if (path.includes('/login')) return 'auth_login';
+
+    var cleanPath = path.replace(/^\//, '').replace(/[\/-]/g, '_');
+    return cleanPath || 'page';
+  }
+
   function cleanElementDescriptor(el) {
-    if (!el) return 'Interactive Element';
+    if (!el) return 'global_page_interactive_element';
 
+    // 1. Explicit tracking attribute override
     var customTrack = el.getAttribute('data-uh-track');
-    if (customTrack) return customTrack;
+    if (customTrack) return toSnakeCase(customTrack);
 
-    var ariaLabel = el.getAttribute('aria-label') || el.getAttribute('aria-description');
-    if (ariaLabel) return ariaLabel + ' Button';
+    var prefix = getPageSectionPrefix();
 
-    var title = el.getAttribute('title');
-    if (title) return title;
-
-    var alt = el.getAttribute('alt');
-    if (alt) return 'Image: ' + alt;
-
-    var placeholder = el.getAttribute('placeholder');
-    if (placeholder) return 'Input ("' + placeholder + '")';
-
-    var text = (el.innerText || el.textContent || '').replace(/\s+/g, ' ').trim();
-    if (text.length > 0 && text.length <= 40 && !/^\d+$/.test(text)) {
-      var tag = el.tagName.toLowerCase();
-      var tagLabel = tag === 'a' ? 'Link' : tag === 'button' ? 'Button' : tag;
-      return '"' + text + '" (' + tagLabel + ')';
+    // Contextual section/container overrides
+    var nav = el.closest('nav, header');
+    if (nav) {
+      prefix = 'nav';
     }
 
-    var svg = el.querySelector('svg');
-    if (svg) {
-      var svgClass = String((svg.getAttribute('class') || '') + ' ' + (svg.className || ''));
-      var lucideMatch = svgClass.match(/lucide-([a-z0-9-]+)/i);
-      if (lucideMatch && lucideMatch[1]) {
-        var iconName = lucideMatch[1]
-          .split('-')
-          .map(function(w) { return w.charAt(0).toUpperCase() + w.slice(1); })
-          .join(' ');
-        return '"' + iconName + '" Icon Button';
+    var modal = el.closest('[role="dialog"], .modal, [class*="Modal"]');
+    if (modal) {
+      var modalHeader = modal.querySelector('h1, h2, h3, h4, [class*="title"]');
+      var mTitle = modalHeader ? toSnakeCase(modalHeader.innerText || modalHeader.textContent || '') : '';
+      prefix = mTitle ? 'modal_' + mTitle : 'modal';
+    }
+
+    // 2. Extract action/verb and object/context
+    var actionObj = '';
+
+    var ariaLabel = el.getAttribute('aria-label') || el.getAttribute('aria-description');
+    if (ariaLabel) actionObj = toSnakeCase(ariaLabel);
+
+    if (!actionObj) {
+      var title = el.getAttribute('title');
+      if (title) actionObj = toSnakeCase(title);
+    }
+
+    if (!actionObj) {
+      var alt = el.getAttribute('alt');
+      if (alt) actionObj = 'image_' + toSnakeCase(alt);
+    }
+
+    if (!actionObj) {
+      var placeholder = el.getAttribute('placeholder');
+      if (placeholder) actionObj = 'input_' + toSnakeCase(placeholder);
+    }
+
+    if (!actionObj) {
+      var rawText = (el.innerText || el.textContent || '').replace(/\s+/g, ' ').trim();
+      if (rawText.length > 0 && rawText.length <= 45 && !/^\d+$/.test(rawText)) {
+        actionObj = toSnakeCase(rawText);
       }
     }
 
-    if (el.name) {
-      return '"' + el.name + '" Field';
-    }
-    if (el.id) {
-      return '#' + el.id + ' (' + el.tagName.toLowerCase() + ')';
-    }
-    if (el.type === 'submit') {
-      return 'Submit Button';
+    // 3. Smart SVG / Lucide Icon Detection
+    if (!actionObj) {
+      var svg = el.querySelector('svg');
+      if (svg) {
+        var svgClass = svg.getAttribute('class') || (typeof svg.className === 'string' ? svg.className : (svg.className && svg.className.baseVal) || '');
+        var lucideMatch = String(svgClass).match(/lucide-([a-z0-9-]+)/i);
+
+        var iconSlugMap = {
+          'refresh-cw': 'refresh_data',
+          'rotate-cw': 'reload_page',
+          'download': 'export_report',
+          'upload': 'upload_file',
+          'file-text': 'view_report',
+          'file-spreadsheet': 'export_excel',
+          'plus': 'add_new_item',
+          'user-plus': 'add_user',
+          'search': 'search_query',
+          'filter': 'filter_select',
+          'x': 'close_modal',
+          'x-circle': 'dismiss_alert',
+          'trash': 'delete_item',
+          'trash-2': 'delete_item',
+          'edit': 'edit_details',
+          'pencil': 'edit_field',
+          'log-out': 'logout_submit',
+          'calendar': 'select_date',
+          'globe': 'select_subdomain',
+          'eye': 'view_details',
+          'check': 'confirm_action',
+          'alert-triangle': 'warning_alert',
+          'target': 'goal_target',
+          'bar-chart-3': 'view_analytics'
+        };
+
+        if (lucideMatch && lucideMatch[1]) {
+          var rawIcon = lucideMatch[1].toLowerCase();
+          actionObj = iconSlugMap[rawIcon] || toSnakeCase(rawIcon);
+        }
+      }
     }
 
-    var section = el.closest('[data-section], section, form, header, nav');
-    if (section) {
-      var secName = section.getAttribute('data-section') || section.id || section.tagName.toLowerCase();
-      return '"' + secName + '" Action Button';
+    if (!actionObj && el.name) {
+      actionObj = 'field_' + toSnakeCase(el.name);
+    }
+    if (!actionObj && el.id) {
+      actionObj = toSnakeCase(el.id);
+    }
+    if (!actionObj && el.type === 'submit') {
+      actionObj = 'form_submit';
     }
 
-    var tag = el.tagName.toLowerCase();
-    return tag === 'a' ? 'Link Click' : 'Action Button';
+    if (!actionObj) {
+      var tag = el.tagName ? el.tagName.toLowerCase() : 'element';
+      actionObj = tag === 'a' ? 'navigation_link' : 'action_button';
+    }
+
+    var fullKey = prefix + '_' + actionObj;
+    fullKey = fullKey.replace(/_+/g, '_').replace(/^_|_$/g, '');
+
+    return fullKey;
   }
 
   var sessionId = getOrSetSessionId();
@@ -96,7 +186,16 @@
 
   var state = {
     sessionId: sessionId,
-    domain: window.location.hostname || 'admin.ultrahealers.com',
+    domain: (function () {
+      var host = window.location.hostname;
+      if (host === 'localhost' || host === '127.0.0.1') {
+        var port = window.location.port;
+        if (port === '5174' || port === '3001') return 'seekers.ultrahealers.com';
+        if (port === '5175' || port === '3002') return 'healers.ultrahealers.com';
+        return 'admin-console.ultrahealers.com';
+      }
+      return host || 'admin-console.ultrahealers.com';
+    })(),
     path: window.location.pathname || '/',
     referrer: document.referrer ? new URL(document.referrer).hostname : 'direct',
     utmSource: queryParams.utmSource,
@@ -105,7 +204,7 @@
   };
 
   function sendEvent(eventType, extraData) {
-    var timeOnPage = Math.round((Date.now() - pageStartTime) / 1000);
+    var timeOnPage = Math.min(Math.max(0, Math.round((Date.now() - pageStartTime) / 1000)), 1800);
     var payload = {
       sessionId: state.sessionId,
       domain: state.domain,

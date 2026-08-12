@@ -4,6 +4,36 @@ All notable updates to agent capabilities, skills, memory, lessons learned, and 
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to Semantic Knowledge Versioning.
 
+## [1.9.1] - 2026-08-12
+
+### Fixed
+- Fixed **Dev Environment Port Mapping Inversion for Web Analytics Tracker & Subdomain Filter**:
+  - Corrected tracker scripts [`uh-analytics.js`](file:///C:/Users/ItechMediaLogic/prods/healer-app/public/uh-analytics.js) across `seeker-app`, `healer-app`, and `ultrahealers-admin-console` to map dev port `5174` -> `seekers.ultrahealers.com` and port `5175` -> `healers.ultrahealers.com` (previously port `5174` was erroneously mapped to `healers` and `5175` to `seekers`).
+  - Updated backend domain matcher `matchesSubdomain` in [`controllers/analyticsController.js`](file:///C:/Users/ItechMediaLogic/prods/backend-server/controllers/analyticsController.js) and frontend badge renderer `formatDomainBadge` in [`AnalyticsDashboard.tsx`](file:///C:/Users/ItechMediaLogic/prods/ultrahealers-admin-console/src/pages/reports/AnalyticsDashboard.tsx) to accurately map port `5174` to Seekers and port `5175` to Healers.
+  - Implemented `getCanonicalDomainCategory` in [`controllers/analyticsController.js`](file:///C:/Users/ItechMediaLogic/prods/backend-server/controllers/analyticsController.js) to resolve target/domain matches into strict categories (`admin`, `seekers`, `healers`, `website`). This eliminates substring collisions (e.g. `ultrahealers.com` containing `healers.`) that previously caused the Healer App filter to match Admin Console documents.
+
+## [1.9.0] - 2026-08-12
+
+### Changed / Improved
+- Implemented **Multi-Select Subdomain Filtering**:
+  - Replaced single `<select>` with interactive Popover Multi-Select Component in [`AnalyticsDashboard.tsx`](file:///C:/Users/ItechMediaLogic/prods/ultrahealers-admin-console/src/pages/reports/AnalyticsDashboard.tsx) allowing administrators to select any combination of subdomains (e.g., exclude Admin Console, view only Seekers + Healers, or select individual domains).
+  - Updated frontend API [`src/api/analytics.ts`](file:///C:/Users/ItechMediaLogic/prods/ultrahealers-admin-console/src/api/analytics.ts) to accept `subdomain: string | string[]` and format comma-separated query parameters.
+  - Upgraded backend controller [`controllers/analyticsController.js`](file:///C:/Users/ItechMediaLogic/prods/backend-server/controllers/analyticsController.js) with `matchesSubdomain` matcher to aggregate and filter telemetry across multi-selected domains.
+- Replaced static placeholder percentage labels with **Dynamic Period-over-Period Trend Calculations**:
+  - Updated backend controller [`controllers/analyticsController.js`](file:///C:/Users/ItechMediaLogic/prods/backend-server/controllers/analyticsController.js) to query prior equivalent timeframe metrics (e.g. 7-14 days ago vs 0-7 days ago) and compute real percentage changes (`+15.2% vs previous period`, `0.0% vs previous period`, etc.) and trend indicators (`up`, `down`, `neutral`).
+  - Updated frontend API [`src/api/analytics.ts`](file:///C:/Users/ItechMediaLogic/prods/ultrahealers-admin-console/src/api/analytics.ts) and Admin Dashboard [`AnalyticsDashboard.tsx`](file:///C:/Users/ItechMediaLogic/prods/ultrahealers-admin-console/src/pages/reports/AnalyticsDashboard.tsx) to render dynamic trend values on all 4 KPI summary cards (**Total Pageviews**, **Unique Sessions**, **Avg. Session Duration**, and **Bounce Rate**).
+- Added **Domain Tracking Indicators & Explicit Admin Console Subdomain Option**:
+  - Added `admin-console.ultrahealers.com` (Admin Console, mapped from port `5173`/`3000` during dev) as an explicit option in the Subdomain Filter dropdown in [`AnalyticsDashboard.tsx`](file:///C:/Users/ItechMediaLogic/prods/ultrahealers-admin-console/src/pages/reports/AnalyticsDashboard.tsx).
+  - Updated `formatDomainBadge` helper to render the slate <span style="background-color: #f1f5f9; color: #334155;">website</span> badge for the main `ultrahealers.com` domain.
+  - Updated native tracker script [`public/uh-analytics.js`](file:///C:/Users/ItechMediaLogic/prods/ultrahealers-admin-console/public/uh-analytics.js) across all 3 frontends to map dev port `5173`/`3000` to `admin-console.ultrahealers.com`.
+  - Updated backend aggregator [`controllers/analyticsController.js`](file:///C:/Users/ItechMediaLogic/prods/backend-server/controllers/analyticsController.js) to group and emit the originating domain (`admin-console.ultrahealers.com`, `healers.ultrahealers.com`, `seekers.ultrahealers.com`) for every item in `topPages`, `topClicks`, and `topExits`.
+- Implemented **Analytics Track Count Reset Controls in System Settings**:
+  - Added backend endpoint `POST /api/v1/analytics/reset` (`resetAnalyticsTrackers`) in [`controllers/analyticsController.js`](file:///C:/Users/ItechMediaLogic/prods/backend-server/controllers/analyticsController.js) supporting specific target reset (`clicks`, `pageviews`, `sessions`, `exits`, `conversions`) and `all` trackers reset.
+  - Added frontend API helper `resetAnalyticsTrackers(target)` in [`src/api/analytics.ts`](file:///C:/Users/ItechMediaLogic/prods/ultrahealers-admin-console/src/api/analytics.ts).
+  - Built [`AnalyticsResetSettings.tsx`](file:///C:/Users/ItechMediaLogic/prods/ultrahealers-admin-console/src/pages/settings/components/AnalyticsResetSettings.tsx) component integrated into [`SystemSettings.tsx`](file:///C:/Users/ItechMediaLogic/prods/ultrahealers-admin-console/src/pages/settings/components/SystemSettings.tsx) with target tracker dropdown, "Reset Target" button, "Reset All" danger action, confirmation dialog, automatic audit log emission (`RESET_ANALYTICS_TRACKER`), animated spinner loading indicators (`Loader2`), button disabled states during backend execution, and loading toast notifications (`toast.loading`).
+- Implemented **Standardized `[Page/Section]_[Action/Verb]_[Object/Context]` Button Tracking Engine** ([`button-tracking-enhancement.md`](file:///C:/Users/ItechMediaLogic/prods/ultrahealers-admin-console/button-tracking-enhancement.md)).
+- Expanded **Top Analytics Lists to 10 Items with Scrollable Cards**.
+
 ## [1.8.0] - 2026-08-11
 
 ### Added

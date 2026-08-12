@@ -1,10 +1,22 @@
 import api from "../lib/api";
 
+export interface AnalyticsTrends {
+  pageviewsLabel?: string;
+  pageviewsTrend?: "up" | "down" | "neutral";
+  sessionsLabel?: string;
+  sessionsTrend?: "up" | "down" | "neutral";
+  durationLabel?: string;
+  durationTrend?: "up" | "down" | "neutral";
+  bounceRateLabel?: string;
+  bounceRateTrend?: "up" | "down" | "neutral";
+}
+
 export interface AnalyticsSummary {
   totalPageviews: number;
   totalSessions: number;
   avgDurationSeconds: number;
   bounceRatePercent: number;
+  trends?: AnalyticsTrends;
 }
 
 export interface MonthlyAcquisition {
@@ -22,17 +34,20 @@ export interface NamedCount {
 
 export interface PageStat {
   path: string;
+  domain?: string;
   views: number;
   avgTimeSeconds: number;
 }
 
 export interface ClickStat {
   element: string;
+  domain?: string;
   count: number;
 }
 
 export interface ExitStat {
   path: string;
+  domain?: string;
   count: number;
 }
 
@@ -82,8 +97,9 @@ export interface AnalyticsResponse {
 
 export const fetchAnalyticsStats = async (
   range: string = '30d',
-  subdomain: string = 'all'
+  subdomain: string | string[] = 'all'
 ): Promise<AnalyticsData> => {
+  const subdomainParam = Array.isArray(subdomain) ? subdomain.join(',') : subdomain;
   const endpoints = [
     '/api/admin/reports/analytics',
     '/api/v1/analytics/stats',
@@ -96,7 +112,7 @@ export const fetchAnalyticsStats = async (
   for (const endpoint of endpoints) {
     try {
       const response = await api.get<AnalyticsResponse>(endpoint, {
-        params: { range, subdomain }
+        params: { range, subdomain: subdomainParam }
       });
       if (response.data && response.data.success) {
         return response.data.data;
@@ -126,4 +142,37 @@ export const fetchAnalyticsStats = async (
     subdomainBreakdown: [],
     utmCampaigns: []
   };
+};
+
+export interface ResetAnalyticsResponse {
+  success: boolean;
+  target: string;
+  deletedCount: number;
+  message?: string;
+  error?: string;
+}
+
+export const resetAnalyticsTrackers = async (
+  target: string = 'all'
+): Promise<ResetAnalyticsResponse> => {
+  const endpoints = [
+    '/api/v1/analytics/reset',
+    '/api/admin/analytics/reset',
+    '/api/analytics/reset',
+    '/v1/analytics/reset',
+    '/analytics/reset'
+  ];
+
+  for (const endpoint of endpoints) {
+    try {
+      const response = await api.post<ResetAnalyticsResponse>(endpoint, { target });
+      if (response.data && response.data.success) {
+        return response.data;
+      }
+    } catch (error: any) {
+      console.warn(`Analytics reset endpoint ${endpoint} failed:`, error?.message);
+    }
+  }
+
+  throw new Error('Failed to reset analytics trackers');
 };

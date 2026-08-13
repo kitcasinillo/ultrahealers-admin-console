@@ -62,7 +62,12 @@ export function BaseBarChart({ title, data, bars, yAxisTickFormatter, height }: 
                   contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)' }}
                   cursor={{ fill: '#F4F7FE' }}
                 />
-                <Legend iconType="circle" wrapperStyle={{ paddingTop: '10px' }} />
+                <Legend 
+                  iconType="circle" 
+                  iconSize={10}
+                  wrapperStyle={{ paddingTop: '10px', fontSize: '12px' }} 
+                  formatter={(value) => <span className="text-xs font-semibold text-[#1B254B] dark:text-gray-200 ml-1">{value}</span>}
+                />
                 {bars.map((b, idx) => (
                   <Bar 
                     key={idx}

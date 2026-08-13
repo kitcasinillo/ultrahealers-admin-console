@@ -21,12 +21,25 @@ interface BaseAreaChartProps {
   title: string;
   data: any[];
   areas: AreaConfig[];
+  isStacked?: boolean;
   yAxisTickFormatter?: (value: any) => string;
+  showLegend?: boolean;
+  legendAlign?: 'left' | 'center' | 'right';
+  footerRight?: React.ReactNode;
 }
 
 import { ChartEmptyState } from './ChartEmptyState';
 
-export function BaseAreaChart({ title, data, areas, yAxisTickFormatter }: BaseAreaChartProps) {
+export function BaseAreaChart({ 
+  title, 
+  data, 
+  areas, 
+  isStacked = false, 
+  yAxisTickFormatter,
+  showLegend = true,
+  legendAlign = 'center',
+  footerRight
+}: BaseAreaChartProps) {
   const hasData = data && data.length > 0;
 
   return (
@@ -67,14 +80,22 @@ export function BaseAreaChart({ title, data, areas, yAxisTickFormatter }: BaseAr
                 <Tooltip 
                   contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)' }}
                 />
-                <Legend iconType="circle" wrapperStyle={{ paddingTop: '10px' }} />
+                {showLegend && (
+                  <Legend 
+                    align={legendAlign} 
+                    iconType="circle" 
+                    iconSize={10}
+                    wrapperStyle={{ paddingTop: '10px', fontSize: '12px' }} 
+                    formatter={(value) => <span className="text-xs font-semibold text-[#1B254B] dark:text-gray-200 ml-1">{value}</span>}
+                  />
+                )}
                 {areas.map((a, idx) => (
                   <Area 
                     key={idx}
                     name={a.name}
                     type="monotone" 
                     dataKey={a.dataKey} 
-                    stackId="1" 
+                    stackId={isStacked ? "1" : undefined} 
                     stroke={a.stroke} 
                     fillOpacity={a.fillOpacity ?? 1} 
                     fill={`url(#color${a.dataKey})`} 
@@ -84,6 +105,11 @@ export function BaseAreaChart({ title, data, areas, yAxisTickFormatter }: BaseAr
             </ResponsiveContainer>
           )}
         </div>
+        {footerRight && (
+          <div className="flex flex-wrap items-center justify-end gap-3 mt-3 pt-3 border-t border-gray-100 dark:border-white/5">
+            {footerRight}
+          </div>
+        )}
       </CardContent>
     </Card>
   );

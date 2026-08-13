@@ -9,7 +9,9 @@ import {
   LogOut,
   RefreshCw,
   BarChart3,
-  ChevronDown
+  ChevronDown,
+  Calendar,
+  Check
 } from 'lucide-react';
 import { StatsCard } from '../../components/StatsCard';
 import { BaseBarChart } from '../../components/Charts/BaseBarChart';
@@ -31,6 +33,25 @@ const DOMAIN_OPTIONS = [
   { id: 'seekers.ultrahealers.com', label: 'Seeker App', badge: 'seekers', badgeClass: 'bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 border-emerald-200/50' },
   { id: 'ultrahealers.com', label: 'Main Website', badge: 'website', badgeClass: 'bg-slate-100 text-slate-700 dark:bg-slate-800 border-slate-200/50' }
 ];
+
+const RANGE_OPTIONS = [
+  { id: '7d', label: 'Last 7 Days', sub: 'Past week of telemetry' },
+  { id: '30d', label: 'Last 30 Days', sub: 'Past 30 days of data' },
+  { id: '90d', label: 'Last 90 Days', sub: 'Past 3 months of telemetry' },
+  { id: 'ytd', label: 'Year to Date', sub: 'From Jan 1 to present' },
+  { id: 'all', label: 'All Time', sub: 'Complete historical logs' },
+];
+
+const formatShortDate = (dateStr: string) => {
+  if (!dateStr) return '';
+  try {
+    const [y, m, d] = dateStr.split('-');
+    const date = new Date(Number(y), Number(m) - 1, Number(d));
+    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: '2-digit' });
+  } catch {
+    return dateStr;
+  }
+};
 
 const formatDomainBadge = (domainStr?: string) => {
   if (!domainStr) return null;
@@ -152,9 +173,15 @@ const formatClickLabel = (rawStr: string): { title: string; eventId: string } =>
 
 export function AnalyticsDashboard() {
   const [range, setRange] = useState<string>('30d');
+  const [customStartDate, setCustomStartDate] = useState<string>('');
+  const [customEndDate, setCustomEndDate] = useState<string>('');
   const [selectedDomains, setSelectedDomains] = useState<string[]>(['all']);
+  
   const [isDomainDropdownOpen, setIsDomainDropdownOpen] = useState<boolean>(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+
+  const [isRangeDropdownOpen, setIsRangeDropdownOpen] = useState<boolean>(false);
+  const rangeDropdownRef = useRef<HTMLDivElement>(null);
 
   const [data, setData] = useState<AnalyticsData | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
@@ -165,6 +192,9 @@ export function AnalyticsDashboard() {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
         setIsDomainDropdownOpen(false);
       }
+      if (rangeDropdownRef.current && !rangeDropdownRef.current.contains(event.target as Node)) {
+        setIsRangeDropdownOpen(false);
+      }
     };
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
@@ -174,7 +204,12 @@ export function AnalyticsDashboard() {
     setLoading(true);
     setError(null);
     try {
-      const stats = await fetchAnalyticsStats(range, selectedDomains);
+      const stats = await fetchAnalyticsStats(
+        range,
+        selectedDomains,
+        range === 'custom' ? customStartDate : undefined,
+        range === 'custom' ? customEndDate : undefined
+      );
       setData(stats);
     } catch (err: any) {
       setError(err?.message || 'Failed to load analytics metrics');
@@ -184,8 +219,25 @@ export function AnalyticsDashboard() {
   };
 
   useEffect(() => {
-    loadData();
-  }, [range, selectedDomains]);
+    if (range === 'custom') {
+      if (customStartDate && customEndDate) {
+        loadData();
+      }
+    } else {
+      loadData();
+    }
+  }, [range, selectedDomains, customStartDate, customEndDate]);
+
+  const getRangeTriggerLabel = () => {
+    if (range === 'custom') {
+      if (customStartDate && customEndDate) {
+        return `${formatShortDate(customStartDate)} – ${formatShortDate(customEndDate)}`;
+      }
+      return 'Custom Date Range';
+    }
+    const found = RANGE_OPTIONS.find(r => r.id === range);
+    return found ? found.label : 'Last 30 Days';
+  };
 
   const handleToggleDomain = (domainId: string) => {
     if (domainId === 'all') {
@@ -272,7 +324,7 @@ export function AnalyticsDashboard() {
             Self-Hosted Web Analytics
           </h1>
           <p className="text-sm font-medium text-[#A3AED0] mt-1">
-            Real-time cross-subdomain traffic, user acquisition trends, Core Web Vitals, and behavioral insights across ultrahealers.com
+            Real-time cross-subdomain traffic, user acquisition trends, and behavioral insights across ultrahealers.com
           </p>
         </div>
 
@@ -341,19 +393,127 @@ export function AnalyticsDashboard() {
             )}
           </div>
 
-          {/* Range Select */}
-          <div className="flex items-center gap-2 bg-gray-50 dark:bg-[#1B254B] px-3 py-2 rounded-xl border border-gray-200 dark:border-gray-700">
-            <select
-              value={range}
-              onChange={(e) => setRange(e.target.value)}
-              className="bg-transparent text-sm font-semibold text-[#1B254B] dark:text-white focus:outline-none cursor-pointer"
+          {/* Enhanced Date Range Dropdown */}
+          <div className="relative" ref={rangeDropdownRef}>
+            <button
+              type="button"
+              onClick={() => setIsRangeDropdownOpen(!isRangeDropdownOpen)}
+              className="flex items-center gap-2.5 bg-gray-50 dark:bg-[#1B254B] px-3.5 py-2 rounded-xl border border-gray-200 dark:border-gray-700 text-sm font-semibold text-[#1B254B] dark:text-white hover:bg-gray-100 dark:hover:bg-[#111C44] transition-colors shadow-sm"
             >
-              <option value="7d">Last 7 Days</option>
-              <option value="30d">Last 30 Days</option>
-              <option value="90d">Last 90 Days</option>
-              <option value="ytd">Year to Date</option>
-              <option value="all">All Time</option>
-            </select>
+              <Calendar className="w-4 h-4 text-[#4318FF] dark:text-[#01A3B4]" />
+              <span>{getRangeTriggerLabel()}</span>
+              <ChevronDown className={cn("w-4 h-4 text-[#A3AED0] transition-transform", isRangeDropdownOpen && "rotate-180")} />
+            </button>
+
+            {isRangeDropdownOpen && (
+              <div className="absolute right-0 mt-2 w-80 bg-white dark:bg-[#111C44] rounded-2xl shadow-2xl border border-gray-100 dark:border-white/10 p-3.5 z-50 space-y-3 animate-in fade-in zoom-in-95 duration-150">
+                <div className="flex items-center justify-between pb-2 border-b border-gray-100 dark:border-white/10 text-xs font-bold text-[#A3AED0] uppercase tracking-wider">
+                  <div className="flex items-center gap-1.5">
+                    <Calendar className="w-3.5 h-3.5 text-[#4318FF] dark:text-[#01A3B4]" />
+                    <span>Time Horizon</span>
+                  </div>
+                  {range === 'custom' && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setRange('30d');
+                        setCustomStartDate('');
+                        setCustomEndDate('');
+                        setIsRangeDropdownOpen(false);
+                      }}
+                      className="text-[11px] text-[#4318FF] dark:text-[#01A3B4] hover:underline normal-case font-semibold"
+                    >
+                      Reset Preset
+                    </button>
+                  )}
+                </div>
+
+                {/* Preset Options List */}
+                <div className="space-y-1">
+                  {RANGE_OPTIONS.map((opt) => {
+                    const isSelected = range === opt.id;
+                    return (
+                      <button
+                        key={opt.id}
+                        type="button"
+                        onClick={() => {
+                          setRange(opt.id);
+                          setIsRangeDropdownOpen(false);
+                        }}
+                        className={cn(
+                          "w-full flex items-center justify-between p-2.5 rounded-xl cursor-pointer text-left transition-colors select-none",
+                          isSelected
+                            ? "bg-blue-50 dark:bg-white/10 text-[#4318FF] dark:text-white font-bold"
+                            : "hover:bg-gray-50 dark:hover:bg-white/5 text-[#1B254B] dark:text-gray-200"
+                        )}
+                      >
+                        <div>
+                          <p className="text-xs font-bold">{opt.label}</p>
+                          <p className="text-[10px] text-[#A3AED0] font-medium mt-0.5">{opt.sub}</p>
+                        </div>
+                        {isSelected && <Check className="w-4 h-4 text-[#4318FF] dark:text-[#01A3B4] shrink-0" />}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {/* Custom Range Section */}
+                <div className="pt-2.5 border-t border-gray-100 dark:border-white/10 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] font-bold text-[#A3AED0] uppercase tracking-wider">
+                      Custom Date Range
+                    </span>
+                    {range === 'custom' && (
+                      <span className="text-[10px] font-semibold text-[#01A3B4] bg-[#01A3B4]/10 px-2 py-0.5 rounded-full">
+                        Active
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="flex flex-col gap-1">
+                      <label className="text-[10px] font-bold text-[#A3AED0]">FROM</label>
+                      <input
+                        type="date"
+                        value={customStartDate}
+                        onChange={(e) => {
+                          setCustomStartDate(e.target.value);
+                          setRange('custom');
+                        }}
+                        className="w-full bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl px-2.5 py-1.5 text-xs font-semibold text-[#1B254B] dark:text-white focus:outline-none focus:ring-2 focus:ring-[#4318FF]/20 focus:border-[#4318FF] [color-scheme:light] dark:[color-scheme:dark]"
+                      />
+                    </div>
+                    <div className="flex flex-col gap-1">
+                      <label className="text-[10px] font-bold text-[#A3AED0]">TO</label>
+                      <input
+                        type="date"
+                        value={customEndDate}
+                        onChange={(e) => {
+                          setCustomEndDate(e.target.value);
+                          setRange('custom');
+                        }}
+                        className="w-full bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl px-2.5 py-1.5 text-xs font-semibold text-[#1B254B] dark:text-white focus:outline-none focus:ring-2 focus:ring-[#4318FF]/20 focus:border-[#4318FF] [color-scheme:light] dark:[color-scheme:dark]"
+                      />
+                    </div>
+                  </div>
+
+                  {range === 'custom' && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (customStartDate && customEndDate) {
+                          loadData();
+                        }
+                        setIsRangeDropdownOpen(false);
+                      }}
+                      className="w-full mt-1 bg-[#4318FF] hover:bg-[#3311CC] text-white text-xs font-bold py-2 rounded-xl transition-all shadow-sm"
+                    >
+                      Apply Custom Range
+                    </button>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Refresh Button */}
@@ -406,24 +566,50 @@ export function AnalyticsDashboard() {
         />
       </div>
 
-
-
       {/* Monthly User Acquisition Trends */}
-      <div className="bg-white dark:bg-[#111C44] p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-white/5 space-y-4">
-        {acquisitionChartData.length > 0 ? (
-          <BaseAreaChart
-            title="User Acquisition Trends (Healers vs Seekers)"
-            data={acquisitionChartData}
-            areas={[
-              { dataKey: 'Seekers', name: 'Seeker Signups', stroke: '#7C3AED' },
-              { dataKey: 'Healers', name: 'Healer Signups', stroke: '#01A3B4' }
-            ]}
-          />
-        ) : (
-          <div className="h-64 flex items-center justify-center text-sm text-[#A3AED0]">
-            No user acquisition records found for the selected period
-          </div>
-        )}
+      <div>
+        {(() => {
+          const totalSeekersCount = (data?.monthlyAcquisition || []).reduce((acc, curr) => acc + (curr.seekers || 0), 0);
+          const totalHealersCount = (data?.monthlyAcquisition || []).reduce((acc, curr) => acc + (curr.healers || 0), 0);
+          
+          return acquisitionChartData.length > 0 ? (
+            <BaseAreaChart
+              title={(() => {
+                if (range === '7d') return 'User Acquisition Trends (Daily)';
+                if (range === '30d' || range === '90d') return 'User Acquisition Trends (Weekly)';
+                if (range === 'ytd' || range === 'all') return 'User Acquisition Trends (Monthly)';
+                return 'User Acquisition Trends (Healers vs Seekers)';
+              })()}
+              data={acquisitionChartData}
+              showLegend={false}
+              areas={[
+                { dataKey: 'Seekers', name: 'Seeker Signups', stroke: '#7C3AED' },
+                { dataKey: 'Healers', name: 'Healer Signups', stroke: '#01A3B4' }
+              ]}
+              footerRight={
+                <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-2 bg-purple-50 dark:bg-purple-900/20 px-3.5 py-1.5 rounded-xl border border-purple-100 dark:border-purple-800/30">
+                    <div className="w-2.5 h-2.5 rounded-full bg-[#7C3AED]" />
+                    <span className="text-xs font-semibold text-purple-900 dark:text-purple-200">
+                      Seeker Signups: <strong className="text-xs font-bold text-[#7C3AED] ml-1">{totalSeekersCount.toLocaleString()}</strong>
+                    </span>
+                  </div>
+
+                  <div className="flex items-center gap-2 bg-teal-50 dark:bg-teal-900/20 px-3.5 py-1.5 rounded-xl border border-teal-100 dark:border-teal-800/30">
+                    <div className="w-2.5 h-2.5 rounded-full bg-[#01A3B4]" />
+                    <span className="text-xs font-semibold text-teal-900 dark:text-teal-200">
+                      Healer Signups: <strong className="text-xs font-bold text-[#01A3B4] ml-1">{totalHealersCount.toLocaleString()}</strong>
+                    </span>
+                  </div>
+                </div>
+              }
+            />
+          ) : (
+            <div className="bg-white dark:bg-[#111C44] p-6 rounded-2xl h-64 flex items-center justify-center text-sm text-[#A3AED0]">
+              No user acquisition records found for the selected period
+            </div>
+          );
+        })()}
       </div>
 
       {/* Traffic Distribution & Subdomains */}

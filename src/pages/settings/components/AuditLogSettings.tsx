@@ -73,15 +73,16 @@ export function AuditLogSettings() {
         let result = logs;
 
         if (searchQuery) {
+            const q = searchQuery.toLowerCase();
             result = result.filter(log =>
-                log.adminEmail.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                log.action.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                log.module.toLowerCase().includes(searchQuery.toLowerCase())
+                (log.adminEmail || '').toLowerCase().includes(q) ||
+                (log.action || '').toLowerCase().includes(q) ||
+                (log.module || '').toLowerCase().includes(q)
             );
         }
 
         if (activeFilter !== "all") {
-            result = result.filter(log => log.module.toLowerCase().includes(activeFilter.toLowerCase()));
+            result = result.filter(log => (log.module || '').toLowerCase().includes(activeFilter.toLowerCase()));
         }
 
         if (timeFilter !== "all") {
@@ -91,6 +92,7 @@ export function AuditLogSettings() {
             const lastWeek = new Date(new Date(today).setDate(today.getDate() - 7));
 
             result = result.filter(log => {
+                if (!log.timestamp || typeof log.timestamp.toDate !== 'function') return false;
                 const logDate = log.timestamp.toDate();
                 if (timeFilter === "today") return logDate >= today;
                 if (timeFilter === "yesterday") return logDate >= yesterday && logDate < today;
@@ -229,7 +231,7 @@ export function AuditLogSettings() {
             statusChanges.push({
                 id: 'status-change',
                 label: 'Status Update',
-                description: `Modification of ${selectedLog.module.replace('s', '')} operational state.`,
+                description: `Modification of ${(selectedLog.module || 'System').replace(/s$/, '')} operational state.`,
                 enabled: {
                     from: changes.previousStatus,
                     to: changes.newStatus
@@ -251,7 +253,7 @@ export function AuditLogSettings() {
         // 3. Handle Other Changes with grouping
         const otherChangesFlat = flattenChanges(changes);
         const groupedOther = otherChangesFlat.reduce((acc: any, item: any) => {
-            const parts = item.label.split(' / ');
+            const parts = String(item.label || '').split(' / ');
             const category = parts.length > 1 ? parts[0] : 'Configuration';
             const displayLabel = parts.length > 1 ? parts.slice(1).join(' / ') : item.label;
             
@@ -372,23 +374,25 @@ export function AuditLogSettings() {
                                             className="border-gray-50 dark:border-white/5 hover:bg-gray-50/50 dark:hover:bg-white/[0.03] transition-colors group cursor-pointer"
                                         >
                                             <TableCell className="text-xs font-medium text-[#1b254b] dark:text-white py-4">
-                                                {log.timestamp ? format(log.timestamp.toDate(), "MMM dd, HH:mm:ss") : 'N/A'}
+                                                {log.timestamp && typeof log.timestamp.toDate === 'function' ? format(log.timestamp.toDate(), "MMM dd, HH:mm:ss") : 'N/A'}
                                             </TableCell>
                                             <TableCell className="py-4">
                                                 <div className="flex flex-col">
-                                                    <span className="text-xs font-bold text-[#1b254b] dark:text-white">{log.adminEmail.split('@')[0]}</span>
-                                                    <span className="text-[10px] text-[#A3AED0]">{log.adminEmail}</span>
+                                                    <span className="text-xs font-bold text-[#1b254b] dark:text-white">
+                                                        {log.adminEmail ? log.adminEmail.split('@')[0] : ((log as any).adminName || 'System Admin')}
+                                                    </span>
+                                                    <span className="text-[10px] text-[#A3AED0]">{log.adminEmail || (log as any).adminId || 'System'}</span>
                                                 </div>
                                             </TableCell>
                                             <TableCell className="py-4">
                                                 <div className="flex items-center gap-3">
-                                                    {getActionBadge(log.action)}
+                                                    {getActionBadge(log.action || '')}
                                                     <Eye className="w-3.5 h-3.5 text-[#A3AED0] opacity-0 group-hover:opacity-100 transition-opacity" />
                                                 </div>
                                             </TableCell>
                                             <TableCell className="text-xs font-bold text-[#1b254b] dark:text-gray-300 py-4 text-right">
                                                 <Badge variant="outline" className="font-bold border-gray-100 dark:border-white/10 text-[10px] text-[#A3AED0]">
-                                                    {log.module}
+                                                    {log.module || 'System'}
                                                 </Badge>
                                             </TableCell>
                                         </TableRow>
@@ -433,7 +437,7 @@ export function AuditLogSettings() {
                                             <span className="text-[10px] font-bold uppercase tracking-wider">Timestamp</span>
                                         </div>
                                         <div className="text-sm font-bold text-[#1b254b] dark:text-white">
-                                            {selectedLog.timestamp ? format(selectedLog.timestamp.toDate(), "PPPP 'at' p") : 'Unknown'}
+                                            {selectedLog.timestamp && typeof selectedLog.timestamp.toDate === 'function' ? format(selectedLog.timestamp.toDate(), "PPPP 'at' p") : 'Unknown'}
                                         </div>
                                     </div>
                                     <div className="p-4 bg-gray-50 dark:bg-white/5 rounded-2xl border border-gray-100 dark:border-white/5">
@@ -442,7 +446,7 @@ export function AuditLogSettings() {
                                             <span className="text-[10px] font-bold uppercase tracking-wider">Administrator</span>
                                         </div>
                                         <div className="text-sm font-bold text-[#1b254b] dark:text-white">
-                                            {selectedLog.adminEmail}
+                                            {selectedLog.adminEmail || (selectedLog as any).adminId || 'System Administrator'}
                                         </div>
                                     </div>
                                     <div className="p-4 bg-gray-50 dark:bg-white/5 rounded-2xl border border-gray-100 dark:border-white/5">
@@ -567,62 +571,71 @@ export function AuditLogSettings() {
                                                     <div className="h-px flex-1 bg-gray-100 dark:bg-white/5" />
                                                 </div>
                                                 <div className="space-y-3">
-                                                    {items.length === 1 && items[0].displayLabel === items[0].label ? (
-                                                        // Simple single item card
-                                                        <div className="p-5 bg-white dark:bg-white/5 rounded-2xl border border-gray-100 dark:border-white/10 shadow-sm transition-all hover:shadow-md">
-                                                            <div className="text-[10px] font-black uppercase text-[#A3AED0] tracking-widest mb-2">{items[0].label}</div>
-                                                            {items[0].value.includes(' → ') ? (
-                                                                <div className="flex items-center gap-4 mt-4 p-3 bg-gray-50 dark:bg-white/[0.02] rounded-xl border border-gray-100 dark:border-white/5">
-                                                                    <div className="flex-1 flex flex-col gap-1">
-                                                                        <span className="text-[9px] font-bold uppercase text-[#A3AED0] tracking-tight">Previous</span>
-                                                                        <span className="text-xs font-bold text-[#1b254b] dark:text-white capitalize">
-                                                                            {items[0].value.split(' → ')[0]}
-                                                                        </span>
+                                                    {items.length === 1 && items[0].displayLabel === items[0].label ? (() => {
+                                                        const valStr = String(items[0]?.value ?? '');
+                                                        const isArrow = valStr.includes(' → ');
+                                                        const parts = isArrow ? valStr.split(' → ') : [valStr];
+                                                        return (
+                                                            <div className="p-5 bg-white dark:bg-white/5 rounded-2xl border border-gray-100 dark:border-white/10 shadow-sm transition-all hover:shadow-md">
+                                                                <div className="text-[10px] font-black uppercase text-[#A3AED0] tracking-widest mb-2">{items[0].label}</div>
+                                                                {isArrow ? (
+                                                                    <div className="flex items-center gap-4 mt-4 p-3 bg-gray-50 dark:bg-white/[0.02] rounded-xl border border-gray-100 dark:border-white/5">
+                                                                        <div className="flex-1 flex flex-col gap-1">
+                                                                            <span className="text-[9px] font-bold uppercase text-[#A3AED0] tracking-tight">Previous</span>
+                                                                            <span className="text-xs font-bold text-[#1b254b] dark:text-white capitalize">
+                                                                                {parts[0]}
+                                                                            </span>
+                                                                        </div>
+                                                                        <ArrowRight className="w-4 h-4 text-[#A3AED0] shrink-0" />
+                                                                        <div className="flex-1 flex flex-col gap-1">
+                                                                            <span className="text-[9px] font-bold uppercase text-[#A3AED0] tracking-tight">New</span>
+                                                                            <span className="text-xs font-bold text-[#4318FF] dark:text-blue-400 capitalize">
+                                                                                {parts[1] || ''}
+                                                                            </span>
+                                                                        </div>
                                                                     </div>
-                                                                    <ArrowRight className="w-4 h-4 text-[#A3AED0] shrink-0" />
-                                                                    <div className="flex-1 flex flex-col gap-1">
-                                                                        <span className="text-[9px] font-bold uppercase text-[#A3AED0] tracking-tight">New</span>
-                                                                        <span className="text-xs font-bold text-[#4318FF] dark:text-blue-400 capitalize">
-                                                                            {items[0].value.split(' → ')[1]}
-                                                                        </span>
+                                                                ) : (
+                                                                    <div className="whitespace-pre-wrap text-sm font-bold text-[#1b254b] dark:text-white capitalize">
+                                                                        {valStr}
                                                                     </div>
-                                                                </div>
-                                                            ) : (
-                                                                <div className="whitespace-pre-wrap text-sm font-bold text-[#1b254b] dark:text-white capitalize">
-                                                                    {items[0].value}
-                                                                </div>
-                                                            )}
-                                                        </div>
-                                                    ) : (
+                                                                )}
+                                                            </div>
+                                                        );
+                                                    })() : (
                                                         // Grouped multi-item card
                                                         <div className="p-5 bg-white dark:bg-white/5 rounded-2xl border border-gray-100 dark:border-white/10 shadow-sm transition-all hover:shadow-md">
                                                             <div className="space-y-4">
-                                                                {items.map((item: any, idx: number) => (
-                                                                    <div key={idx} className={`flex flex-col gap-1 ${idx !== 0 ? 'pt-4 border-t border-gray-50 dark:border-white/5' : ''}`}>
-                                                                        <div className="text-[10px] font-bold uppercase text-[#A3AED0] tracking-tight">{item.displayLabel}</div>
-                                                                        {item.value.includes(' → ') ? (
-                                                                            <div className="flex items-center gap-4 mt-3 p-3 bg-gray-50 dark:bg-white/[0.02] rounded-xl border border-gray-100 dark:border-white/5">
-                                                                                <div className="flex-1 flex flex-col gap-1">
-                                                                                    <span className="text-[9px] font-bold uppercase text-[#A3AED0] tracking-tight">Previous</span>
-                                                                                    <span className="text-xs font-bold text-[#1b254b] dark:text-white capitalize">
-                                                                                        {item.value.split(' → ')[0]}
-                                                                                    </span>
+                                                                {items.map((item: any, idx: number) => {
+                                                                    const itemValStr = String(item?.value ?? '');
+                                                                    const isArrow = itemValStr.includes(' → ');
+                                                                    const parts = isArrow ? itemValStr.split(' → ') : [itemValStr];
+                                                                    return (
+                                                                        <div key={idx} className={`flex flex-col gap-1 ${idx !== 0 ? 'pt-4 border-t border-gray-50 dark:border-white/5' : ''}`}>
+                                                                            <div className="text-[10px] font-bold uppercase text-[#A3AED0] tracking-tight">{item.displayLabel}</div>
+                                                                            {isArrow ? (
+                                                                                <div className="flex items-center gap-4 mt-3 p-3 bg-gray-50 dark:bg-white/[0.02] rounded-xl border border-gray-100 dark:border-white/5">
+                                                                                    <div className="flex-1 flex flex-col gap-1">
+                                                                                        <span className="text-[9px] font-bold uppercase text-[#A3AED0] tracking-tight">Previous</span>
+                                                                                        <span className="text-xs font-bold text-[#1b254b] dark:text-white capitalize">
+                                                                                            {parts[0]}
+                                                                                        </span>
+                                                                                    </div>
+                                                                                    <ArrowRight className="w-4 h-4 text-[#A3AED0] shrink-0" />
+                                                                                    <div className="flex-1 flex flex-col gap-1">
+                                                                                        <span className="text-[9px] font-bold uppercase text-[#A3AED0] tracking-tight">New</span>
+                                                                                        <span className="text-xs font-bold text-[#4318FF] dark:text-blue-400 capitalize">
+                                                                                            {parts[1] || ''}
+                                                                                        </span>
+                                                                                    </div>
                                                                                 </div>
-                                                                                <ArrowRight className="w-4 h-4 text-[#A3AED0] shrink-0" />
-                                                                                <div className="flex-1 flex flex-col gap-1">
-                                                                                    <span className="text-[9px] font-bold uppercase text-[#A3AED0] tracking-tight">New</span>
-                                                                                    <span className="text-xs font-bold text-[#4318FF] dark:text-blue-400 capitalize">
-                                                                                        {item.value.split(' → ')[1]}
-                                                                                    </span>
+                                                                            ) : (
+                                                                                <div className="whitespace-pre-wrap text-sm font-bold text-[#1b254b] dark:text-white capitalize">
+                                                                                    {itemValStr}
                                                                                 </div>
-                                                                            </div>
-                                                                        ) : (
-                                                                            <div className="whitespace-pre-wrap text-sm font-bold text-[#1b254b] dark:text-white capitalize">
-                                                                                {item.value}
-                                                                            </div>
-                                                                        )}
-                                                                    </div>
-                                                                ))}
+                                                                            )}
+                                                                        </div>
+                                                                    );
+                                                                })}
                                                             </div>
                                                         </div>
                                                     )}

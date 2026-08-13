@@ -4,6 +4,30 @@ All notable updates to agent capabilities, skills, memory, lessons learned, and 
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to Semantic Knowledge Versioning.
 
+## [1.9.2] - 2026-08-13
+
+### Fixed
+- Fixed **Healer Listing Session vs Retreat Click Interaction Tracking & Route Mapping**:
+  - Corrected native analytics tracker [`uh-analytics.js`](file:///C:/Users/ItechMediaLogic/prods/seeker-app/public/uh-analytics.js) across `seeker-app`, `healer-app`, and `ultrahealers-admin-console` in `getPageSectionPrefix()`: separated `if (path.includes('/retreats')) return 'retreats'` and `if (path.includes('/listings')) return 'listings'`. Previously `/listings` returned `'retreats'`, causing all seeker session booking interactions on `/listings/*` to be logged with a `retreats_` section prefix.
+  - Corrected `routeMap` in [`AnalyticsDashboard.tsx`](file:///C:/Users/ItechMediaLogic/prods/ultrahealers-admin-console/src/pages/reports/AnalyticsDashboard.tsx): updated `/listings` mapping from `'Retreat Listings'` to `'Healer Session Listings'`, and `/listings/*` detail paths to `'Healer Session Detail'`.
+  - Updated backend controller [`controllers/adminBookingsController.js`](file:///C:/Users/ItechMediaLogic/prods/backend-server/controllers/adminBookingsController.js) `inferBookingType`: now checks explicit `bookingType`, `type`, and `retreatListingId` fields before using title string fallback logic.
+  - Updated backend controller [`controllers/adminFinanceController.js`](file:///C:/Users/ItechMediaLogic/prods/backend-server/controllers/adminFinanceController.js) `isRetreat` logic: respects explicit `bookingType === 'session'` to prevent healer sessions with "retreat" in the title or modality from being counted under retreat platform fees.
+  - Updated [`StripePaymentForm.jsx`](file:///C:/Users/ItechMediaLogic/prods/seeker-app/src/components/StripePaymentForm.jsx) and [`bookingController.js`](file:///C:/Users/ItechMediaLogic/prods/backend-server/controllers/bookingController.js) to explicitly set `bookingType: 'session'` when creating seeker session bookings.
+- **Fixed Uncaught TypeError `Cannot read properties of undefined (reading 'split')` in Audit Log Settings**:
+  - Added null safety checks in [`AuditLogSettings.tsx`](file:///C:/Users/ItechMediaLogic/prods/ultrahealers-admin-console/src/pages/settings/components/AuditLogSettings.tsx) for `log.adminEmail`, `log.module`, `log.timestamp`, `item.label`, and `item.value` when rendering table rows and parsing change diffs.
+- **Omitted User UIDs from Click Interaction Telemetry & Dashboard Labels**:
+  - Updated native analytics tracker [`uh-analytics.js`](file:///C:/Users/ItechMediaLogic/prods/seeker-app/public/uh-analytics.js) across `seeker-app`, `healer-app`, and `ultrahealers-admin-console`: `getPageSectionPrefix()` and `cleanElementDescriptor()` now strip 20+ character UIDs and path parameters, turning raw descriptors like `healers_4R1v9X0yZ2aB3cD4eF5g6h7i8j_view_all_sessions` into `healers_view_all_sessions`.
+  - Updated [`AnalyticsDashboard.tsx`](file:///C:/Users/ItechMediaLogic/prods/ultrahealers-admin-console/src/pages/reports/AnalyticsDashboard.tsx) `formatClickLabel` and backend [`controllers/analyticsController.js`](file:///C:/Users/ItechMediaLogic/prods/backend-server/controllers/analyticsController.js) `stripUidFromDescriptor`: automatically filters out UID tokens when formatting click titles and aggregating counts, so clicks display cleanly as **"Healers View All Sessions"** or **"Healers Book Session"**.
+- **Optional Credentials Setup During Healer Onboarding**:
+  - Updated [`OnboardingWizard.jsx`](file:///C:/Users/ItechMediaLogic/prods/healer-app/src/components/OnboardingWizard.jsx): changed `validateStep(OnboardingSteps.CREDENTIALS)` to return `true` so healers can advance without uploading credentials. Added an informative banner and a `"Skip & Set Up Later"` button option.
+- **Fixed Dual-Role Account Array Duplication & Symmetrical Initial Role Preservation (`roles`)**:
+  - Enforced `Array.from(new Set(...))` across [`AuthContext.jsx`](file:///C:/Users/ItechMediaLogic/prods/healer-app/src/contexts/AuthContext.jsx) in `healer-app` and `seeker-app` when merging existing profile data for dual-role users (e.g. Seeker upgrading to Healer).
+  - Fixed issue where single-role fallback `[data.role, data.type]` created duplicate `['seeker', 'seeker']` elements before appending `'healer'`, producing `['seeker', 'seeker', 'healer']`.
+  - Preserved `existing.role` and `existing.type` in `healer-app` so adding a secondary healer role to an existing seeker account does not overwrite its initial signup role or corrupt historical User Acquisition Trends statistics.
+- **Added Independent Role Registration Timestamps (`seeker_joined_at` & `healer_joined_at`)**:
+  - Updated [`AuthContext.jsx`](file:///C:/Users/ItechMediaLogic/prods/healer-app/src/contexts/AuthContext.jsx) in `healer-app` and `seeker-app`: independent timestamps (`seeker_joined_at` and `healer_joined_at`) are saved when a user registers for or adds each respective role. Added auto-population on profile fetch/sign in so existing dual-role documents receive `healer_joined_at` automatically.
+  - Updated backend controllers [`analyticsController.js`](file:///C:/Users/ItechMediaLogic/prods/backend-server/controllers/analyticsController.js) (`monthlyAcquisition`) and [`reportsController.js`](file:///C:/Users/ItechMediaLogic/prods/backend-server/controllers/reportsController.js): User Acquisition Trends (Healers vs Seekers) chart now evaluates seeker registrations against `seekerJoinedAt` and healer registrations against `healerJoinedAt` (with fallback to `updated_at`). When an existing Seeker registers as a Healer later, **+1 Seeker** is recorded on their Seeker signup date and **+1 Healer** is recorded on their Healer signup date.
+
 ## [1.9.1] - 2026-08-12
 
 ### Fixed

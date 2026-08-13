@@ -30,6 +30,52 @@
     };
   }
 
+  function isDateTimeSelectionClick(el) {
+    if (!el) return false;
+
+    if (el.closest && el.closest('[data-uh-no-track="true"], [data-uh-no-track="date-time"]')) {
+      return true;
+    }
+
+    var container = el.closest && el.closest(
+      '[class*="calendar"], [class*="Calendar"], [class*="popover"], [class*="Popover"], ' +
+      '[class*="time"], [class*="TimeSlot"], [class*="timeslot"], .rdp, .react-datepicker'
+    );
+
+    if (container) {
+      var text = (container.innerText || container.textContent || '').toLowerCase();
+      var isDateOrTimePicker = (
+        text.includes('schedule your session') ||
+        text.includes('pick a date') ||
+        text.includes('select date') ||
+        text.includes('available time slots') ||
+        text.includes('time slots') ||
+        text.includes('morning (am)') ||
+        text.includes('afternoon/evening (pm)') ||
+        container.querySelector('svg[class*="lucide-chevron-left"], svg[class*="lucide-chevron-right"]') ||
+        container.classList.contains('rdp')
+      );
+      if (isDateOrTimePicker) return true;
+    }
+
+    var rawText = (el.innerText || el.textContent || '').trim();
+    var ariaLabel = (el.getAttribute && (el.getAttribute('aria-label') || el.getAttribute('aria-description') || '')) || '';
+
+    if (/^\d{1,2}$/.test(rawText) && container) return true;
+    if (/^\d{1,2}:\d{2}\s*(am|pm)?$/i.test(rawText) || /^\d{1,2}:\d{2}$/.test(rawText)) return true;
+
+    if (
+      rawText.toLowerCase() === 'pick a date' ||
+      rawText.toLowerCase().includes('select date') ||
+      ariaLabel.toLowerCase().includes('select date') ||
+      ariaLabel.toLowerCase().includes('pick a date')
+    ) {
+      return true;
+    }
+
+    return false;
+  }
+
   function toSnakeCase(str) {
     if (!str) return '';
     return str
@@ -51,10 +97,13 @@
     if (path.includes('/reports/retreats')) return 'reports_retreats';
     if (path.includes('/users/healers')) return 'users_healers';
     if (path.includes('/users/seekers')) return 'users_seekers';
+    if (path.includes('/healers')) return 'healers';
+    if (path.includes('/seekers')) return 'seekers';
     if (path.includes('/bookings/sessions')) return 'bookings_sessions';
     if (path.includes('/bookings/retreats')) return 'bookings_retreats';
     if (path.includes('/bookings')) return 'bookings';
-    if (path.includes('/retreats') || path.includes('/listings')) return 'retreats';
+    if (path.includes('/retreats')) return 'retreats';
+    if (path.includes('/listings')) return 'listings';
     if (path.includes('/disputes')) return 'disputes';
     if (path.includes('/finance')) return 'finance';
     if (path.includes('/campaigns')) return 'campaigns';
@@ -62,7 +111,11 @@
     if (path.includes('/settings')) return 'settings';
     if (path.includes('/login')) return 'auth_login';
 
-    var cleanPath = path.replace(/^\//, '').replace(/[\/-]/g, '_');
+    var cleanPath = path
+      .replace(/\/[A-Za-z0-9_-]{20,36}(\/|$)/g, '/')
+      .replace(/\/\d+(\/|$)/g, '/')
+      .replace(/^\//, '')
+      .replace(/[\/-]/g, '_');
     return cleanPath || 'page';
   }
 
@@ -173,7 +226,12 @@
     }
 
     var fullKey = prefix + '_' + actionObj;
-    fullKey = fullKey.replace(/_+/g, '_').replace(/^_|_$/g, '');
+    var parts = fullKey.split('_').filter(Boolean);
+    var reservedPrefixes = /^(healers|seekers|retreats|listings|bookings|users|nav|modal|reports|disputes|finance|campaigns|modalities|settings|home)$/i;
+    var cleanParts = parts.filter(function (part) {
+      return !(/^[A-Za-z0-9_-]{20,36}$/.test(part) && !reservedPrefixes.test(part));
+    });
+    fullKey = cleanParts.join('_').replace(/_+/g, '_').replace(/^_|_$/g, '');
 
     return fullKey;
   }
@@ -360,6 +418,9 @@
     // Standard Click Tracking: ONLY for actual interactive elements
     var clickable = target.closest('button, a, [role="button"], [data-uh-track], input[type="submit"], select');
     if (clickable) {
+      if (isDateTimeSelectionClick(clickable)) {
+        return;
+      }
       var descriptor = cleanElementDescriptor(clickable);
       sendEvent('click', { targetElement: descriptor });
     }

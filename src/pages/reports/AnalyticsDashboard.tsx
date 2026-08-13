@@ -79,7 +79,7 @@ const formatRouteTitle = (pathStr: string): string => {
     '/reports/campaigns': 'Campaign Marketing Report',
     '/users/healers': 'Healers Directory',
     '/users/seekers': 'Seekers Directory',
-    '/listings': 'Retreat Listings',
+    '/listings': 'Healer Session Listings',
     '/retreats': 'Retreats & Workshops',
     '/bookings/sessions': 'Session Bookings',
     '/bookings/retreats': 'Retreat Enrollments',
@@ -100,7 +100,7 @@ const formatRouteTitle = (pathStr: string): string => {
   if (path.startsWith('/users/healers/')) return `${domainPrefix}Healer Profile Detail`;
   if (path.startsWith('/users/seekers/')) return `${domainPrefix}Seeker Profile Detail`;
   if (path.startsWith('/retreats/')) return `${domainPrefix}Retreat Listing Detail`;
-  if (path.startsWith('/listings/')) return `${domainPrefix}Listing Detail`;
+  if (path.startsWith('/listings/')) return `${domainPrefix}Healer Session Detail`;
   if (path.startsWith('/bookings/')) return `${domainPrefix}Booking Details`;
   if (path.startsWith('/disputes/')) return `${domainPrefix}Dispute Investigation`;
   if (path.startsWith('/campaigns/')) return `${domainPrefix}Campaign Details`;
@@ -129,8 +129,11 @@ const formatClickLabel = (rawStr: string): { title: string; eventId: string } =>
     return legacyMap[rawStr];
   }
 
+  const reservedPrefixes = /^(healers|seekers|retreats|listings|bookings|users|nav|modal|reports|disputes|finance|campaigns|modalities|settings|home)$/i;
+  const isUid = (part: string) => /^[A-Za-z0-9_-]{20,36}$/.test(part) && !reservedPrefixes.test(part);
+
   if (rawStr.includes('_')) {
-    const parts = rawStr.split('_').filter(Boolean);
+    const parts = rawStr.split('_').filter(Boolean).filter(part => !isUid(part));
     const words = parts.map((w) => w.charAt(0).toUpperCase() + w.slice(1));
     
     let title = words.join(' ');
@@ -140,7 +143,8 @@ const formatClickLabel = (rawStr: string): { title: string; eventId: string } =>
       title = `${words.slice(1).join(' ')} (Modal)`;
     }
 
-    return { title, eventId: rawStr };
+    const eventId = parts.join('_');
+    return { title, eventId };
   }
 
   return { title: rawStr, eventId: rawStr };

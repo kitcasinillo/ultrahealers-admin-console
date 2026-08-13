@@ -26,6 +26,16 @@ This file logs failures, root cause analyses, mistakes, and preventative actions
 
 ---
 
+### LESSON-003: Do Not Automatically Run npm Build After Tasks
+- **Date Recorded**: 2026-08-13
+- **Category**: Tooling & Workflow
+- **Severity**: Minor
+- **Root Cause**: Running `npm run build` at task end wastes time/resources when the dev server is active and the user didn't explicitly request a production build.
+- **Resolution**: Respect user directive.
+- **Preventative Action**: Do NOT run `npm run build` after completing coding tasks unless explicitly requested by the user.
+
+---
+
 ## 📥 Template for New Lessons
 
 ```markdown

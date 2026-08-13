@@ -11,13 +11,21 @@ import {
   BarChart3,
   ChevronDown,
   Calendar,
-  Check
+  Check,
+  Layers
 } from 'lucide-react';
 import { StatsCard } from '../../components/StatsCard';
 import { BaseBarChart } from '../../components/Charts/BaseBarChart';
 import { BaseAreaChart } from '../../components/Charts/BaseAreaChart';
 import { fetchAnalyticsStats, type AnalyticsData } from '../../api/analytics';
 import { cn } from '../../lib/utils';
+
+const GRANULARITY_OPTIONS = [
+  { id: 'auto', label: 'Auto (Default)', description: 'Smart horizon grouping based on filter range' },
+  { id: 'day', label: 'Daily', description: 'Detailed day-by-day telemetry points' },
+  { id: 'week', label: 'Weekly', description: '7-day interval aggregated buckets' },
+  { id: 'month', label: 'Monthly', description: 'Calendar month aggregated totals' },
+];
 
 const formatSeconds = (sec: number): string => {
   if (!sec || isNaN(sec)) return '0s';
@@ -176,12 +184,17 @@ export function AnalyticsDashboard() {
   const [customStartDate, setCustomStartDate] = useState<string>('');
   const [customEndDate, setCustomEndDate] = useState<string>('');
   const [selectedDomains, setSelectedDomains] = useState<string[]>(['all']);
+  const [acquisitionGranularity, setAcquisitionGranularity] = useState<'auto' | 'day' | 'week' | 'month'>('auto');
+  const [highlightedSeries, setHighlightedSeries] = useState<'all' | 'seekers' | 'healers'>('all');
   
   const [isDomainDropdownOpen, setIsDomainDropdownOpen] = useState<boolean>(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   const [isRangeDropdownOpen, setIsRangeDropdownOpen] = useState<boolean>(false);
   const rangeDropdownRef = useRef<HTMLDivElement>(null);
+
+  const [isGranularityDropdownOpen, setIsGranularityDropdownOpen] = useState<boolean>(false);
+  const granularityDropdownRef = useRef<HTMLDivElement>(null);
 
   const [data, setData] = useState<AnalyticsData | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
@@ -194,6 +207,9 @@ export function AnalyticsDashboard() {
       }
       if (rangeDropdownRef.current && !rangeDropdownRef.current.contains(event.target as Node)) {
         setIsRangeDropdownOpen(false);
+      }
+      if (granularityDropdownRef.current && !granularityDropdownRef.current.contains(event.target as Node)) {
+        setIsGranularityDropdownOpen(false);
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
@@ -208,7 +224,8 @@ export function AnalyticsDashboard() {
         range,
         selectedDomains,
         range === 'custom' ? customStartDate : undefined,
-        range === 'custom' ? customEndDate : undefined
+        range === 'custom' ? customEndDate : undefined,
+        acquisitionGranularity !== 'auto' ? acquisitionGranularity : undefined
       );
       setData(stats);
     } catch (err: any) {
@@ -226,7 +243,7 @@ export function AnalyticsDashboard() {
     } else {
       loadData();
     }
-  }, [range, selectedDomains, customStartDate, customEndDate]);
+  }, [range, selectedDomains, customStartDate, customEndDate, acquisitionGranularity]);
 
   const getRangeTriggerLabel = () => {
     if (range === 'custom') {
@@ -237,6 +254,13 @@ export function AnalyticsDashboard() {
     }
     const found = RANGE_OPTIONS.find(r => r.id === range);
     return found ? found.label : 'Last 30 Days';
+  };
+
+  const getGranularityTriggerLabel = () => {
+    if (acquisitionGranularity === 'day') return 'Daily';
+    if (acquisitionGranularity === 'week') return 'Weekly';
+    if (acquisitionGranularity === 'month') return 'Monthly';
+    return 'Auto (Default)';
   };
 
   const handleToggleDomain = (domainId: string) => {
@@ -575,32 +599,120 @@ export function AnalyticsDashboard() {
           return acquisitionChartData.length > 0 ? (
             <BaseAreaChart
               title={(() => {
-                if (range === '7d') return 'User Acquisition Trends (Daily)';
-                if (range === '30d' || range === '90d') return 'User Acquisition Trends (Weekly)';
-                if (range === 'ytd' || range === 'all') return 'User Acquisition Trends (Monthly)';
-                return 'User Acquisition Trends (Healers vs Seekers)';
+                const activeMode = acquisitionGranularity !== 'auto' ? acquisitionGranularity : (
+                  range === '7d' ? 'day' : (range === '30d' || range === '90d' ? 'week' : 'month')
+                );
+                if (activeMode === 'day') return 'User Acquisition Trends (Daily)';
+                if (activeMode === 'week') return 'User Acquisition Trends (Weekly)';
+                if (activeMode === 'month') return 'User Acquisition Trends (Monthly)';
+                return 'User Acquisition Trends';
               })()}
               data={acquisitionChartData}
               showLegend={false}
+              headerRight={
+                <div className="relative" ref={granularityDropdownRef}>
+                  <button
+                    type="button"
+                    onClick={() => setIsGranularityDropdownOpen(!isGranularityDropdownOpen)}
+                    className="flex items-center gap-2 bg-gray-50 dark:bg-[#1B254B] px-3 py-1.5 rounded-xl border border-gray-200 dark:border-gray-700 text-xs font-semibold text-[#1B254B] dark:text-white hover:bg-gray-100 dark:hover:bg-[#111C44] transition-colors shadow-xs"
+                  >
+                    <Layers className="w-3.5 h-3.5 text-[#4318FF] dark:text-[#01A3B4]" />
+                    <span className="text-[#A3AED0]">Group by:</span>
+                    <span className="font-bold">{getGranularityTriggerLabel()}</span>
+                    <ChevronDown className={cn("w-3.5 h-3.5 text-[#A3AED0] transition-transform", isGranularityDropdownOpen && "rotate-180")} />
+                  </button>
+
+                  {isGranularityDropdownOpen && (
+                    <div className="absolute right-0 mt-2 w-64 bg-white dark:bg-[#111C44] rounded-2xl shadow-2xl border border-gray-100 dark:border-white/10 p-3 z-50 space-y-2 animate-in fade-in zoom-in-95 duration-150">
+                      <div className="pb-2 border-b border-gray-100 dark:border-white/10 text-[10px] font-bold text-[#A3AED0] uppercase tracking-wider flex items-center gap-1.5">
+                        <Layers className="w-3 h-3 text-[#4318FF] dark:text-[#01A3B4]" />
+                        <span>Aggregation Interval</span>
+                      </div>
+
+                      <div className="space-y-1">
+                        {GRANULARITY_OPTIONS.map((opt) => {
+                          const isSelected = acquisitionGranularity === opt.id;
+                          return (
+                            <button
+                              key={opt.id}
+                              type="button"
+                              onClick={() => {
+                                setAcquisitionGranularity(opt.id as any);
+                                setIsGranularityDropdownOpen(false);
+                              }}
+                              className={cn(
+                                "w-full flex items-center justify-between p-2.5 rounded-xl cursor-pointer text-left transition-colors select-none",
+                                isSelected
+                                  ? "bg-blue-50 dark:bg-white/10 text-[#4318FF] dark:text-white font-bold"
+                                  : "hover:bg-gray-50 dark:hover:bg-white/5 text-[#1B254B] dark:text-gray-200"
+                              )}
+                            >
+                              <div>
+                                <div className="text-xs font-bold">{opt.label}</div>
+                                <div className="text-[10px] font-medium text-[#A3AED0] mt-0.5">{opt.description}</div>
+                              </div>
+                              {isSelected && <Check className="w-4 h-4 text-[#4318FF] dark:text-[#01A3B4] shrink-0" />}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              }
               areas={[
-                { dataKey: 'Seekers', name: 'Seeker Signups', stroke: '#7C3AED' },
-                { dataKey: 'Healers', name: 'Healer Signups', stroke: '#01A3B4' }
+                {
+                  dataKey: 'Seekers',
+                  name: 'Seeker Signups',
+                  stroke: '#7C3AED',
+                  fillOpacity: highlightedSeries === 'all' || highlightedSeries === 'seekers' ? 0.35 : 0.03,
+                  strokeOpacity: highlightedSeries === 'all' || highlightedSeries === 'seekers' ? 1 : 0.15,
+                  strokeWidth: highlightedSeries === 'seekers' ? 3.5 : 2
+                },
+                {
+                  dataKey: 'Healers',
+                  name: 'Healer Signups',
+                  stroke: '#01A3B4',
+                  fillOpacity: highlightedSeries === 'all' || highlightedSeries === 'healers' ? 0.35 : 0.03,
+                  strokeOpacity: highlightedSeries === 'all' || highlightedSeries === 'healers' ? 1 : 0.15,
+                  strokeWidth: highlightedSeries === 'healers' ? 3.5 : 2
+                }
               ]}
               footerRight={
                 <div className="flex items-center gap-3">
-                  <div className="flex items-center gap-2 bg-purple-50 dark:bg-purple-900/20 px-3.5 py-1.5 rounded-xl border border-purple-100 dark:border-purple-800/30">
+                  <button
+                    type="button"
+                    onClick={() => setHighlightedSeries(prev => prev === 'seekers' ? 'all' : 'seekers')}
+                    className={cn(
+                      "flex items-center gap-2 px-3.5 py-1.5 rounded-xl border transition-all cursor-pointer select-none",
+                      highlightedSeries === 'seekers'
+                        ? "bg-purple-100 dark:bg-purple-900/50 border-[#7C3AED] ring-2 ring-[#7C3AED]/40 shadow-xs scale-[1.02]"
+                        : "bg-purple-50 dark:bg-purple-900/20 border-purple-100 dark:border-purple-800/30 hover:bg-purple-100/70 dark:hover:bg-purple-900/40"
+                    )}
+                    title={highlightedSeries === 'seekers' ? "Click to show all trends" : "Click to highlight Seeker Signups trend"}
+                  >
                     <div className="w-2.5 h-2.5 rounded-full bg-[#7C3AED]" />
                     <span className="text-xs font-semibold text-purple-900 dark:text-purple-200">
                       Seeker Signups: <strong className="text-xs font-bold text-[#7C3AED] ml-1">{totalSeekersCount.toLocaleString()}</strong>
                     </span>
-                  </div>
+                  </button>
 
-                  <div className="flex items-center gap-2 bg-teal-50 dark:bg-teal-900/20 px-3.5 py-1.5 rounded-xl border border-teal-100 dark:border-teal-800/30">
+                  <button
+                    type="button"
+                    onClick={() => setHighlightedSeries(prev => prev === 'healers' ? 'all' : 'healers')}
+                    className={cn(
+                      "flex items-center gap-2 px-3.5 py-1.5 rounded-xl border transition-all cursor-pointer select-none",
+                      highlightedSeries === 'healers'
+                        ? "bg-teal-100 dark:bg-teal-900/50 border-[#01A3B4] ring-2 ring-[#01A3B4]/40 shadow-xs scale-[1.02]"
+                        : "bg-teal-50 dark:bg-teal-900/20 border-teal-100 dark:border-teal-800/30 hover:bg-teal-100/70 dark:hover:bg-teal-900/40"
+                    )}
+                    title={highlightedSeries === 'healers' ? "Click to show all trends" : "Click to highlight Healer Signups trend"}
+                  >
                     <div className="w-2.5 h-2.5 rounded-full bg-[#01A3B4]" />
                     <span className="text-xs font-semibold text-teal-900 dark:text-teal-200">
                       Healer Signups: <strong className="text-xs font-bold text-[#01A3B4] ml-1">{totalHealersCount.toLocaleString()}</strong>
                     </span>
-                  </div>
+                  </button>
                 </div>
               }
             />

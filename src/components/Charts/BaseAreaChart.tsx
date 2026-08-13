@@ -15,6 +15,8 @@ export interface AreaConfig {
   dataKey: string;
   stroke: string;
   fillOpacity?: number;
+  strokeOpacity?: number;
+  strokeWidth?: number;
 }
 
 interface BaseAreaChartProps {
@@ -25,6 +27,7 @@ interface BaseAreaChartProps {
   yAxisTickFormatter?: (value: any) => string;
   showLegend?: boolean;
   legendAlign?: 'left' | 'center' | 'right';
+  headerRight?: React.ReactNode;
   footerRight?: React.ReactNode;
 }
 
@@ -38,14 +41,16 @@ export function BaseAreaChart({
   yAxisTickFormatter,
   showLegend = true,
   legendAlign = 'center',
+  headerRight,
   footerRight
 }: BaseAreaChartProps) {
   const hasData = data && data.length > 0;
 
   return (
     <Card className="rounded-3xl border-none shadow-[0_10px_30px_0_rgba(11,20,55,0.06)] dark:bg-[#111C44] min-w-0">
-      <CardHeader>
+      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
         <CardTitle className="text-lg font-bold text-[#1b254b] dark:text-white">{title}</CardTitle>
+        {headerRight && <div>{headerRight}</div>}
       </CardHeader>
       <CardContent>
         <div className="h-[250px] sm:h-[300px] w-full mt-4">
@@ -97,7 +102,9 @@ export function BaseAreaChart({
                     dataKey={a.dataKey} 
                     stackId={isStacked ? "1" : undefined} 
                     stroke={a.stroke} 
-                    fillOpacity={a.fillOpacity ?? 1} 
+                    strokeWidth={a.strokeWidth ?? 2}
+                    strokeOpacity={a.strokeOpacity ?? 1}
+                    fillOpacity={a.fillOpacity ?? 0.2} 
                     fill={`url(#color${a.dataKey})`} 
                   />
                 ))}

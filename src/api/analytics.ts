@@ -99,7 +99,8 @@ export const fetchAnalyticsStats = async (
   range: string = '30d',
   subdomain: string | string[] = 'all',
   startDate?: string,
-  endDate?: string
+  endDate?: string,
+  granularity?: string
 ): Promise<AnalyticsData> => {
   const subdomainParam = Array.isArray(subdomain) ? subdomain.join(',') : subdomain;
   const endpoints = [
@@ -114,7 +115,7 @@ export const fetchAnalyticsStats = async (
   for (const endpoint of endpoints) {
     try {
       const response = await api.get<AnalyticsResponse>(endpoint, {
-        params: { range, subdomain: subdomainParam, startDate, endDate }
+        params: { range, subdomain: subdomainParam, startDate, endDate, granularity }
       });
       if (response.data && response.data.success) {
         return response.data.data;

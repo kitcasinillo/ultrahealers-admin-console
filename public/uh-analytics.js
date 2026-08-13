@@ -30,21 +30,22 @@
     };
   }
 
-  function isDateTimeSelectionClick(el) {
+  function isIgnoredControlClick(el) {
     if (!el) return false;
 
-    if (el.closest && el.closest('[data-uh-no-track="true"], [data-uh-no-track="date-time"]')) {
+    if (el.closest && el.closest('[data-uh-no-track="true"], [data-uh-no-track="date-time"], [data-uh-no-track="filter"]')) {
       return true;
     }
 
     var container = el.closest && el.closest(
       '[class*="calendar"], [class*="Calendar"], [class*="popover"], [class*="Popover"], ' +
-      '[class*="time"], [class*="TimeSlot"], [class*="timeslot"], .rdp, .react-datepicker'
+      '[class*="dropdown"], [class*="Dropdown"], [class*="time"], [class*="TimeSlot"], [class*="timeslot"], ' +
+      '.rdp, .react-datepicker, select, option, input[type="date"]'
     );
 
     if (container) {
       var text = (container.innerText || container.textContent || '').toLowerCase();
-      var isDateOrTimePicker = (
+      var isIgnoredControl = (
         text.includes('schedule your session') ||
         text.includes('pick a date') ||
         text.includes('select date') ||
@@ -52,23 +53,43 @@
         text.includes('time slots') ||
         text.includes('morning (am)') ||
         text.includes('afternoon/evening (pm)') ||
+        text.includes('filter subdomains') ||
+        text.includes('time horizon') ||
+        text.includes('custom range') ||
+        text.includes('apply custom range') ||
+        text.includes('reset preset') ||
+        text.includes('group by') ||
+        text.includes('all subdomains') ||
+        text.includes('select all') ||
+        container.tagName === 'SELECT' ||
+        container.tagName === 'OPTION' ||
         container.querySelector('svg[class*="lucide-chevron-left"], svg[class*="lucide-chevron-right"]') ||
         container.classList.contains('rdp')
       );
-      if (isDateOrTimePicker) return true;
+      if (isIgnoredControl) return true;
     }
 
-    var rawText = (el.innerText || el.textContent || '').trim();
+    var rawText = (el.innerText || el.textContent || '').trim().toLowerCase();
     var ariaLabel = (el.getAttribute && (el.getAttribute('aria-label') || el.getAttribute('aria-description') || '')) || '';
+    ariaLabel = ariaLabel.toLowerCase();
 
     if (/^\d{1,2}$/.test(rawText) && container) return true;
     if (/^\d{1,2}:\d{2}\s*(am|pm)?$/i.test(rawText) || /^\d{1,2}:\d{2}$/.test(rawText)) return true;
 
     if (
-      rawText.toLowerCase() === 'pick a date' ||
-      rawText.toLowerCase().includes('select date') ||
-      ariaLabel.toLowerCase().includes('select date') ||
-      ariaLabel.toLowerCase().includes('pick a date')
+      rawText.includes('filter') ||
+      rawText.includes('subdomains') ||
+      rawText.includes('last 7 days') ||
+      rawText.includes('last 30 days') ||
+      rawText.includes('last 90 days') ||
+      rawText.includes('year to date') ||
+      rawText.includes('all time') ||
+      rawText.includes('custom date range') ||
+      rawText.includes('apply custom range') ||
+      rawText.includes('group by') ||
+      ariaLabel.includes('filter') ||
+      ariaLabel.includes('select date') ||
+      ariaLabel.includes('pick a date')
     ) {
       return true;
     }
@@ -418,7 +439,7 @@
     // Standard Click Tracking: ONLY for actual interactive elements
     var clickable = target.closest('button, a, [role="button"], [data-uh-track], input[type="submit"], select');
     if (clickable) {
-      if (isDateTimeSelectionClick(clickable)) {
+      if (isIgnoredControlClick(clickable)) {
         return;
       }
       var descriptor = cleanElementDescriptor(clickable);

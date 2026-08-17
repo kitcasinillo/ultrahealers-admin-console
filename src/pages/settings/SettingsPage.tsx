@@ -86,6 +86,7 @@ export function SettingsPage() {
                         last_seed_error: data.admin_bootstrap?.last_seed_error ?? defaultValues.adminBootstrap.last_seed_error,
                     },
                     welcomeEmails: {
+                        admin_email: data.welcome_emails?.admin_email ?? data.admin_email ?? defaultValues.welcomeEmails.admin_email,
                         seeker_subject: data.welcome_emails?.seeker_subject ?? defaultValues.welcomeEmails.seeker_subject,
                         seeker_body: data.welcome_emails?.seeker_body ?? defaultValues.welcomeEmails.seeker_body,
                         healer_subject: data.welcome_emails?.healer_subject ?? defaultValues.welcomeEmails.healer_subject,

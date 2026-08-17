@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Mail, Send, Eye, Sparkles, User, UserCheck, Code, Save } from "lucide-react";
+import { Mail, Send, Eye, Sparkles, User, UserCheck, Code, Save, Bell, X } from "lucide-react";
 import { toast } from "react-hot-toast";
 import type { SettingsFormValues } from "../schema";
 
@@ -16,27 +16,141 @@ interface EmailSettingsProps {
     onSave?: () => void;
 }
 
+interface EmailBadgeInputProps {
+    value: string;
+    onChange: (value: string) => void;
+    placeholder?: string;
+}
+
+export function EmailBadgeInput({ value, onChange, placeholder = "Type email & press Enter, Space, or comma..." }: EmailBadgeInputProps) {
+    const [inputValue, setInputValue] = useState("");
+
+    const emails = (value || "")
+        .split(",")
+        .map((e) => e.trim())
+        .filter(Boolean);
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+    const addEmails = (rawText: string) => {
+        if (!rawText.trim()) return;
+
+        const candidates = rawText
+            .split(/[\s,;]+/)
+            .map((e) => e.trim())
+            .filter(Boolean);
+
+        const newValidEmails: string[] = [];
+        let hasInvalid = false;
+
+        for (const item of candidates) {
+            if (emailRegex.test(item)) {
+                if (!emails.includes(item) && !newValidEmails.includes(item)) {
+                    newValidEmails.push(item);
+                }
+            } else {
+                hasInvalid = true;
+            }
+        }
+
+        if (hasInvalid && newValidEmails.length === 0) {
+            toast.error("Please enter a valid email address");
+            return;
+        }
+
+        if (newValidEmails.length > 0) {
+            const updated = [...emails, ...newValidEmails];
+            onChange(updated.join(", "));
+            setInputValue("");
+        } else {
+            setInputValue("");
+        }
+    };
+
+    const removeEmail = (indexToRemove: number) => {
+        const updated = emails.filter((_, idx) => idx !== indexToRemove);
+        onChange(updated.join(", "));
+    };
+
+    const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+        if (e.key === "Enter" || e.key === "," || e.key === ";" || e.key === " " || e.code === "Space") {
+            e.preventDefault();
+            if (inputValue.trim()) {
+                addEmails(inputValue);
+            }
+        } else if (e.key === "Backspace" && !inputValue && emails.length > 0) {
+            removeEmail(emails.length - 1);
+        }
+    };
+
+    const handleBlur = () => {
+        if (inputValue.trim()) {
+            addEmails(inputValue);
+        }
+    };
+
+    return (
+        <div 
+            className="w-full min-h-[46px] p-2 rounded-lg border border-gray-200 dark:border-white/10 bg-white dark:bg-[#0B1437] flex flex-wrap items-center gap-2 focus-within:ring-2 focus-within:ring-[#4318FF] transition-all cursor-text"
+            onClick={(e) => {
+                const inputEl = e.currentTarget.querySelector("input");
+                if (inputEl) inputEl.focus();
+            }}
+        >
+            {emails.map((email, idx) => (
+                <span
+                    key={`${email}-${idx}`}
+                    className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#4318FF]/10 text-[#4318FF] dark:bg-[#4318FF]/20 dark:text-purple-300 text-xs font-bold border border-[#4318FF]/20"
+                >
+                    <span>{email}</span>
+                    <button
+                        type="button"
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            removeEmail(idx);
+                        }}
+                        className="rounded-full p-0.5 hover:bg-[#4318FF]/20 dark:hover:bg-purple-500/30 text-[#4318FF] dark:text-purple-300 transition-colors focus:outline-none"
+                        title={`Remove ${email}`}
+                    >
+                        <X className="w-3.5 h-3.5" />
+                    </button>
+                </span>
+            ))}
+            <input
+                type="text"
+                value={inputValue}
+                onChange={(e) => setInputValue(e.target.value)}
+                onKeyDown={handleKeyDown}
+                onBlur={handleBlur}
+                placeholder={emails.length === 0 ? placeholder : "Add another email..."}
+                className="flex-1 min-w-[180px] bg-transparent border-none outline-none focus:outline-none focus:ring-0 text-xs text-gray-900 dark:text-gray-100 placeholder:text-gray-400 py-1 px-1"
+            />
+        </div>
+    );
+}
+
 export function EmailSettings({ control, onSave }: EmailSettingsProps) {
     const [activeRole, setActiveRole] = useState<"seeker" | "healer">("seeker");
     const [showPreview, setShowPreview] = useState(false);
     const [testEmail, setTestEmail] = useState("");
-    const [testRole, setTestRole] = useState<"seeker" | "healer">("seeker");
+    const [testRole, setTestRole] = useState<"seeker" | "healer" | "admin">("seeker");
     const [isSendingTest, setIsSendingTest] = useState(false);
-
     const [isSavingTemplates, setIsSavingTemplates] = useState(false);
+    const [isSavingAdminEmail, setIsSavingAdminEmail] = useState(false);
 
     const watchedEmails = useWatch({
         control,
         name: "welcomeEmails",
     });
 
+    const adminEmail = watchedEmails?.admin_email || "ultrahealerz@gmail.com";
     const seekerSubject = watchedEmails?.seeker_subject || "Welcome to Ultra Healers, {{name}} - Getting Started";
     const seekerBody = watchedEmails?.seeker_body || "";
     const healerSubject = watchedEmails?.healer_subject || "Welcome to Ultra Healers, {{name}} - Getting Started as a Practitioner";
     const healerBody = watchedEmails?.healer_body || "";
 
-    const handleSaveTemplates = async () => {
-        setIsSavingTemplates(true);
+    const handleSaveAdminEmail = async () => {
+        setIsSavingAdminEmail(true);
         try {
             const apiUrl = import.meta.env.VITE_API_URL || "";
             const response = await fetch(`${apiUrl}/api/settings`, {
@@ -44,6 +158,7 @@ export function EmailSettings({ control, onSave }: EmailSettingsProps) {
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
                     welcome_emails: {
+                        admin_email: adminEmail,
                         seeker_subject: seekerSubject,
                         seeker_body: seekerBody,
                         healer_subject: healerSubject,
@@ -54,7 +169,42 @@ export function EmailSettings({ control, onSave }: EmailSettingsProps) {
 
             const data = await response.json();
             if (response.ok && data.success) {
-                toast.success("Welcome email templates saved successfully!");
+                toast.success("Admin notification email saved successfully!");
+                if (onSave) {
+                    try { onSave(); } catch (_) { }
+                }
+            } else {
+                throw new Error(data.error || "Failed to save admin notification email");
+            }
+        } catch (err: any) {
+            console.error("Save Admin Email Error:", err);
+            toast.error(err.message || "Failed to save admin notification email");
+        } finally {
+            setIsSavingAdminEmail(false);
+        }
+    };
+
+    const handleSaveTemplates = async () => {
+        setIsSavingTemplates(true);
+        try {
+            const apiUrl = import.meta.env.VITE_API_URL || "";
+            const response = await fetch(`${apiUrl}/api/settings`, {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    welcome_emails: {
+                        admin_email: adminEmail,
+                        seeker_subject: seekerSubject,
+                        seeker_body: seekerBody,
+                        healer_subject: healerSubject,
+                        healer_body: healerBody,
+                    },
+                }),
+            });
+
+            const data = await response.json();
+            if (response.ok && data.success) {
+                toast.success("Welcome email templates and admin email saved successfully!");
                 if (onSave) {
                     try { onSave(); } catch (_) { }
                 }
@@ -70,7 +220,7 @@ export function EmailSettings({ control, onSave }: EmailSettingsProps) {
     };
 
     const handleTestWelcomeEmail = async () => {
-        if (!testEmail) {
+        if (!testEmail && testRole !== "admin") {
             toast.error("Please enter a recipient email address for testing.");
             return;
         }
@@ -78,21 +228,40 @@ export function EmailSettings({ control, onSave }: EmailSettingsProps) {
         setIsSendingTest(true);
         try {
             const apiUrl = import.meta.env.VITE_API_URL || "";
-            const response = await fetch(`${apiUrl}/api/notifications/test-welcome-email`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    email: testEmail,
-                    name: "Test User",
-                    role: testRole,
-                }),
-            });
-
-            const data = await response.json();
-            if (response.ok && data.success) {
-                toast.success(`Welcome email sent successfully to ${testRole} (${testEmail})!`);
+            if (testRole === "admin") {
+                const response = await fetch(`${apiUrl}/api/notifications/test-admin-notification`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        email: testEmail || adminEmail,
+                        name: "Test New User",
+                        role: "seeker",
+                        userId: "test-uid-123",
+                    }),
+                });
+                const data = await response.json();
+                if (response.ok && data.success) {
+                    toast.success(`Admin signup notification sent successfully to ${data.result?.recipient || adminEmail}!`);
+                } else {
+                    throw new Error(data.error || "Failed to send admin signup notification");
+                }
             } else {
-                throw new Error(data.error || "Failed to send test email");
+                const response = await fetch(`${apiUrl}/api/notifications/test-welcome-email`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        email: testEmail,
+                        name: "Test User",
+                        role: testRole,
+                    }),
+                });
+
+                const data = await response.json();
+                if (response.ok && data.success) {
+                    toast.success(`Welcome email sent successfully to ${testRole} (${testEmail})!`);
+                } else {
+                    throw new Error(data.error || "Failed to send test email");
+                }
             }
         } catch (err: any) {
             console.error("Test Email Error:", err);
@@ -166,6 +335,63 @@ export function EmailSettings({ control, onSave }: EmailSettingsProps) {
                                 <Badge className="bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 border-none font-bold text-[10px]">TLS Active</Badge>
                             </div>
                         </div>
+                    </div>
+                </CardContent>
+            </Card>
+
+            {/* Admin Signup Notification Routing Card */}
+            <Card className="border border-gray-100 dark:border-white/5 shadow-sm bg-white dark:bg-[#111C44] rounded-xl overflow-hidden">
+                <CardHeader className="bg-gray-50/50 dark:bg-white/[0.02] border-b border-gray-100 dark:border-white/5 pb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <div>
+                        <CardTitle className="text-lg font-bold text-[#1b254b] dark:text-white flex items-center">
+                            <Bell className="w-5 h-5 mr-2 text-[#4318FF]" />
+                            Admin Signup Notification Email(s)
+                        </CardTitle>
+                        <CardDescription className="text-xs font-medium">
+                            Configure single or multiple admin email addresses that receive instant notification alerts whenever a new Healer or Seeker registers.
+                        </CardDescription>
+                    </div>
+                    <Button
+                        type="button"
+                        onClick={handleSaveAdminEmail}
+                        disabled={isSavingAdminEmail}
+                        className="bg-[#4318FF] hover:bg-[#3311CC] text-white text-xs font-bold rounded-lg h-9 px-4 shadow-sm shrink-0"
+                    >
+                        {isSavingAdminEmail ? (
+                            <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent mr-1.5" />
+                        ) : (
+                            <Save className="w-4 h-4 mr-1.5" />
+                        )}
+                        {isSavingAdminEmail ? "Saving..." : "Save Admin Email"}
+                    </Button>
+                </CardHeader>
+                <CardContent className="p-6 space-y-4">
+                    <div className="space-y-2 max-w-xl">
+                        <Label className="text-xs font-bold uppercase text-gray-500 dark:text-gray-400">
+                            Admin Notification Recipient Email(s)
+                        </Label>
+                        {control ? (
+                            <Controller
+                                name="welcomeEmails.admin_email"
+                                control={control}
+                                render={({ field }) => (
+                                    <EmailBadgeInput
+                                        value={field.value || ""}
+                                        onChange={field.onChange}
+                                        placeholder="Type email & press Enter or comma..."
+                                    />
+                                )}
+                            />
+                        ) : (
+                            <EmailBadgeInput
+                                value={adminEmail}
+                                onChange={() => {}}
+                                placeholder="Type email & press Enter or comma..."
+                            />
+                        )}
+                        <p className="text-xs text-gray-500 dark:text-gray-400">
+                            Enter a single email or multiple email addresses separated by commas. Whenever a new seeker or healer registers, automated signup notification emails will be sent to all listed recipients.
+                        </p>
                     </div>
                 </CardContent>
             </Card>
@@ -442,19 +668,20 @@ export function EmailSettings({ control, onSave }: EmailSettingsProps) {
                 </CardHeader>
                 <CardContent className="p-6">
                     <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4">
-                        <div className="w-full sm:w-40">
+                        <div className="w-full sm:w-56">
                             <select
                                 value={testRole}
-                                onChange={(e) => setTestRole(e.target.value as "seeker" | "healer")}
+                                onChange={(e) => setTestRole(e.target.value as "seeker" | "healer" | "admin")}
                                 className="w-full h-10 px-3 rounded-lg border border-gray-200 dark:border-white/10 bg-white dark:bg-[#0B1437] text-xs font-bold text-gray-700 dark:text-gray-200 focus:outline-none"
                             >
-                                <option value="seeker">Seeker Email</option>
-                                <option value="healer">Healer Email</option>
+                                <option value="seeker">Seeker Welcome Email</option>
+                                <option value="healer">Healer Welcome Email</option>
+                                <option value="admin">Admin Signup Notification</option>
                             </select>
                         </div>
                         <div className="flex-1">
                             <Input
-                                placeholder="Enter email address (e.g. admin@ultrahealers.com)"
+                                placeholder={testRole === "admin" ? `Recipient email (defaults to ${adminEmail})` : "Enter email address (e.g. user@example.com)"}
                                 value={testEmail}
                                 onChange={(e) => setTestEmail(e.target.value)}
                                 className="rounded-lg border-gray-200 dark:border-white/10 text-xs"

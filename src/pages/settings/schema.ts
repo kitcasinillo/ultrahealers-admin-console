@@ -26,6 +26,12 @@ export const formSchema = z.object({
         enabled: z.boolean(),
     })),
     welcomeEmails: z.object({
+        admin_email: z.string().refine((val) => {
+            if (!val || !val.trim()) return true;
+            const emails = val.split(",").map(e => e.trim()).filter(Boolean);
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            return emails.length > 0 && emails.every(email => emailRegex.test(email));
+        }, { message: "Must be a valid email or comma-separated list of emails (e.g. admin1@example.com, admin2@example.com)" }).optional(),
         seeker_subject: z.string().min(1, "Seeker subject is required"),
         seeker_body: z.string().min(1, "Seeker body message is required"),
         healer_subject: z.string().min(1, "Healer subject is required"),
@@ -71,6 +77,7 @@ export const defaultValues: SettingsFormValues = {
         { id: "custom_branding", label: "Custom Branding", description: "Allow profile and media personalization.", tier: "premium", enabled: false },
     ],
     welcomeEmails: {
+        admin_email: "ultrahealerz@gmail.com",
         seeker_subject: "Welcome to Ultra Healers, {{name}} - Getting Started",
         seeker_body: `Welcome, {{name}}!
 

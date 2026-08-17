@@ -14,7 +14,7 @@ This module handles global system configuration management and provides a tamper
 ---
 
 ## ⚡ Features & UI Workflows
-1. **Global Configuration Management**: Update platform commission rates, default currency, support emails, maintenance mode, and feature flags.
+1. **Global Configuration Management**: Update platform commission rates, default currency, admin notification emails (for healer and seeker signups), support emails, maintenance mode, and feature flags.
 2. **Firestore Synchronization**: Reads and writes directly to Firestore path `settings/app_config`.
 3. **Analytics Track Count Reset**: Target tracker selector (`clicks`, `pageviews`, `sessions`, `exits`, `conversions`) or `all` trackers reset via backend `POST /api/v1/analytics/reset` and UI panel in `SystemSettings.tsx`.
 4. **Audit Log Inspection**: Browse historical administrative actions, filter by admin user ID, timestamp, or action type.

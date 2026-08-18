@@ -10,8 +10,10 @@ The Reports & Analytics module provides executive dashboards and export engines 
 ## 🗂️ Core Files & Location
 - `src/pages/reports/`
 - `src/api/reports.ts` & `src/api/analytics.ts`
+- `src/lib/exports/domains/analyticsExports.ts` (Web analytics export pipeline for PDF, Excel, and CSV)
 - `public/uh-analytics.js` (Self-hosted analytics ingestion script)
 - `platform-audit-analytics.md`, `admin-analytics.md` & `user-analytics.md` (Domain reference documentation)
+
 
 ---
 

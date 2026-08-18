@@ -4,7 +4,17 @@ All notable updates to agent capabilities, skills, memory, lessons learned, and 
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to Semantic Knowledge Versioning.
 
+## [1.9.3] - 2026-08-18
+
+### Added
+- **Multi-Format Web Analytics Export Feature**:
+  - Added dedicated domain export module [`analyticsExports.ts`](file:///C:/Users/ItechMediaLogic/prods/ultrahealers-admin-console/src/lib/exports/domains/analyticsExports.ts) supporting PDF, Excel (multi-sheet workbook), and raw CSV file downloads for web analytics telemetry.
+  - Re-exported `exportAnalyticsPdf`, `exportAnalyticsExcel`, `exportAnalyticsCsv`, and `AnalyticsExportPayload` from [`src/lib/exports/index.ts`](file:///C:/Users/ItechMediaLogic/prods/ultrahealers-admin-console/src/lib/exports/index.ts) and [`src/lib/exportUtils.ts`](file:///C:/Users/ItechMediaLogic/prods/ultrahealers-admin-console/src/lib/exportUtils.ts).
+  - Enhanced [`ExportDropdown.tsx`](file:///C:/Users/ItechMediaLogic/prods/ultrahealers-admin-console/src/components/common/ExportDropdown.tsx) component with an optional `onExportCsv` handler for raw dataset downloads alongside Excel and PDF.
+  - Integrated `ExportDropdown` into the header action bar of [`AnalyticsDashboard.tsx`](file:///C:/Users/ItechMediaLogic/prods/ultrahealers-admin-console/src/pages/reports/AnalyticsDashboard.tsx), allowing admins to extract current KPI summaries, user acquisition trends, subdomain traffic share, top traffic sources, top pageviews & durations, top click interactions, and exit pages.
+
 ## [1.9.2] - 2026-08-13
+
 
 ### Fixed
 - Fixed **Healer Listing Session vs Retreat Click Interaction Tracking & Route Mapping**:

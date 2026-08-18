@@ -5,3 +5,5 @@ export * from './domains/disputeExports';
 export * from './domains/growthExports';
 export * from './domains/bookingExports';
 export * from './domains/retreatExports';
+export * from './domains/analyticsExports';
+

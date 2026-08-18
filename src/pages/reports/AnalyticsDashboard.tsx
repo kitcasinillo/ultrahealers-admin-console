@@ -18,7 +18,10 @@ import { StatsCard } from '../../components/StatsCard';
 import { BaseBarChart } from '../../components/Charts/BaseBarChart';
 import { BaseAreaChart } from '../../components/Charts/BaseAreaChart';
 import { fetchAnalyticsStats, type AnalyticsData } from '../../api/analytics';
+import { ExportDropdown } from '../../components/common/ExportDropdown';
+import { exportAnalyticsPdf, exportAnalyticsExcel, exportAnalyticsCsv, type AnalyticsExportPayload } from '../../lib/exports';
 import { cn } from '../../lib/utils';
+
 
 const GRANULARITY_OPTIONS = [
   { id: 'auto', label: 'Auto (Default)', description: 'Smart horizon grouping based on filter range' },
@@ -336,6 +339,39 @@ export function AnalyticsDashboard() {
     Count: item.count
   }));
 
+  const handleExportPdf = () => {
+    if (!data) return;
+    const payload: AnalyticsExportPayload = {
+      data,
+      rangeLabel: getRangeTriggerLabel(),
+      subdomainLabel: getDomainTriggerLabel(),
+      granularityLabel: getGranularityTriggerLabel()
+    };
+    exportAnalyticsPdf(payload);
+  };
+
+  const handleExportExcel = () => {
+    if (!data) return;
+    const payload: AnalyticsExportPayload = {
+      data,
+      rangeLabel: getRangeTriggerLabel(),
+      subdomainLabel: getDomainTriggerLabel(),
+      granularityLabel: getGranularityTriggerLabel()
+    };
+    exportAnalyticsExcel(payload);
+  };
+
+  const handleExportCsv = () => {
+    if (!data) return;
+    const payload: AnalyticsExportPayload = {
+      data,
+      rangeLabel: getRangeTriggerLabel(),
+      subdomainLabel: getDomainTriggerLabel(),
+      granularityLabel: getGranularityTriggerLabel()
+    };
+    exportAnalyticsCsv(payload);
+  };
+
   return (
     <div className="p-6 space-y-6">
       {/* Header & Controls */}
@@ -540,6 +576,13 @@ export function AnalyticsDashboard() {
             )}
           </div>
 
+          {/* Export Dropdown */}
+          <ExportDropdown
+            onExportExcel={handleExportExcel}
+            onExportCsv={handleExportCsv}
+            onExportPdf={handleExportPdf}
+          />
+
           {/* Refresh Button */}
           <button
             onClick={loadData}
@@ -551,6 +594,7 @@ export function AnalyticsDashboard() {
           </button>
         </div>
       </div>
+
 
       {error && (
         <div className="p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl text-red-600 dark:text-red-400 text-sm">

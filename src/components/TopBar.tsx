@@ -1,11 +1,25 @@
-import { Bell, Search, LogOut } from "lucide-react";
+import { Bell, Search, LogOut, Menu } from "lucide-react";
 import { useAdminAuth } from "../contexts/AdminAuthContext";
 
-export function TopBar() {
+interface TopBarProps {
+    onMenuClick?: () => void;
+}
+
+export function TopBar({ onMenuClick }: TopBarProps) {
     const { logout } = useAdminAuth();
 
     return (
-        <header className="sticky top-4 z-50 w-full rounded-full bg-white/70 dark:bg-[#111C44]/70 backdrop-blur-xl border border-white/20 dark:border-white/5 px-4 py-3 shadow-[0_10px_30px_0_rgba(11,20,55,0.06)] flex items-center justify-between mb-2">
+        <header className="sticky top-4 z-40 w-full rounded-full bg-white/70 dark:bg-[#111C44]/70 backdrop-blur-xl border border-white/20 dark:border-white/5 px-4 py-3 shadow-[0_10px_30px_0_rgba(11,20,55,0.06)] flex items-center justify-between mb-2">
+
+            {/* Mobile Menu Toggle Button */}
+            <button
+                data-uh-no-track="true"
+                onClick={onMenuClick}
+                className="md:hidden p-2 rounded-full text-[#1b254b] dark:text-white hover:bg-gray-100 dark:hover:bg-white/10 transition-colors mr-2 shrink-0"
+                aria-label="Toggle Navigation Menu"
+            >
+                <Menu className="h-6 w-6" />
+            </button>
 
             {/* Page Title Context / Breadcrumb area could go here, but keeping it clean for now */}
             <div className="flex-1 md:px-4 hidden md:flex items-center text-[#1b254b] dark:text-white font-bold text-lg">
@@ -14,8 +28,8 @@ export function TopBar() {
 
             {/* Actions & Search */}
             <div className="flex items-center gap-4 bg-white dark:bg-[#0B1437] rounded-full px-3 py-2 shadow-sm border border-gray-50 dark:border-white/5 ml-auto">
-                <div className="relative flex items-center bg-[#F4F7FE] dark:bg-[#111C44] rounded-full px-4 py-1.5 w-[200px] lg:w-[260px]">
-                    <Search className="h-4 w-4 text-[#A3AED0]" />
+                <div className="relative flex items-center bg-[#F4F7FE] dark:bg-[#111C44] rounded-full px-4 py-1.5 w-[140px] sm:w-[200px] lg:w-[260px]">
+                    <Search className="h-4 w-4 text-[#A3AED0] shrink-0" />
                     <input
                         type="search"
                         placeholder="Search..."
@@ -49,3 +63,4 @@ export function TopBar() {
         </header>
     );
 }
+

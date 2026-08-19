@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import {
   Eye,
   Users,
@@ -12,7 +13,8 @@ import {
   ChevronDown,
   Calendar,
   Check,
-  Layers
+  Layers,
+  Pin
 } from 'lucide-react';
 import { StatsCard } from '../../components/StatsCard';
 import { BaseBarChart } from '../../components/Charts/BaseBarChart';
@@ -67,7 +69,7 @@ const formatShortDate = (dateStr: string) => {
 const formatDomainBadge = (domainStr?: string) => {
   if (!domainStr) return null;
   const dom = domainStr.toLowerCase();
-  
+
   if (dom.includes('admin') || dom.includes(':5173') || dom.includes(':3000')) {
     return { label: 'admin', full: domainStr, badgeClass: 'bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300 border-blue-200/50' };
   }
@@ -167,7 +169,7 @@ const formatClickLabel = (rawStr: string): { title: string; eventId: string } =>
   if (rawStr.includes('_')) {
     const parts = rawStr.split('_').filter(Boolean).filter(part => !isUid(part));
     const words = parts.map((w) => w.charAt(0).toUpperCase() + w.slice(1));
-    
+
     let title = words.join(' ');
     if (parts[0] === 'nav' && parts.length > 1) {
       title = words.slice(1).join(' ');
@@ -182,6 +184,126 @@ const formatClickLabel = (rawStr: string): { title: string; eventId: string } =>
   return { title: rawStr, eventId: rawStr };
 };
 
+/**
+ * HoverStickyRow
+ * ----------------
+ * A list row that shows a rich detail popover on hover, and can be "pinned"
+ * open by clicking. The popover is rendered through a React portal directly
+ * onto document.body and positioned with `position: fixed` using the row's
+ * actual bounding box. This means it is no longer clipped by the card's
+ * `overflow-y-auto` container or by the card's own edges — it escapes those
+ * boundaries entirely, which was the source of the "cropped" popup on
+ * smaller screens.
+ *
+ * It also auto-flips above/below and clamps horizontally to stay fully
+ * inside the viewport, so it behaves correctly for every row (not just a
+ * hardcoded first-two-rows special case) and on narrow/mobile widths.
+ */
+function HoverStickyRow({
+  itemKey,
+  pinnedItemKey,
+  setPinnedItemKey,
+  popover,
+  children
+}: {
+  itemKey: string;
+  pinnedItemKey: string | null;
+  setPinnedItemKey: React.Dispatch<React.SetStateAction<string | null>>;
+  popover: React.ReactNode;
+  children: React.ReactNode;
+}) {
+  const triggerRef = useRef<HTMLDivElement>(null);
+  const popoverRef = useRef<HTMLDivElement>(null);
+  const [isHovered, setIsHovered] = useState(false);
+  const [coords, setCoords] = useState<{ left: number; top: number; placement: 'above' | 'below' } | null>(null);
+
+  const isPinned = pinnedItemKey === itemKey;
+  const isOpen = isHovered || isPinned;
+
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const updatePosition = () => {
+      const el = triggerRef.current;
+      if (!el) return;
+      const rect = el.getBoundingClientRect();
+
+      const popupWidth = 288; // matches w-72
+      const popupHeight = popoverRef.current?.offsetHeight || 120;
+      const padding = 12;
+      const gap = 6;
+      const viewportW = window.innerWidth;
+      const viewportH = window.innerHeight;
+
+      let left = rect.left + rect.width / 2 - popupWidth / 2;
+      left = Math.max(padding, Math.min(left, viewportW - popupWidth - padding));
+
+      const spaceBelow = viewportH - rect.bottom;
+      const spaceAbove = rect.top;
+      const placement: 'above' | 'below' =
+        spaceBelow >= popupHeight + gap || spaceBelow >= spaceAbove ? 'below' : 'above';
+
+      const top = placement === 'below' ? rect.bottom + gap : rect.top - gap;
+
+      setCoords({ left, top, placement });
+    };
+
+    // Position once immediately, then refine after the popover has
+    // rendered (so its real measured height is used for flip logic).
+    updatePosition();
+    const raf = requestAnimationFrame(updatePosition);
+
+    window.addEventListener('scroll', updatePosition, true);
+    window.addEventListener('resize', updatePosition);
+    return () => {
+      cancelAnimationFrame(raf);
+      window.removeEventListener('scroll', updatePosition, true);
+      window.removeEventListener('resize', updatePosition);
+    };
+  }, [isOpen]);
+
+  return (
+    <div
+      ref={triggerRef}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+      onClick={(e) => {
+        e.stopPropagation();
+        setPinnedItemKey(prev => (prev === itemKey ? null : itemKey));
+      }}
+      className={cn(
+        "relative py-3 px-2 rounded-xl flex items-center justify-between text-sm cursor-pointer transition-all border",
+        isPinned
+          ? "bg-teal-50/70 dark:bg-teal-900/20 border-[#01A3B4]/50 shadow-xs"
+          : "hover:bg-gray-50 dark:hover:bg-white/5 border-transparent hover:border-gray-100 dark:hover:border-white/5"
+      )}
+      title={isPinned ? "Click to unstick item display" : "Click to stick full display"}
+    >
+      {children}
+
+      {isOpen && coords && createPortal(
+        <div
+          ref={popoverRef}
+          style={{
+            position: 'fixed',
+            left: coords.left,
+            top: coords.placement === 'below' ? coords.top : undefined,
+            bottom: coords.placement === 'above' ? window.innerHeight - coords.top : undefined,
+            width: 288,
+          }}
+          className={cn(
+            "p-3 bg-[#1B254B] dark:bg-[#0B1437] text-white rounded-xl text-xs space-y-1.5 border border-white/10 z-[9999] shadow-2xl",
+            isPinned && "ring-2 ring-[#01A3B4] scale-[1.01]"
+          )}
+        >
+          {popover}
+        </div>,
+        document.body
+      )}
+    </div>
+  );
+}
+
 export function AnalyticsDashboard() {
   const [range, setRange] = useState<string>('30d');
   const [customStartDate, setCustomStartDate] = useState<string>('');
@@ -189,7 +311,7 @@ export function AnalyticsDashboard() {
   const [selectedDomains, setSelectedDomains] = useState<string[]>(['all']);
   const [acquisitionGranularity, setAcquisitionGranularity] = useState<'auto' | 'day' | 'week' | 'month'>('auto');
   const [highlightedSeries, setHighlightedSeries] = useState<'all' | 'seekers' | 'healers'>('all');
-  
+
   const [isDomainDropdownOpen, setIsDomainDropdownOpen] = useState<boolean>(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -198,6 +320,8 @@ export function AnalyticsDashboard() {
 
   const [isGranularityDropdownOpen, setIsGranularityDropdownOpen] = useState<boolean>(false);
   const granularityDropdownRef = useRef<HTMLDivElement>(null);
+
+  const [pinnedItemKey, setPinnedItemKey] = useState<string | null>(null);
 
   const [data, setData] = useState<AnalyticsData | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
@@ -639,7 +763,7 @@ export function AnalyticsDashboard() {
         {(() => {
           const totalSeekersCount = (data?.monthlyAcquisition || []).reduce((acc, curr) => acc + (curr.seekers || 0), 0);
           const totalHealersCount = (data?.monthlyAcquisition || []).reduce((acc, curr) => acc + (curr.healers || 0), 0);
-          
+
           return acquisitionChartData.length > 0 ? (
             <BaseAreaChart
               title={(() => {
@@ -815,12 +939,47 @@ export function AnalyticsDashboard() {
             {(data?.topPages || []).slice(0, 10).length > 0 ? (
               data?.topPages.slice(0, 10).map((page, idx) => {
                 const badge = formatDomainBadge(page.domain);
+                const fullPath = page.domain ? `${page.domain}${page.path}` : page.path;
+                const fullTitle = formatRouteTitle(page.path);
+                const itemKey = `pageview-${idx}`;
+                const isPinned = pinnedItemKey === itemKey;
+
                 return (
-                  <div key={idx} className="py-3 flex items-center justify-between text-sm">
-                    <div className="truncate max-w-[220px]" title={`${page.domain || ''}${page.path}`}>
+                  <HoverStickyRow
+                    key={idx}
+                    itemKey={itemKey}
+                    pinnedItemKey={pinnedItemKey}
+                    setPinnedItemKey={setPinnedItemKey}
+                    popover={
+                      <>
+                        <div className="font-bold text-sm text-white flex items-center justify-between">
+                          <span className="truncate">{fullTitle}</span>
+                          {badge && (
+                            <span className={cn("px-1.5 py-0.5 rounded text-[9px] font-bold border shrink-0 ml-2", badge.badgeClass)}>
+                              {badge.label}
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-[11px] text-gray-300 font-mono break-all leading-tight select-all">
+                          {fullPath}
+                        </p>
+                        <div className="flex items-center justify-between text-[11px] text-gray-400 pt-1.5 border-t border-white/10">
+                          <span>Views: <strong className="text-white">{page.views}</strong> • Avg: <strong className="text-white">{formatSeconds(page.avgTimeSeconds)}</strong></span>
+                          {isPinned ? (
+                            <span className="text-[#01A3B4] font-bold flex items-center gap-1">
+                              <Pin className="w-3 h-3" /> Pinned
+                            </span>
+                          ) : (
+                            <span className="text-teal-400 font-medium">Click to stick</span>
+                          )}
+                        </div>
+                      </>
+                    }
+                  >
+                    <div className="truncate max-w-[180px] sm:max-w-[200px]">
                       <div className="flex items-center gap-1.5 truncate">
                         <span className="font-semibold text-[#1B254B] dark:text-white truncate">
-                          {formatRouteTitle(page.path)}
+                          {fullTitle}
                         </span>
                         {badge && (
                           <span className={cn("px-1.5 py-0.5 rounded text-[9px] font-bold border shrink-0", badge.badgeClass)}>
@@ -829,13 +988,19 @@ export function AnalyticsDashboard() {
                         )}
                       </div>
                       <span className="text-xs text-[#A3AED0] block truncate">
-                        {page.domain ? `${page.domain}${page.path}` : page.path} • Avg: {formatSeconds(page.avgTimeSeconds)}
+                        {fullPath}
                       </span>
                     </div>
-                    <span className="font-bold text-[#4318FF] bg-blue-50 dark:bg-blue-900/30 px-2.5 py-1 rounded-lg text-xs">
-                      {page.views} views
-                    </span>
-                  </div>
+                    <div className="flex items-center gap-1.5 shrink-0 ml-2">
+                      <span className="font-bold text-[#4318FF] bg-blue-50 dark:bg-blue-900/30 px-2.5 py-1 rounded-lg text-xs">
+                        {page.views} views
+                      </span>
+                      <span className="font-semibold text-teal-600 dark:text-teal-400 bg-teal-50 dark:bg-teal-900/30 px-2 py-1 rounded-lg text-xs flex items-center gap-1" title="Average time spent on page">
+                        <Clock className="w-3 h-3 text-teal-500 dark:text-teal-400" />
+                        {formatSeconds(page.avgTimeSeconds)}
+                      </span>
+                    </div>
+                  </HoverStickyRow>
                 );
               })
             ) : (
@@ -851,13 +1016,65 @@ export function AnalyticsDashboard() {
             Top 10 Click Interactions
           </h2>
           <div className="divide-y divide-gray-100 dark:divide-white/5 max-h-[310px] overflow-y-auto pr-1">
-            {(data?.topClicks || []).slice(0, 10).length > 0 ? (
-              data?.topClicks.slice(0, 10).map((click, idx) => {
+            {(data?.topClicks || []).filter(c => {
+              if (!c.element) return false;
+              const lower = c.element.toLowerCase();
+              return !(
+                lower.includes('toggle_navigation') ||
+                lower.includes('toggle_menu') ||
+                lower.includes('close_sidebar') ||
+                lower.includes('navigation_menu')
+              );
+            }).slice(0, 10).length > 0 ? (
+              (data?.topClicks || []).filter(c => {
+                if (!c.element) return false;
+                const lower = c.element.toLowerCase();
+                return !(
+                  lower.includes('toggle_navigation') ||
+                  lower.includes('toggle_menu') ||
+                  lower.includes('close_sidebar') ||
+                  lower.includes('navigation_menu')
+                );
+              }).slice(0, 10).map((click, idx) => {
                 const labelObj = formatClickLabel(click.element);
                 const badge = formatDomainBadge(click.domain);
+                const fullPathOrId = click.domain ? `${click.domain} › ${labelObj.eventId}` : labelObj.eventId;
+                const itemKey = `click-${idx}`;
+                const isPinned = pinnedItemKey === itemKey;
+
                 return (
-                  <div key={idx} className="py-3 flex items-center justify-between text-sm">
-                    <div className="truncate max-w-[220px]" title={`${labelObj.title} (${labelObj.eventId}) - ${click.domain || ''}`}>
+                  <HoverStickyRow
+                    key={idx}
+                    itemKey={itemKey}
+                    pinnedItemKey={pinnedItemKey}
+                    setPinnedItemKey={setPinnedItemKey}
+                    popover={
+                      <>
+                        <div className="font-bold text-sm text-white flex items-center justify-between">
+                          <span className="truncate">{labelObj.title}</span>
+                          {badge && (
+                            <span className={cn("px-1.5 py-0.5 rounded text-[9px] font-bold border shrink-0 ml-2", badge.badgeClass)}>
+                              {badge.label}
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-[11px] text-gray-300 font-mono break-all leading-tight select-all">
+                          {fullPathOrId}
+                        </p>
+                        <div className="flex items-center justify-between text-[11px] text-gray-400 pt-1.5 border-t border-white/10">
+                          <span>Clicks: <strong className="text-white">{click.count}</strong> • ID: <strong className="text-[#01A3B4]">{labelObj.eventId}</strong></span>
+                          {isPinned ? (
+                            <span className="text-[#01A3B4] font-bold flex items-center gap-1">
+                              <Pin className="w-3 h-3" /> Pinned
+                            </span>
+                          ) : (
+                            <span className="text-teal-400 font-medium">Click to stick</span>
+                          )}
+                        </div>
+                      </>
+                    }
+                  >
+                    <div className="truncate max-w-[220px]">
                       <div className="flex items-center gap-1.5 truncate">
                         <span className="font-semibold text-[#1B254B] dark:text-white truncate">
                           {labelObj.title}
@@ -869,13 +1086,13 @@ export function AnalyticsDashboard() {
                         )}
                       </div>
                       <span className="text-xs text-[#A3AED0] block truncate font-mono">
-                        {click.domain ? `${click.domain} › ${labelObj.eventId}` : labelObj.eventId}
+                        {fullPathOrId}
                       </span>
                     </div>
-                    <span className="font-bold text-teal-600 dark:text-teal-400 bg-teal-50 dark:bg-teal-900/30 px-2.5 py-1 rounded-lg text-xs">
+                    <span className="font-bold text-teal-600 dark:text-teal-400 bg-teal-50 dark:bg-teal-900/30 px-2.5 py-1 rounded-lg text-xs shrink-0 ml-2">
                       {click.count} clicks
                     </span>
-                  </div>
+                  </HoverStickyRow>
                 );
               })
             ) : (
@@ -894,12 +1111,47 @@ export function AnalyticsDashboard() {
             {(data?.topExits || []).slice(0, 10).length > 0 ? (
               data?.topExits.slice(0, 10).map((exit, idx) => {
                 const badge = formatDomainBadge(exit.domain);
+                const fullPath = exit.domain ? `${exit.domain}${exit.path}` : exit.path;
+                const fullTitle = formatRouteTitle(exit.path);
+                const itemKey = `exit-${idx}`;
+                const isPinned = pinnedItemKey === itemKey;
+
                 return (
-                  <div key={idx} className="py-3 flex items-center justify-between text-sm">
-                    <div className="truncate max-w-[220px]" title={`${exit.domain || ''}${exit.path}`}>
+                  <HoverStickyRow
+                    key={idx}
+                    itemKey={itemKey}
+                    pinnedItemKey={pinnedItemKey}
+                    setPinnedItemKey={setPinnedItemKey}
+                    popover={
+                      <>
+                        <div className="font-bold text-sm text-white flex items-center justify-between">
+                          <span className="truncate">{fullTitle}</span>
+                          {badge && (
+                            <span className={cn("px-1.5 py-0.5 rounded text-[9px] font-bold border shrink-0 ml-2", badge.badgeClass)}>
+                              {badge.label}
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-[11px] text-gray-300 font-mono break-all leading-tight select-all">
+                          {fullPath}
+                        </p>
+                        <div className="flex items-center justify-between text-[11px] text-gray-400 pt-1.5 border-t border-white/10">
+                          <span>Exits: <strong className="text-white">{exit.count}</strong></span>
+                          {isPinned ? (
+                            <span className="text-[#01A3B4] font-bold flex items-center gap-1">
+                              <Pin className="w-3 h-3" /> Pinned
+                            </span>
+                          ) : (
+                            <span className="text-teal-400 font-medium">Click to stick</span>
+                          )}
+                        </div>
+                      </>
+                    }
+                  >
+                    <div className="truncate max-w-[220px]">
                       <div className="flex items-center gap-1.5 truncate">
                         <span className="font-semibold text-[#1B254B] dark:text-white truncate">
-                          {formatRouteTitle(exit.path)}
+                          {fullTitle}
                         </span>
                         {badge && (
                           <span className={cn("px-1.5 py-0.5 rounded text-[9px] font-bold border shrink-0", badge.badgeClass)}>
@@ -908,13 +1160,13 @@ export function AnalyticsDashboard() {
                         )}
                       </div>
                       <span className="text-xs text-[#A3AED0] block truncate">
-                        {exit.domain ? `${exit.domain}${exit.path}` : exit.path}
+                        {fullPath}
                       </span>
                     </div>
-                    <span className="font-bold text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/30 px-2.5 py-1 rounded-lg text-xs">
+                    <span className="font-bold text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/30 px-2.5 py-1 rounded-lg text-xs shrink-0 ml-2">
                       {exit.count} exits
                     </span>
-                  </div>
+                  </HoverStickyRow>
                 );
               })
             ) : (

@@ -87,6 +87,13 @@
       rawText.includes('custom date range') ||
       rawText.includes('apply custom range') ||
       rawText.includes('group by') ||
+      rawText.includes('toggle navigation menu') ||
+      rawText.includes('toggle menu') ||
+      rawText.includes('close sidebar') ||
+      ariaLabel.includes('toggle navigation menu') ||
+      ariaLabel.includes('toggle navigation') ||
+      ariaLabel.includes('toggle menu') ||
+      ariaLabel.includes('close sidebar') ||
       ariaLabel.includes('filter') ||
       ariaLabel.includes('select date') ||
       ariaLabel.includes('pick a date')

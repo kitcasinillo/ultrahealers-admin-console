@@ -4,6 +4,27 @@ All notable updates to agent capabilities, skills, memory, lessons learned, and 
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to Semantic Knowledge Versioning.
 
+## [1.9.5] - 2026-08-19
+
+### Added / Improved
+- **Top 10 Report List Stick-on-Click Hover Display**:
+  - Resolved hover display clipping for 1st and 2nd list items by applying dynamic vertical positioning (`top-full mt-1.5` for top items, `bottom-full mb-1.5` for items 3+), ensuring cards never get cut off by card headers.
+  - Implemented **Stick-on-Click** (`pinnedItemKey` state): clicking any item pins its full display card open with a `Pinned` badge until clicked again or unpinned.
+  - Streamlined UI by removing modal popups in favor of the instant, non-intrusive stick-on-click hover card experience.
+
+## [1.9.4] - 2026-08-19
+
+### Fixed
+- **Responsive Mobile Navigation Sidebar Drawer**:
+  - Resolved issue where the sidebar disappeared on smaller screens (`< 768px`) with no way for mobile users to navigate.
+  - Updated [`Sidebar.tsx`](file:///C:/Users/ItechMediaLogic/prods/ultrahealers-admin-console/src/components/Sidebar.tsx) with a responsive mobile slide-over drawer overlay (`isMobileOpen`, `onClose`) featuring a backdrop overlay, smooth enter animations, and an explicit close (`X`) button.
+  - Added hamburger menu toggle button (`Menu` icon) to [`TopBar.tsx`](file:///C:/Users/ItechMediaLogic/prods/ultrahealers-admin-console/src/components/TopBar.tsx) visible on smaller screens (`md:hidden`).
+  - Integrated `isMobileOpen` state management and automatic drawer closure on route navigation (`useLocation`) in [`AdminLayout.tsx`](file:///C:/Users/ItechMediaLogic/prods/ultrahealers-admin-console/src/layouts/AdminLayout.tsx).
+- **Excluded Mobile Menu Toggle & Close Buttons from Click Tracker**:
+  - Added `data-uh-no-track="true"` to the mobile menu toggle button in [`TopBar.tsx`](file:///C:/Users/ItechMediaLogic/prods/ultrahealers-admin-console/src/components/TopBar.tsx) and drawer close button in [`Sidebar.tsx`](file:///C:/Users/ItechMediaLogic/prods/ultrahealers-admin-console/src/components/Sidebar.tsx).
+  - Updated `isIgnoredControlClick` in [`public/uh-analytics.js`](file:///C:/Users/ItechMediaLogic/prods/ultrahealers-admin-console/public/uh-analytics.js) and [`dist/uh-analytics.js`](file:///C:/Users/ItechMediaLogic/prods/ultrahealers-admin-console/dist/uh-analytics.js) to ignore `toggle navigation menu` and `close sidebar` events.
+  - Added filter in [`AnalyticsDashboard.tsx`](file:///C:/Users/ItechMediaLogic/prods/ultrahealers-admin-console/src/pages/reports/AnalyticsDashboard.tsx) to exclude menu toggle descriptors from the Top 10 Click Interactions view and exports.
+
 ## [1.9.3] - 2026-08-18
 
 ### Added

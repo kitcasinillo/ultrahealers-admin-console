@@ -40,6 +40,28 @@ This file persists key architectural discoveries, long-term project context, and
   - Native tracking snippet: `public/uh-analytics.js` deployed across `seeker-app`, `healer-app`, and `ultrahealers-admin-console`.
   - Admin UI: `AnalyticsDashboard.tsx` in `src/pages/reports/AnalyticsDashboard.tsx` with date range & subdomain filters, user acquisition metrics (Healers vs Seekers), traffic sources, pageview stats, click interactions, and exit drop-off pages.
 
+### MEM-004: Responsive Mobile Sidebar Navigation Drawer
+- **Date Recorded**: 2026-08-19
+- **Source**: Sidebar Responsiveness Bug Resolution
+- **Importance Level**: High
+- **Tags**: `[ui, responsive, sidebar, mobile-drawer, layout]`
+- **Summary**: Implemented slide-over mobile navigation drawer & TopBar toggle button for small screens (<768px).
+- **Full Context**:
+  - `Sidebar.tsx` renders persistent `w-[290px]` layout on `md:` screens, and an animated drawer overlay on smaller screens.
+  - `TopBar.tsx` renders a mobile hamburger menu button (`Menu` icon from `lucide-react`) on `md:hidden`.
+  - `AdminLayout.tsx` maintains `isMobileOpen` state and automatically closes the drawer on route changes via `useLocation`.
+
+### MEM-005: Top 10 Report Items Stick-on-Click Hover Display
+- **Date Recorded**: 2026-08-19
+- **Source**: Web Analytics Report UX Polish
+- **Importance Level**: Medium
+- **Tags**: `[analytics, hover-display, stick-on-click, untruncated-view, positioning]`
+- **Summary**: Implemented dynamic top/bottom card positioning and click-to-stick pinned state for Top 10 list items.
+- **Full Context**:
+  - Implemented in `AnalyticsDashboard.tsx` for Top 10 Pageviews, Top 10 Click Interactions, and Top 10 Drop-off / Exit Pages.
+  - Items 1 and 2 (`idx < 2`) render cards below (`top-full mt-1.5`) to prevent header clipping; items 3+ render above (`bottom-full mb-1.5`).
+  - Clicking any item pins its display card open with `pinnedItemKey` state and a `Pinned` badge indicator. Removed modal dialogs in favor of this direct card pinning.
+
 ---
 
 ## 📥 Template for New Entries

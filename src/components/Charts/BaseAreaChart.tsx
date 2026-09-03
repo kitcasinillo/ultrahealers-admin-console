@@ -15,24 +15,42 @@ export interface AreaConfig {
   dataKey: string;
   stroke: string;
   fillOpacity?: number;
+  strokeOpacity?: number;
+  strokeWidth?: number;
 }
 
 interface BaseAreaChartProps {
   title: string;
   data: any[];
   areas: AreaConfig[];
+  isStacked?: boolean;
   yAxisTickFormatter?: (value: any) => string;
+  showLegend?: boolean;
+  legendAlign?: 'left' | 'center' | 'right';
+  headerRight?: React.ReactNode;
+  footerRight?: React.ReactNode;
 }
 
 import { ChartEmptyState } from './ChartEmptyState';
 
-export function BaseAreaChart({ title, data, areas, yAxisTickFormatter }: BaseAreaChartProps) {
+export function BaseAreaChart({ 
+  title, 
+  data, 
+  areas, 
+  isStacked = false, 
+  yAxisTickFormatter,
+  showLegend = true,
+  legendAlign = 'center',
+  headerRight,
+  footerRight
+}: BaseAreaChartProps) {
   const hasData = data && data.length > 0;
 
   return (
     <Card className="rounded-3xl border-none shadow-[0_10px_30px_0_rgba(11,20,55,0.06)] dark:bg-[#111C44] min-w-0">
-      <CardHeader>
+      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
         <CardTitle className="text-lg font-bold text-[#1b254b] dark:text-white">{title}</CardTitle>
+        {headerRight && <div>{headerRight}</div>}
       </CardHeader>
       <CardContent>
         <div className="h-[250px] sm:h-[300px] w-full mt-4">
@@ -58,6 +76,7 @@ export function BaseAreaChart({ title, data, areas, yAxisTickFormatter }: BaseAr
                   dy={10}
                 />
                 <YAxis 
+                  allowDecimals={false}
                   axisLine={false} 
                   tickLine={false} 
                   tick={{ fill: '#A3AED0', fontSize: 12 }}
@@ -66,16 +85,26 @@ export function BaseAreaChart({ title, data, areas, yAxisTickFormatter }: BaseAr
                 <Tooltip 
                   contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)' }}
                 />
-                <Legend iconType="circle" wrapperStyle={{ paddingTop: '10px' }} />
+                {showLegend && (
+                  <Legend 
+                    align={legendAlign} 
+                    iconType="circle" 
+                    iconSize={10}
+                    wrapperStyle={{ paddingTop: '10px', fontSize: '12px' }} 
+                    formatter={(value) => <span className="text-xs font-semibold text-[#1B254B] dark:text-gray-200 ml-1">{value}</span>}
+                  />
+                )}
                 {areas.map((a, idx) => (
                   <Area 
                     key={idx}
                     name={a.name}
                     type="monotone" 
                     dataKey={a.dataKey} 
-                    stackId="1" 
+                    stackId={isStacked ? "1" : undefined} 
                     stroke={a.stroke} 
-                    fillOpacity={a.fillOpacity ?? 1} 
+                    strokeWidth={a.strokeWidth ?? 2}
+                    strokeOpacity={a.strokeOpacity ?? 1}
+                    fillOpacity={a.fillOpacity ?? 0.2} 
                     fill={`url(#color${a.dataKey})`} 
                   />
                 ))}
@@ -83,6 +112,11 @@ export function BaseAreaChart({ title, data, areas, yAxisTickFormatter }: BaseAr
             </ResponsiveContainer>
           )}
         </div>
+        {footerRight && (
+          <div className="flex flex-wrap items-center justify-end gap-3 mt-3 pt-3 border-t border-gray-100 dark:border-white/5">
+            {footerRight}
+          </div>
+        )}
       </CardContent>
     </Card>
   );

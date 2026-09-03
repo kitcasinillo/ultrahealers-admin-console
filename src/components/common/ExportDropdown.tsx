@@ -11,9 +11,10 @@ import {
 interface ExportDropdownProps {
   onExportExcel?: () => void;
   onExportPdf?: () => void;
+  onExportCsv?: () => void;
 }
 
-export function ExportDropdown({ onExportExcel, onExportPdf }: ExportDropdownProps) {
+export function ExportDropdown({ onExportExcel, onExportPdf, onExportCsv }: ExportDropdownProps) {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -26,34 +27,54 @@ export function ExportDropdown({ onExportExcel, onExportPdf }: ExportDropdownPro
       <DropdownMenuContent align="center" className="min-w-[200px] w-[var(--radix-dropdown-menu-trigger-width)] p-2 rounded-2xl border-none shadow-[0_30px_60px_rgba(0,0,0,0.12)]">
         <DropdownMenuLabel className="px-3 py-2 text-xs font-bold uppercase tracking-wider text-[#A3AED0]">Available Formats</DropdownMenuLabel>
         <DropdownMenuSeparator className="my-1 opacity-5" />
-        <DropdownMenuItem
-          onClick={onExportExcel}
-          className="flex items-center gap-3 py-3 px-3 rounded-xl cursor-pointer group data-[highlighted]:bg-blue-50 dark:data-[highlighted]:bg-blue-500/10"
-        >
-          <div className="flex h-9 w-9 items-center justify-center rounded-full bg-blue-100 dark:bg-blue-500/20 text-blue-600 dark:text-blue-400">
-            <FileText className="h-4 w-4" />
-          </div>
-          <div className="flex flex-col">
-            <span className="text-sm font-bold text-[#1b254b] dark:text-white">Excel (CSV)</span>
-            <span className="text-[10px] text-[#A3AED0]">Spreadsheet report data</span>
-          </div>
-          <Download className="ml-auto h-3.5 w-3.5 opacity-0 group-hover:opacity-100 transition-opacity text-blue-500" />
-        </DropdownMenuItem>
-        <DropdownMenuItem
-          onClick={onExportPdf}
-          className="flex items-center gap-3 py-3 px-3 rounded-xl cursor-pointer group data-[highlighted]:bg-red-50 dark:data-[highlighted]:bg-red-500/10"
-        >
-          <div className="flex h-9 w-9 items-center justify-center rounded-full bg-red-100 dark:bg-red-500/20 text-red-600 dark:text-red-400">
-            <FileText className="h-4 w-4" />
-          </div>
-          <div className="flex flex-col">
-            <span className="text-sm font-bold text-[#1b254b] dark:text-white">PDF Document</span>
-            <span className="text-[10px] text-[#A3AED0]">Print-ready summary</span>
-          </div>
-          <Download className="ml-auto h-3.5 w-3.5 opacity-0 group-hover:opacity-100 transition-opacity text-red-500" />
-        </DropdownMenuItem>
+        {onExportExcel && (
+          <DropdownMenuItem
+            onClick={onExportExcel}
+            className="flex items-center gap-3 py-3 px-3 rounded-xl cursor-pointer group data-[highlighted]:bg-blue-50 dark:data-[highlighted]:bg-blue-500/10"
+          >
+            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-blue-100 dark:bg-blue-500/20 text-blue-600 dark:text-blue-400">
+              <FileText className="h-4 w-4" />
+            </div>
+            <div className="flex flex-col">
+              <span className="text-sm font-bold text-[#1b254b] dark:text-white">Excel (XLSX)</span>
+              <span className="text-[10px] text-[#A3AED0]">Multi-sheet workbook</span>
+            </div>
+            <Download className="ml-auto h-3.5 w-3.5 opacity-0 group-hover:opacity-100 transition-opacity text-blue-500" />
+          </DropdownMenuItem>
+        )}
+        {onExportCsv && (
+          <DropdownMenuItem
+            onClick={onExportCsv}
+            className="flex items-center gap-3 py-3 px-3 rounded-xl cursor-pointer group data-[highlighted]:bg-emerald-50 dark:data-[highlighted]:bg-emerald-500/10"
+          >
+            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-emerald-100 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400">
+              <FileText className="h-4 w-4" />
+            </div>
+            <div className="flex flex-col">
+              <span className="text-sm font-bold text-[#1b254b] dark:text-white">CSV Data</span>
+              <span className="text-[10px] text-[#A3AED0]">Raw comma-separated dataset</span>
+            </div>
+            <Download className="ml-auto h-3.5 w-3.5 opacity-0 group-hover:opacity-100 transition-opacity text-emerald-500" />
+          </DropdownMenuItem>
+        )}
+        {onExportPdf && (
+          <DropdownMenuItem
+            onClick={onExportPdf}
+            className="flex items-center gap-3 py-3 px-3 rounded-xl cursor-pointer group data-[highlighted]:bg-red-50 dark:data-[highlighted]:bg-red-500/10"
+          >
+            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-red-100 dark:bg-red-500/20 text-red-600 dark:text-red-400">
+              <FileText className="h-4 w-4" />
+            </div>
+            <div className="flex flex-col">
+              <span className="text-sm font-bold text-[#1b254b] dark:text-white">PDF Document</span>
+              <span className="text-[10px] text-[#A3AED0]">Print-ready summary</span>
+            </div>
+            <Download className="ml-auto h-3.5 w-3.5 opacity-0 group-hover:opacity-100 transition-opacity text-red-500" />
+          </DropdownMenuItem>
+        )}
       </DropdownMenuContent>
     </DropdownMenu>
   );
 }
+
 

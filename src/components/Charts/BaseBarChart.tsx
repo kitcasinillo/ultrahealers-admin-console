@@ -23,20 +23,21 @@ interface BaseBarChartProps {
   data: any[];
   bars: BarConfig[];
   yAxisTickFormatter?: (value: any) => string;
+  height?: string;
 }
 
 import { ChartEmptyState } from './ChartEmptyState';
 
-export function BaseBarChart({ title, data, bars, yAxisTickFormatter }: BaseBarChartProps) {
+export function BaseBarChart({ title, data, bars, yAxisTickFormatter, height }: BaseBarChartProps) {
   const hasData = data && data.length > 0;
 
   return (
     <Card className="rounded-3xl border-none shadow-[0_10px_30px_0_rgba(11,20,55,0.06)] dark:bg-[#111C44] min-w-0">
-      <CardHeader>
+      <CardHeader className="pb-2">
         <CardTitle className="text-lg font-bold text-[#1b254b] dark:text-white">{title}</CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="h-[250px] sm:h-[300px] w-full mt-4">
+        <div className={`w-full mt-2 ${height || "h-[200px] sm:h-[240px]"}`}>
           {!hasData ? (
             <ChartEmptyState />
           ) : (
@@ -51,6 +52,7 @@ export function BaseBarChart({ title, data, bars, yAxisTickFormatter }: BaseBarC
                   dy={10}
                 />
                 <YAxis 
+                  allowDecimals={false}
                   axisLine={false} 
                   tickLine={false} 
                   tick={{ fill: '#A3AED0', fontSize: 12 }}
@@ -60,7 +62,12 @@ export function BaseBarChart({ title, data, bars, yAxisTickFormatter }: BaseBarC
                   contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)' }}
                   cursor={{ fill: '#F4F7FE' }}
                 />
-                <Legend iconType="circle" wrapperStyle={{ paddingTop: '10px' }} />
+                <Legend 
+                  iconType="circle" 
+                  iconSize={10}
+                  wrapperStyle={{ paddingTop: '10px', fontSize: '12px' }} 
+                  formatter={(value) => <span className="text-xs font-semibold text-[#1B254B] dark:text-gray-200 ml-1">{value}</span>}
+                />
                 {bars.map((b, idx) => (
                   <Bar 
                     key={idx}

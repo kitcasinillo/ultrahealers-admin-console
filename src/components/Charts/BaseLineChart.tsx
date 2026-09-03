@@ -48,6 +48,7 @@ export function BaseLineChart({ title, data, lines }: BaseLineChartProps) {
                   dy={10}
                 />
                 <YAxis 
+                  allowDecimals={false}
                   axisLine={false} 
                   tickLine={false} 
                   tick={{ fill: '#A3AED0', fontSize: 12 }}

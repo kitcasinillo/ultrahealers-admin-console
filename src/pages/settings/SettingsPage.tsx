@@ -85,6 +85,13 @@ export function SettingsPage() {
                         seeded_at: data.admin_bootstrap?.seeded_at ?? defaultValues.adminBootstrap.seeded_at,
                         last_seed_error: data.admin_bootstrap?.last_seed_error ?? defaultValues.adminBootstrap.last_seed_error,
                     },
+                    welcomeEmails: {
+                        admin_email: data.welcome_emails?.admin_email ?? data.admin_email ?? defaultValues.welcomeEmails.admin_email,
+                        seeker_subject: data.welcome_emails?.seeker_subject ?? defaultValues.welcomeEmails.seeker_subject,
+                        seeker_body: data.welcome_emails?.seeker_body ?? defaultValues.welcomeEmails.seeker_body,
+                        healer_subject: data.welcome_emails?.healer_subject ?? defaultValues.welcomeEmails.healer_subject,
+                        healer_body: data.welcome_emails?.healer_body ?? defaultValues.welcomeEmails.healer_body,
+                    },
                 };
 
                 form.reset(loadedSettings);
@@ -172,6 +179,7 @@ export function SettingsPage() {
                     PROCESSING_FEE_FIXED: data.commission.PROCESSING_FEE_FIXED,
                     featureFlags: data.featureFlags,
                     admin_bootstrap: data.adminBootstrap,
+                    welcome_emails: data.welcomeEmails,
                 }),
             });
 
@@ -210,6 +218,24 @@ export function SettingsPage() {
         } finally {
             setIsSaving(false);
         }
+    };
+
+    const onInvalid = (errors: any) => {
+        console.error("Form Validation Errors:", errors);
+        const detailed: string[] = [];
+        Object.entries(errors).forEach(([key, value]: [string, any]) => {
+            if (value && typeof value === 'object' && value.message) {
+                detailed.push(`${key}: ${value.message}`);
+            } else if (value && typeof value === 'object') {
+                const subErrors = Object.entries(value)
+                    .map(([k, v]: [string, any]) => `${k} (${v?.message || 'invalid'})`)
+                    .join(", ");
+                detailed.push(`${key} -> ${subErrors}`);
+            } else {
+                detailed.push(key);
+            }
+        });
+        toast.error(`Form error: ${detailed.join(" | ")}`);
     };
 
     const handleReset = () => {
@@ -252,7 +278,7 @@ export function SettingsPage() {
                         Reset Defaults
                     </Button>
                     <Button 
-                        onClick={form.handleSubmit(onSubmit)} 
+                        onClick={form.handleSubmit(onSubmit, onInvalid)} 
                         disabled={isSaving}
                         className="bg-[#4318FF] hover:bg-[#3311CC] text-white rounded-xl px-6 font-bold shadow-[0_10px_20px_0_rgba(67,24,255,0.15)] transition-all shrink-0"
                     >
@@ -324,7 +350,10 @@ export function SettingsPage() {
                         </TabsContent>
 
                         <TabsContent value="email" className="mt-0 space-y-6 outline-none">
-                            <EmailSettings />
+                            <EmailSettings 
+                                control={form.control as unknown as Control<SettingsFormValues>} 
+                                onSave={form.handleSubmit(onSubmit, onInvalid)} 
+                            />
                         </TabsContent>
 
                         <TabsContent value="system" className="mt-0 space-y-6 outline-none">

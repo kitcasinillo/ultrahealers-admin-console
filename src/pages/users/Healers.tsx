@@ -31,9 +31,9 @@ export function Healers() {
     const [subscriptionFilter, setSubscriptionFilter] = useState<"" | "Free" | "Premium">("")
     
     // Date Range Filters
-    const [dateRange, setDateRange] = useState("Custom Range")
-    const [customStartDate, setCustomStartDate] = useState(`${new Date().getFullYear()}-03-01`)
-    const [customEndDate, setCustomEndDate] = useState(new Date().toISOString().split('T')[0])
+    const [dateRange, setDateRange] = useState("All")
+    const [customStartDate, setCustomStartDate] = useState("")
+    const [customEndDate, setCustomEndDate] = useState("")
     
     // Summary Metrics
     const [totalCount, setTotalCount] = useState(0)
@@ -158,12 +158,12 @@ export function Healers() {
         setSearch("")
         setStatusFilter("")
         setSubscriptionFilter("")
-        setDateRange("Custom Range")
-        setCustomStartDate(`${new Date().getFullYear()}-03-01`)
-        setCustomEndDate(new Date().toISOString().split('T')[0])
+        setDateRange("All")
+        setCustomStartDate("")
+        setCustomEndDate("")
     }
 
-    const canClear = search || statusFilter || subscriptionFilter || customStartDate !== `${new Date().getFullYear()}-03-01` || customEndDate !== new Date().toISOString().split('T')[0]
+    const canClear = search || statusFilter || subscriptionFilter || dateRange !== "All" || customStartDate || customEndDate
 
     return (
         <div className="space-y-6">
@@ -226,6 +226,7 @@ export function Healers() {
                         setCustomStartDate={setCustomStartDate}
                         customEndDate={customEndDate}
                         setCustomEndDate={setCustomEndDate}
+                        options={['All']}
                     />
 
                     <select

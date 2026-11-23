@@ -30,9 +30,9 @@ export function Seekers() {
     const [statusFilter, setStatusFilter] = useState<"" | "Active" | "Suspended" | "Pending" | "Deleted">("")
     
     // Date Range Filters
-    const [dateRange, setDateRange] = useState("Custom Range")
-    const [customStartDate, setCustomStartDate] = useState(`${new Date().getFullYear()}-03-01`)
-    const [customEndDate, setCustomEndDate] = useState(new Date().toISOString().split('T')[0])
+    const [dateRange, setDateRange] = useState("All")
+    const [customStartDate, setCustomStartDate] = useState("")
+    const [customEndDate, setCustomEndDate] = useState("")
     
     // Summary Metrics
     const [totalCount, setTotalCount] = useState(0)
@@ -143,12 +143,12 @@ export function Seekers() {
     const clearFilters = () => {
         setSearch("")
         setStatusFilter("")
-        setDateRange("Custom Range")
-        setCustomStartDate(`${new Date().getFullYear()}-03-01`)
-        setCustomEndDate(new Date().toISOString().split('T')[0])
+        setDateRange("All")
+        setCustomStartDate("")
+        setCustomEndDate("")
     }
 
-    const canClear = search || statusFilter || customStartDate !== `${new Date().getFullYear()}-03-01` || customEndDate !== new Date().toISOString().split('T')[0]
+    const canClear = search || statusFilter || dateRange !== "All" || customStartDate || customEndDate
 
     return (
         <div className="space-y-6">
@@ -211,6 +211,7 @@ export function Seekers() {
                         setCustomStartDate={setCustomStartDate}
                         customEndDate={customEndDate}
                         setCustomEndDate={setCustomEndDate}
+                        options={['All']}
                     />
 
                     <select

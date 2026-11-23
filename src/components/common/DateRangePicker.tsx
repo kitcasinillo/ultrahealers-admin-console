@@ -13,6 +13,7 @@ interface DateRangePickerProps {
   setCustomStartDate: (date: string) => void;
   customEndDate: string;
   setCustomEndDate: (date: string) => void;
+  options?: string[];
 }
 
 export function DateRangePicker({
@@ -22,8 +23,9 @@ export function DateRangePicker({
   setCustomStartDate,
   customEndDate,
   setCustomEndDate,
+  options = ['Daily', 'Weekly', 'Monthly'],
 }: DateRangePickerProps) {
-  const rangeOptions = ['Daily', 'Weekly', 'Monthly'];
+  const rangeOptions = options;
 
   // Format date to a simpler, shorter format (e.g. "Feb 12")
   const formatShortDate = (dateStr: string) => {

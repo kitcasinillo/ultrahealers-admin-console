@@ -1,10 +1,24 @@
 import { useEffect, useState } from "react"
-import { useParams, Link } from "react-router-dom"
-import { ArrowLeft, Calendar, Mail, MapPin, MoreVertical, User } from "lucide-react"
+import { useParams, Link, useNavigate } from "react-router-dom"
+import { AlertTriangle, ArrowLeft, Calendar, Mail, MapPin, MoreVertical, RotateCcw, Trash2, User } from "lucide-react"
 import { Button } from "../../components/ui/button"
 import { Badge } from "../../components/ui/badge"
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from "../../components/ui/dialog"
 import { useToast } from "../../contexts/ToastContext"
-import { fetchHealerDetail, type AdminHealerDetail, updateHealerSuspension } from "../../lib/users"
+import {
+    fetchHealerDetail,
+    permanentDeleteHealer,
+    type AdminHealerDetail,
+    updateHealerSoftDelete,
+    updateHealerSuspension,
+} from "../../lib/users"
 import { logAdminAction } from "../../lib/audit"
 import { useAdminAuth } from "../../contexts/AdminAuthContext"
 import { Pagination } from "../../components/common/Pagination"
@@ -24,10 +38,17 @@ const formatDate = (value: string | null) => {
 export function HealerDetail() {
     const { user: admin } = useAdminAuth()
     const { id } = useParams()
+    const navigate = useNavigate()
     const [data, setData] = useState<AdminHealerDetail | null>(null)
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState<string | null>(null)
     const [saving, setSaving] = useState(false)
+    const [suspendModalOpen, setSuspendModalOpen] = useState(false)
+    const [suspendReason, setSuspendReason] = useState("")
+    const [deleteModalOpen, setDeleteModalOpen] = useState(false)
+    const [deleteReason, setDeleteReason] = useState("")
+    const [permanentDeleteModalOpen, setPermanentDeleteModalOpen] = useState(false)
+    const [permanentConfirmText, setPermanentConfirmText] = useState("")
     const { showToast } = useToast()
     const [currentPage, setCurrentPage] = useState(1)
     const ITEMS_PER_PAGE = 5
@@ -56,12 +77,12 @@ export function HealerDetail() {
         return () => { mounted = false }
     }, [id])
 
-    const handleSuspendToggle = async () => {
+    const handleSuspendConfirm = async () => {
         if (!id || !data) return
 
         const currentStatus = data.status
         const shouldSuspend = currentStatus !== "Suspended"
-        const reason = shouldSuspend ? window.prompt("Optional suspension reason:", "") || undefined : undefined
+        const reason = shouldSuspend ? suspendReason.trim() || undefined : undefined
 
         try {
             setSaving(true)
@@ -70,6 +91,8 @@ export function HealerDetail() {
             // Update local state first
             setData((prev) => prev ? { ...prev, status: result.status as AdminHealerDetail["status"] } : prev)
             showToast(shouldSuspend ? "Healer suspended." : "Healer reactivated.", "success")
+            setSuspendModalOpen(false)
+            setSuspendReason("")
 
             // Log the action to the audit trail (fire-and-forget, don't block UI)
             if (admin) {
@@ -91,6 +114,86 @@ export function HealerDetail() {
         } catch (err: any) {
             console.error("Failed to update healer suspension:", err)
             showToast(err?.response?.data?.error || err?.message || "Failed to update healer status", "error")
+        } finally {
+            setSaving(false)
+        }
+    }
+
+    const handleSoftDeleteConfirm = async () => {
+        if (!id || !data) return
+
+        const currentStatus = data.status
+        const shouldDelete = currentStatus !== "Deleted"
+        const reason = shouldDelete ? deleteReason.trim() || undefined : undefined
+
+        try {
+            setSaving(true)
+            const result = await updateHealerSoftDelete(id, shouldDelete, reason)
+
+            setData((prev) => prev ? { ...prev, status: result.status as AdminHealerDetail["status"] } : prev)
+            showToast(shouldDelete ? "Healer account soft-deleted." : "Healer account restored.", "success")
+            setDeleteModalOpen(false)
+            setDeleteReason("")
+
+            if (admin) {
+                const auditAction = shouldDelete ? "SOFT_DELETE_HEALER" : "RESTORE_HEALER"
+                logAdminAction({
+                    adminId: admin.uid,
+                    adminEmail: admin.email || "unknown",
+                    action: auditAction,
+                    module: "Healers",
+                    targetId: id,
+                    targetName: data.name,
+                    reason,
+                    changes: {
+                        previousStatus: currentStatus,
+                        newStatus: result.status
+                    }
+                }).catch((logErr) => console.error("Audit log failed:", logErr))
+            }
+        } catch (err: any) {
+            console.error("Failed to update healer soft delete:", err)
+            showToast(err?.response?.data?.error || err?.message || "Failed to update healer deletion status", "error")
+        } finally {
+            setSaving(false)
+        }
+    }
+
+    const handlePermanentDeleteConfirm = async () => {
+        if (!id || !data || permanentConfirmText.trim() !== "DELETE") return
+
+        try {
+            setSaving(true)
+            const result = await permanentDeleteHealer(id)
+
+            if (admin) {
+                logAdminAction({
+                    adminId: admin.uid,
+                    adminEmail: admin.email || "unknown",
+                    action: "PERMANENT_DELETE_HEALER",
+                    module: "Healers",
+                    targetId: id,
+                    targetName: data.name,
+                    metadata: {
+                        deletedListings: result.deletedListings,
+                        deletedRetreats: result.deletedRetreats,
+                        authDeleted: result.authDeleted,
+                    },
+                }).catch((logErr) => console.error("Audit log failed:", logErr))
+            }
+
+            setPermanentDeleteModalOpen(false)
+            setPermanentConfirmText("")
+            showToast(
+                result.accountDeleted === false
+                    ? `Healer role permanently removed (${result.deletedListings} listing(s), ${result.deletedRetreats} retreat(s) deleted). Remaining role(s) preserved.`
+                    : `Healer permanently deleted (${result.deletedListings} listing(s), ${result.deletedRetreats} retreat(s) removed).`,
+                "success"
+            )
+            navigate("/users/healers")
+        } catch (err: any) {
+            console.error("Failed to permanently delete healer:", err)
+            showToast(err?.response?.data?.error || err?.message || "Failed to permanently delete healer", "error")
         } finally {
             setSaving(false)
         }
@@ -120,11 +223,49 @@ export function HealerDetail() {
                     <Button
                         variant={data?.status === "Suspended" ? "outline" : "destructive"}
                         type="button"
-                        onClick={handleSuspendToggle}
-                        disabled={loading || saving || !data}
+                        onClick={() => {
+                            setSuspendReason("")
+                            setSuspendModalOpen(true)
+                        }}
+                        disabled={loading || saving || !data || data?.status === "Deleted"}
                     >
                         {saving ? "Saving..." : data?.status === "Suspended" ? "Reactivate" : "Suspend"}
                     </Button>
+                    <Button
+                        variant={data?.status === "Deleted" ? "outline" : "destructive"}
+                        type="button"
+                        onClick={() => {
+                            setDeleteReason("")
+                            setDeleteModalOpen(true)
+                        }}
+                        disabled={loading || saving || !data}
+                    >
+                        {data?.status === "Deleted" ? (
+                            <>
+                                <RotateCcw className="h-4 w-4 mr-1.5" />
+                                Restore
+                            </>
+                        ) : (
+                            <>
+                                <Trash2 className="h-4 w-4 mr-1.5" />
+                                Delete
+                            </>
+                        )}
+                    </Button>
+                    {data?.status === "Deleted" && (
+                        <Button
+                            variant="destructive"
+                            type="button"
+                            onClick={() => {
+                                setPermanentConfirmText("")
+                                setPermanentDeleteModalOpen(true)
+                            }}
+                            disabled={loading || saving}
+                        >
+                            <Trash2 className="h-4 w-4 mr-1.5" />
+                            Delete Permanent
+                        </Button>
+                    )}
                     <Button variant="ghost" size="icon" disabled>
                         <MoreVertical className="h-4 w-4" />
                     </Button>
@@ -155,6 +296,8 @@ export function HealerDetail() {
                                     ? "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-900/20 dark:text-emerald-400 dark:border-emerald-800" 
                                     : data.status === "Suspended"
                                     ? "bg-red-50 text-red-700 border-red-200 dark:bg-red-900/20 dark:text-red-400 dark:border-red-800"
+                                    : data.status === "Deleted"
+                                    ? "bg-zinc-100 text-zinc-700 border-zinc-300 dark:bg-zinc-800 dark:text-zinc-300 dark:border-zinc-700"
                                     : "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-900/20 dark:text-amber-400 dark:border-amber-800"
                                 }`}>
                                     {data.status}
@@ -252,6 +395,168 @@ export function HealerDetail() {
                     </div>
                 </div>
             )}
+
+            <Dialog open={suspendModalOpen} onOpenChange={(open) => !saving && setSuspendModalOpen(open)}>
+                <DialogContent className="sm:max-w-[440px] rounded-[24px]">
+                    <DialogHeader>
+                        <DialogTitle className="text-xl font-bold">
+                            {data?.status === "Suspended" ? "Reactivate Healer Account" : "Suspend Healer Account"}
+                        </DialogTitle>
+                        <DialogDescription className="text-[#A3AED0]">
+                            {data?.status === "Suspended"
+                                ? `Are you sure you want to reactivate ${data?.name}'s account? They will be able to sign in again.`
+                                : `Suspending ${data?.name}'s account will block them from signing in and display an account suspended notice until reactivated.`}
+                        </DialogDescription>
+                    </DialogHeader>
+                    {data?.status !== "Suspended" && (
+                        <div className="space-y-2 py-2">
+                            <label htmlFor="healer-suspend-reason" className="text-sm font-medium">
+                                Reason (optional)
+                            </label>
+                            <textarea
+                                id="healer-suspend-reason"
+                                value={suspendReason}
+                                onChange={(e) => setSuspendReason(e.target.value)}
+                                placeholder="Enter a reason for suspending this account..."
+                                rows={3}
+                                disabled={saving}
+                                className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm outline-none transition focus:border-[#4318FF] dark:border-white/10 dark:bg-white/5 dark:text-white"
+                            />
+                        </div>
+                    )}
+                    <DialogFooter className="gap-2 sm:gap-0">
+                        <Button
+                            variant="ghost"
+                            onClick={() => setSuspendModalOpen(false)}
+                            disabled={saving}
+                            className="rounded-xl font-bold"
+                        >
+                            Cancel
+                        </Button>
+                        <Button
+                            variant={data?.status === "Suspended" ? "default" : "destructive"}
+                            onClick={handleSuspendConfirm}
+                            disabled={saving}
+                            className="rounded-xl font-bold"
+                        >
+                            {saving
+                                ? "Processing..."
+                                : data?.status === "Suspended"
+                                ? "Reactivate Account"
+                                : "Suspend Account"}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            <Dialog open={deleteModalOpen} onOpenChange={(open) => !saving && setDeleteModalOpen(open)}>
+                <DialogContent className="sm:max-w-[440px] rounded-[24px]">
+                    <DialogHeader>
+                        <DialogTitle className="text-xl font-bold">
+                            {data?.status === "Deleted" ? "Restore Healer Account" : "Soft Delete Healer Account"}
+                        </DialogTitle>
+                        <DialogDescription className="text-[#A3AED0]">
+                            {data?.status === "Deleted"
+                                ? `Are you sure you want to restore ${data?.name}'s account? They will be able to sign in again.`
+                                : `Soft-deleting ${data?.name}'s account will block them from signing in and display an account deleted notice, while preserving their historical records.`}
+                        </DialogDescription>
+                    </DialogHeader>
+                    {data?.status !== "Deleted" && (
+                        <div className="space-y-2 py-2">
+                            <label htmlFor="healer-delete-reason" className="text-sm font-medium">
+                                Reason (optional)
+                            </label>
+                            <textarea
+                                id="healer-delete-reason"
+                                value={deleteReason}
+                                onChange={(e) => setDeleteReason(e.target.value)}
+                                placeholder="Enter a reason for deleting this account..."
+                                rows={3}
+                                disabled={saving}
+                                className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm outline-none transition focus:border-[#4318FF] dark:border-white/10 dark:bg-white/5 dark:text-white"
+                            />
+                        </div>
+                    )}
+                    <DialogFooter className="gap-2 sm:gap-0">
+                        <Button
+                            variant="ghost"
+                            onClick={() => setDeleteModalOpen(false)}
+                            disabled={saving}
+                            className="rounded-xl font-bold"
+                        >
+                            Cancel
+                        </Button>
+                        <Button
+                            variant={data?.status === "Deleted" ? "default" : "destructive"}
+                            onClick={handleSoftDeleteConfirm}
+                            disabled={saving}
+                            className="rounded-xl font-bold"
+                        >
+                            {saving
+                                ? "Processing..."
+                                : data?.status === "Deleted"
+                                ? "Restore Account"
+                                : "Delete Account"}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            <Dialog open={permanentDeleteModalOpen} onOpenChange={(open) => !saving && setPermanentDeleteModalOpen(open)}>
+                <DialogContent className="sm:max-w-[460px] rounded-[24px]">
+                    <DialogHeader>
+                        <DialogTitle className="text-xl font-bold text-red-600 dark:text-red-400 flex items-center gap-2">
+                            <AlertTriangle className="h-5 w-5" />
+                            Permanently Delete Account
+                        </DialogTitle>
+                        <DialogDescription className="text-[#A3AED0]">
+                            This action cannot be undone. All data for <strong className="text-foreground">{data?.name}</strong> will be deleted permanently.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-4 py-2">
+                        <div className="rounded-xl border border-red-200 bg-red-50 p-3.5 text-sm text-red-800 dark:border-red-900/50 dark:bg-red-950/40 dark:text-red-200">
+                            <p className="font-semibold mb-1">Warning: Permanent Data Loss</p>
+                            <ul className="list-disc pl-5 space-y-1 text-xs">
+                                <li>The user account, profile, and login credentials will be permanently removed.</li>
+                                <li>All associated service listings and retreats will be permanently deleted.</li>
+                                <li>This account cannot be restored once permanently deleted.</li>
+                            </ul>
+                        </div>
+                        <div className="space-y-2">
+                            <label htmlFor="healer-permanent-confirm" className="text-sm font-medium block">
+                                Type <span className="font-mono font-bold text-red-600 dark:text-red-400">DELETE</span> to confirm permanent deletion:
+                            </label>
+                            <input
+                                id="healer-permanent-confirm"
+                                type="text"
+                                value={permanentConfirmText}
+                                onChange={(e) => setPermanentConfirmText(e.target.value)}
+                                placeholder="DELETE"
+                                disabled={saving}
+                                className="h-10 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm outline-none transition focus:border-red-500 dark:border-white/10 dark:bg-white/5 dark:text-white"
+                            />
+                        </div>
+                    </div>
+                    <DialogFooter className="gap-2 sm:gap-0">
+                        <Button
+                            variant="ghost"
+                            onClick={() => setPermanentDeleteModalOpen(false)}
+                            disabled={saving}
+                            className="rounded-xl font-bold"
+                        >
+                            Cancel
+                        </Button>
+                        <Button
+                            variant="destructive"
+                            onClick={handlePermanentDeleteConfirm}
+                            disabled={saving || permanentConfirmText.trim() !== "DELETE"}
+                            className="rounded-xl font-bold"
+                        >
+                            {saving ? "Deleting..." : "Delete Permanently"}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </div>
     )
 }

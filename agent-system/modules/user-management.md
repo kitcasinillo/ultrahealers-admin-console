@@ -33,11 +33,14 @@ The User Management module provides administration for the two core user populat
 ---
 
 ## 🔌 API Endpoints & Data Model
-- `GET /api/v1/admin/healers` – List healers with pagination and filters.
-- `GET /api/v1/admin/healers/:id` – Fetch detailed healer profile, listings, and payout history.
-- `POST /api/v1/admin/healers/:id/verify` – Update verification status.
-- `GET /api/v1/admin/seekers` – List seekers.
-- `POST /api/v1/admin/users/:id/status` – Update user account status (`active`, `suspended`).
+- `GET /api/users/healers` – List healers with pagination and filters (`q`, `status`, `subscription`, `startDate`, `endDate`).
+- `GET /api/users/healers/:id` – Fetch detailed healer profile, listings, and payout history.
+- `PATCH /api/users/healers/:id/suspension` – Suspend or reactivate healer (`{ suspended: boolean, reason?: string | null }`).
+- `PATCH /api/users/healers/:id/soft-delete` – Soft-delete or restore healer (`{ deleted: boolean, reason?: string | null }`).
+- `GET /api/users/seekers` – List seekers.
+- `GET /api/users/seekers/:id` – Fetch detailed seeker profile and booking history.
+- `PATCH /api/users/seekers/:id/suspension` – Suspend or reactivate seeker (`{ suspended: boolean, reason?: string | null }`).
+- `PATCH /api/users/seekers/:id/soft-delete` – Soft-delete or restore seeker (`{ deleted: boolean, reason?: string | null }`).
 
 ---
 

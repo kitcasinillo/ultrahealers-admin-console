@@ -5,7 +5,7 @@ export type AdminHealer = {
   name: string;
   email: string;
   subscription: 'Free' | 'Premium';
-  status: 'Active' | 'Suspended' | 'Pending';
+  status: 'Active' | 'Suspended' | 'Pending' | 'Deleted';
   totalEarned: number;
   joinedDate: string | null;
   avatarUrl?: string;
@@ -18,7 +18,7 @@ export type AdminSeeker = {
   id: string;
   name: string;
   email: string;
-  status: 'Active' | 'Suspended' | 'Pending';
+  status: 'Active' | 'Suspended' | 'Pending' | 'Deleted';
   totalSpent: number;
   joinedDate: string | null;
   avatarUrl?: string;
@@ -63,7 +63,7 @@ export type AdminSeekerDetail = AdminSeeker & {
 
 export type UserListFilters = {
   q?: string;
-  status?: '' | 'Active' | 'Suspended' | 'Pending';
+  status?: '' | 'Active' | 'Suspended' | 'Pending' | 'Deleted';
   subscription?: '' | 'Free' | 'Premium';
   startDate?: string;
   endDate?: string;
@@ -131,5 +131,42 @@ export async function updateSeekerSuspension(id: string, suspended: boolean, rea
     suspended,
     reason: reason || null,
   });
+  return data.data;
+}
+
+export async function updateHealerSoftDelete(id: string, deleted: boolean, reason?: string) {
+  const { data } = await api.patch<{ success: boolean; data: { status: string; deleted: boolean; updatedAt: string; reason?: string | null } }>(`/api/users/healers/${id}/soft-delete`, {
+    deleted,
+    reason: reason || null,
+  });
+  return data.data;
+}
+
+export async function updateSeekerSoftDelete(id: string, deleted: boolean, reason?: string) {
+  const { data } = await api.patch<{ success: boolean; data: { status: string; deleted: boolean; updatedAt: string; reason?: string | null } }>(`/api/users/seekers/${id}/soft-delete`, {
+    deleted,
+    reason: reason || null,
+  });
+  return data.data;
+}
+
+export type PermanentDeleteResult = {
+  id: string;
+  role: 'healer' | 'seeker';
+  accountDeleted?: boolean;
+  remainingRoles?: string[];
+  deletedListings: number;
+  deletedRetreats: number;
+  authDeleted: boolean;
+  deletedAt: string;
+};
+
+export async function permanentDeleteHealer(id: string) {
+  const { data } = await api.delete<{ success: boolean; data: PermanentDeleteResult }>(`/api/users/healers/${id}/permanent`);
+  return data.data;
+}
+
+export async function permanentDeleteSeeker(id: string) {
+  const { data } = await api.delete<{ success: boolean; data: PermanentDeleteResult }>(`/api/users/seekers/${id}/permanent`);
   return data.data;
 }

@@ -27,7 +27,7 @@ export function Seekers() {
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState<string | null>(null)
     const [search, setSearch] = useState("")
-    const [statusFilter, setStatusFilter] = useState<"" | "Active" | "Suspended" | "Pending">("")
+    const [statusFilter, setStatusFilter] = useState<"" | "Active" | "Suspended" | "Pending" | "Deleted">("")
     
     // Date Range Filters
     const [dateRange, setDateRange] = useState("Custom Range")
@@ -106,6 +106,9 @@ export function Seekers() {
                 }
                 if (status === "Suspended") {
                     return <Badge className={`${baseClass} bg-red-50 text-red-700 border-red-200 dark:bg-red-900/20 dark:text-red-400 dark:border-red-800`}>Suspended</Badge>
+                }
+                if (status === "Deleted") {
+                    return <Badge className={`${baseClass} bg-zinc-100 text-zinc-700 border-zinc-300 dark:bg-zinc-800 dark:text-zinc-300 dark:border-zinc-700`}>Deleted</Badge>
                 }
                 if (status === "Pending") {
                     return <Badge className={`${baseClass} bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-900/20 dark:text-amber-400 dark:border-amber-800`}>Pending</Badge>
@@ -219,6 +222,7 @@ export function Seekers() {
                         <option value="Active">Active</option>
                         <option value="Suspended">Suspended</option>
                         <option value="Pending">Pending</option>
+                        <option value="Deleted">Deleted</option>
                     </select>
 
                     <Button type="button" variant="ghost" onClick={clearFilters} disabled={!canClear}>

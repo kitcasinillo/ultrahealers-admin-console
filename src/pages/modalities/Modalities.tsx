@@ -42,7 +42,7 @@ export default function Modalities() {
   const [formData, setFormData] = useState({ name: "", icon: "" });
 
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 5;
+  const itemsPerPage = 10;
 
   const sensors = useSensors(
     useSensor(PointerSensor),

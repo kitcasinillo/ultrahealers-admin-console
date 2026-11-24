@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react"
 import { useParams, Link, useNavigate } from "react-router-dom"
-import { AlertTriangle, ArrowLeft, Calendar, Mail, MapPin, MoreVertical, RotateCcw, Trash2, User } from "lucide-react"
+import { AlertTriangle, ArrowLeft, Calendar, Mail, MapPin, MoreVertical, RotateCcw, ShieldCheck, ShieldOff, Trash2, User } from "lucide-react"
 import { Button } from "../../components/ui/button"
 import { Badge } from "../../components/ui/badge"
 import {
@@ -18,6 +18,7 @@ import {
     type AdminSeekerDetail,
     updateSeekerSoftDelete,
     updateSeekerSuspension,
+    updateSeekerVerification,
 } from "../../lib/users"
 import { logAdminAction } from "../../lib/audit"
 import { useAdminAuth } from "../../contexts/AdminAuthContext"
@@ -45,6 +46,8 @@ export function SeekerDetail() {
     const [suspendReason, setSuspendReason] = useState("")
     const [deleteModalOpen, setDeleteModalOpen] = useState(false)
     const [deleteReason, setDeleteReason] = useState("")
+    const [verifyModalOpen, setVerifyModalOpen] = useState(false)
+    const [verifyReason, setVerifyReason] = useState("")
     const [permanentDeleteModalOpen, setPermanentDeleteModalOpen] = useState(false)
     const [permanentConfirmText, setPermanentConfirmText] = useState("")
     const { showToast } = useToast()
@@ -157,6 +160,45 @@ export function SeekerDetail() {
         }
     }
 
+    const handleVerificationConfirm = async () => {
+        if (!id || !data) return
+
+        const currentVerified = Boolean(data.verified)
+        const nextVerified = !currentVerified
+        const reason = verifyReason.trim() || undefined
+
+        try {
+            setSaving(true)
+            const result = await updateSeekerVerification(id, nextVerified, reason)
+
+            setData((prev) => prev ? { ...prev, verified: result.verified } : prev)
+            showToast(nextVerified ? "Seeker account verified." : "Seeker account marked as unverified.", "success")
+            setVerifyModalOpen(false)
+            setVerifyReason("")
+
+            if (admin) {
+                logAdminAction({
+                    adminId: admin.uid,
+                    adminEmail: admin.email || "unknown",
+                    action: nextVerified ? "VERIFY_SEEKER" : "UNVERIFY_SEEKER",
+                    module: "Seekers",
+                    targetId: id,
+                    targetName: data.name || "Unknown Seeker",
+                    reason,
+                    changes: {
+                        previousVerified: currentVerified,
+                        newVerified: result.verified,
+                    },
+                }).catch((logErr) => console.error("Seeker audit log failed:", logErr))
+            }
+        } catch (err: any) {
+            console.error("Failed to update seeker verification:", err)
+            showToast(err?.response?.data?.error || err?.message || "Failed to update verification status", "error")
+        } finally {
+            setSaving(false)
+        }
+    }
+
     const handlePermanentDeleteConfirm = async () => {
         if (!id || !data || permanentConfirmText.trim() !== "DELETE") return
 
@@ -217,6 +259,27 @@ export function SeekerDetail() {
                         disabled={!data?.email}
                     >
                         Message
+                    </Button>
+                    <Button
+                        variant="outline"
+                        type="button"
+                        onClick={() => {
+                            setVerifyReason("")
+                            setVerifyModalOpen(true)
+                        }}
+                        disabled={loading || saving || !data || data?.status === "Deleted"}
+                    >
+                        {data?.verified ? (
+                            <>
+                                <ShieldOff className="h-4 w-4 mr-1.5" />
+                                Unverify
+                            </>
+                        ) : (
+                            <>
+                                <ShieldCheck className="h-4 w-4 mr-1.5" />
+                                Verify
+                            </>
+                        )}
                     </Button>
                     <Button
                         variant={data?.status === "Suspended" ? "outline" : "destructive"}
@@ -296,6 +359,13 @@ export function SeekerDetail() {
                                     : "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-900/20 dark:text-amber-400 dark:border-amber-800"
                                 }`}>
                                     {data.status}
+                                </Badge>
+                                <Badge className={`font-bold uppercase text-[10px] px-2 py-0.5 rounded-full border ${
+                                    data.verified
+                                        ? "bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-900/20 dark:text-blue-400 dark:border-blue-800"
+                                        : "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-900/20 dark:text-amber-400 dark:border-amber-800"
+                                }`}>
+                                    {data.verified ? "Verified" : "Unverified"}
                                 </Badge>
                             </div>
 
@@ -522,6 +592,53 @@ export function SeekerDetail() {
                             className="rounded-xl font-bold"
                         >
                             {saving ? "Deleting..." : "Delete Permanently"}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            <Dialog open={verifyModalOpen} onOpenChange={(open) => !saving && setVerifyModalOpen(open)}>
+                <DialogContent className="sm:max-w-[440px] rounded-[24px]">
+                    <DialogHeader>
+                        <DialogTitle className="text-xl font-bold">
+                            {data?.verified ? "Unverify Seeker Account" : "Verify Seeker Account"}
+                        </DialogTitle>
+                        <DialogDescription className="text-[#A3AED0]">
+                            {data?.verified
+                                ? `Mark ${data?.name || "this seeker"} as unverified? Their verification status will be revoked.`
+                                : `Manually verify ${data?.name || "this seeker"}? Their account will be marked as verified.`}
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-2 py-2">
+                        <label htmlFor="seeker-verify-reason" className="text-sm font-medium block">
+                            Reason (optional)
+                        </label>
+                        <input
+                            id="seeker-verify-reason"
+                            type="text"
+                            value={verifyReason}
+                            onChange={(e) => setVerifyReason(e.target.value)}
+                            placeholder={data?.verified ? "e.g. Account under review" : "e.g. Manual verification confirmed"}
+                            disabled={saving}
+                            className="h-10 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm outline-none transition focus:border-blue-500 dark:border-white/10 dark:bg-white/5 dark:text-white"
+                        />
+                    </div>
+                    <DialogFooter className="gap-2 sm:gap-0">
+                        <Button
+                            variant="ghost"
+                            onClick={() => setVerifyModalOpen(false)}
+                            disabled={saving}
+                            className="rounded-xl font-bold"
+                        >
+                            Cancel
+                        </Button>
+                        <Button
+                            variant={data?.verified ? "destructive" : "default"}
+                            onClick={handleVerificationConfirm}
+                            disabled={saving}
+                            className="rounded-xl font-bold"
+                        >
+                            {saving ? "Saving..." : data?.verified ? "Unverify Account" : "Verify Account"}
                         </Button>
                     </DialogFooter>
                 </DialogContent>

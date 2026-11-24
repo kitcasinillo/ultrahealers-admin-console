@@ -6,6 +6,7 @@ export type AdminHealer = {
   email: string;
   subscription: 'Free' | 'Premium';
   status: 'Active' | 'Suspended' | 'Pending' | 'Deleted';
+  verified?: boolean;
   totalEarned: number;
   joinedDate: string | null;
   avatarUrl?: string;
@@ -19,6 +20,7 @@ export type AdminSeeker = {
   name: string;
   email: string;
   status: 'Active' | 'Suspended' | 'Pending' | 'Deleted';
+  verified?: boolean;
   totalSpent: number;
   joinedDate: string | null;
   avatarUrl?: string;
@@ -145,6 +147,32 @@ export async function updateHealerSoftDelete(id: string, deleted: boolean, reaso
 export async function updateSeekerSoftDelete(id: string, deleted: boolean, reason?: string) {
   const { data } = await api.patch<{ success: boolean; data: { status: string; deleted: boolean; updatedAt: string; reason?: string | null } }>(`/api/users/seekers/${id}/soft-delete`, {
     deleted,
+    reason: reason || null,
+  });
+  return data.data;
+}
+
+export type VerificationUpdateResult = {
+  id: string;
+  role: 'healer' | 'seeker';
+  verified: boolean;
+  verificationStatus: 'verified' | 'unverified';
+  reason?: string | null;
+  authSynced: boolean;
+  updatedAt: string;
+};
+
+export async function updateHealerVerification(id: string, verified: boolean, reason?: string) {
+  const { data } = await api.patch<{ success: boolean; data: VerificationUpdateResult }>(`/api/users/healers/${id}/verification`, {
+    verified,
+    reason: reason || null,
+  });
+  return data.data;
+}
+
+export async function updateSeekerVerification(id: string, verified: boolean, reason?: string) {
+  const { data } = await api.patch<{ success: boolean; data: VerificationUpdateResult }>(`/api/users/seekers/${id}/verification`, {
+    verified,
     reason: reason || null,
   });
   return data.data;

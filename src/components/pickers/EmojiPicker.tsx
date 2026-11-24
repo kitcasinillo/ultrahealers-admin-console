@@ -15,7 +15,7 @@ export function EmojiPicker({ value, onChange, className }: EmojiPickerProps) {
   const [open, setOpen] = useState(false);
 
   return (
-    <Popover open={open} onOpenChange={setOpen}>
+    <Popover modal={true} open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
         <Button
           type="button"
@@ -39,7 +39,7 @@ export function EmojiPicker({ value, onChange, className }: EmojiPickerProps) {
         align="start"
         onWheel={(e) => e.stopPropagation()}
         onTouchMove={(e) => e.stopPropagation()}
-        className="p-0 w-[min(360px,calc(100vw-48px))] rounded-2xl border border-gray-100 dark:border-white/10 shadow-2xl bg-white dark:bg-[#111C44] outline-none overflow-hidden"
+        className="pointer-events-auto p-0 w-[min(360px,calc(100vw-48px))] rounded-2xl border border-gray-100 dark:border-white/10 shadow-2xl bg-white dark:bg-[#111C44] outline-none overflow-hidden"
       >
         <FrimousseEmojiPicker.Root
           columns={8}

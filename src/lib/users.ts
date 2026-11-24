@@ -42,12 +42,41 @@ export type AdminBookingSummary = {
   seekerName: string | null;
 };
 
+export type HealerCredential = {
+  type?: string;
+  title?: string;
+  name?: string;
+  organization?: string;
+  issuer?: string;
+  credentialId?: string;
+  licenseNumber?: string;
+  location?: string;
+  startDate?: string;
+  endDate?: string;
+  noExpiration?: boolean;
+  file?: string | null;
+  url?: string | null;
+  documentUrl?: string | null;
+  fileName?: string | null;
+};
+
+export type HealerExperience = {
+  yearsOfExperience?: string | number;
+  recentWorkshops?: string;
+  cpdHours?: string | number;
+  [key: string]: unknown;
+};
+
 export type AdminHealerDetail = AdminHealer & {
   role: 'healer';
   pendingPayout: number;
   bio: string;
   modalities: string[];
   languages: string[];
+  credentials?: HealerCredential[];
+  licenses?: HealerCredential[];
+  education?: Array<Record<string, unknown>>;
+  experience?: HealerExperience | Array<Record<string, unknown>> | null;
   stripeAccountId: string;
   stripeStatus: string;
   recentBookings: AdminBookingSummary[];

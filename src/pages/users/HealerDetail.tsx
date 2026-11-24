@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react"
 import { useParams, Link, useNavigate } from "react-router-dom"
-import { AlertTriangle, ArrowLeft, Calendar, Mail, MapPin, MoreVertical, RotateCcw, ShieldCheck, ShieldOff, Trash2, User } from "lucide-react"
+import { AlertTriangle, ArrowLeft, Award, Briefcase, Calendar, ExternalLink, FileText, GraduationCap, Mail, MapPin, MoreVertical, RotateCcw, ShieldCheck, ShieldOff, Trash2, User } from "lucide-react"
 import { Button } from "../../components/ui/button"
 import { Badge } from "../../components/ui/badge"
 import {
@@ -55,9 +55,13 @@ export function HealerDetail() {
     const { showToast } = useToast()
     const [currentPage, setCurrentPage] = useState(1)
     const ITEMS_PER_PAGE = 5
+    const [credentialsPage, setCredentialsPage] = useState(1)
+    const CREDENTIALS_PER_PAGE = 3
 
     useEffect(() => {
         if (!id) return
+        setCredentialsPage(1)
+        setCurrentPage(1)
         let mounted = true
 
         const load = async () => {
@@ -254,14 +258,24 @@ export function HealerDetail() {
                     <p className="text-muted-foreground text-sm">ID: {id}</p>
                 </div>
                 <div className="flex items-center gap-2">
-                    <Button
-                        variant="outline"
-                        type="button"
-                        onClick={() => data?.email && (window.location.href = `mailto:${data.email}`)}
-                        disabled={!data?.email}
-                    >
-                        Message
-                    </Button>
+                    <div className="relative group inline-flex">
+                        <Button
+                            variant="outline"
+                            type="button"
+                            onClick={() => showToast("Messaging feature will be available soon.", "info")}
+                            title="Messaging feature will be available soon."
+                            className="opacity-75"
+                        >
+                            <Mail className="h-4 w-4 mr-1.5" />
+                            Message
+                        </Button>
+                        <div
+                            role="tooltip"
+                            className="pointer-events-none absolute top-full left-1/2 -translate-x-1/2 mt-2 z-50 whitespace-nowrap rounded-lg bg-slate-900 px-2.5 py-1.5 text-xs font-medium text-white shadow-lg opacity-0 transition-opacity duration-150 group-hover:opacity-100 group-focus-within:opacity-100 dark:bg-slate-800 dark:border dark:border-white/10"
+                        >
+                            Messaging feature will be available soon.
+                        </div>
+                    </div>
                     <Button
                         variant="outline"
                         type="button"
@@ -407,6 +421,237 @@ export function HealerDetail() {
                                     <span className="font-medium capitalize">{data.stripeStatus || "not_connected"}</span>
                                 </div>
                             </div>
+                        </div>
+
+                        {/* Credentials & Submitted Documents */}
+                        <div className="border border-border/50 bg-card/60 backdrop-blur-sm shadow-sm rounded-xl p-6">
+                            <div className="flex items-center justify-between gap-2 mb-4">
+                                <h3 className="font-semibold flex items-center gap-2">
+                                    <Award className="h-4 w-4 text-blue-600 dark:text-blue-400 shrink-0" />
+                                    Credentials & Documents
+                                </h3>
+                                <Badge variant="secondary" className="text-[11px] shrink-0">
+                                    {(data.credentials?.length || 0) + (data.licenses?.length || 0)}
+                                </Badge>
+                            </div>
+
+                            {(() => {
+                                const allCredentials = [
+                                    ...(data.credentials || []),
+                                    ...(data.licenses || []).map((lic) => ({
+                                        ...lic,
+                                        type: lic.type || "License",
+                                        title: lic.title || lic.name,
+                                        organization: lic.organization || lic.issuer,
+                                        credentialId: lic.credentialId || lic.licenseNumber,
+                                    })),
+                                ]
+
+                                if (allCredentials.length === 0) {
+                                    return (
+                                        <div className="py-5 text-center bg-gray-50/30 dark:bg-white/[0.02] rounded-xl border border-dashed border-gray-200 dark:border-white/10">
+                                            <p className="text-xs font-medium text-[#A3AED0]">No credentials or documents submitted yet.</p>
+                                        </div>
+                                    )
+                                }
+
+                                const paginatedCredentials = allCredentials.slice(
+                                    (credentialsPage - 1) * CREDENTIALS_PER_PAGE,
+                                    credentialsPage * CREDENTIALS_PER_PAGE
+                                )
+
+                                return (
+                                    <div className="space-y-3">
+                                        {paginatedCredentials.map((cred, index) => {
+                                            const docUrl = typeof cred.file === "string" && cred.file.trim()
+                                                ? cred.file.trim()
+                                                : typeof cred.url === "string" && cred.url.trim()
+                                                ? cred.url.trim()
+                                                : typeof cred.documentUrl === "string" && cred.documentUrl.trim()
+                                                ? cred.documentUrl.trim()
+                                                : null
+                                            const isImageDoc = Boolean(docUrl && /\.(png|jpe?g|webp|gif)(\?|$)/i.test(docUrl))
+                                            const dateRange = [
+                                                cred.startDate,
+                                                cred.noExpiration ? "No Expiration" : cred.endDate,
+                                            ].filter(Boolean).join(" — ")
+
+                                            return (
+                                                <div
+                                                    key={`${cred.title || cred.type || "cred"}-${credentialsPage}-${index}`}
+                                                    className="rounded-xl border border-border/60 bg-background/60 p-3.5 space-y-2"
+                                                >
+                                                    <div className="flex items-start justify-between gap-2">
+                                                        <p className="text-sm font-bold text-foreground leading-snug">
+                                                            {cred.title || "Untitled Credential"}
+                                                        </p>
+                                                        {cred.type && (
+                                                            <Badge variant="outline" className="text-[10px] uppercase shrink-0">
+                                                                {cred.type}
+                                                            </Badge>
+                                                        )}
+                                                    </div>
+
+                                                    {cred.organization && (
+                                                        <p className="text-xs text-muted-foreground">
+                                                            {cred.organization}
+                                                            {cred.location ? ` • ${cred.location}` : ""}
+                                                        </p>
+                                                    )}
+
+                                                    {dateRange && (
+                                                        <p className="text-[11px] text-muted-foreground">
+                                                            {dateRange}
+                                                        </p>
+                                                    )}
+
+                                                    {cred.credentialId && (
+                                                        <p className="text-[11px] text-muted-foreground break-all">
+                                                            ID: <span className="font-mono text-foreground">{cred.credentialId}</span>
+                                                        </p>
+                                                    )}
+
+                                                    {docUrl ? (
+                                                        <div className="pt-1 flex items-center justify-between gap-2 rounded-lg bg-muted/50 px-2.5 py-2 border border-border/50">
+                                                            <div className="flex items-center gap-2 min-w-0">
+                                                                {isImageDoc ? (
+                                                                    <img
+                                                                        src={docUrl}
+                                                                        alt={cred.fileName || cred.title || "Credential document"}
+                                                                        className="h-8 w-8 rounded object-cover border border-border shrink-0"
+                                                                    />
+                                                                ) : (
+                                                                    <FileText className="h-4 w-4 text-blue-600 dark:text-blue-400 shrink-0" />
+                                                                )}
+                                                                <span className="text-xs font-medium truncate">
+                                                                    {cred.fileName || "Document"}
+                                                                </span>
+                                                            </div>
+                                                            <a
+                                                                href={docUrl}
+                                                                target="_blank"
+                                                                rel="noopener noreferrer"
+                                                                className="inline-flex items-center gap-1 text-xs font-semibold text-blue-600 hover:text-blue-700 dark:text-blue-400 whitespace-nowrap shrink-0"
+                                                            >
+                                                                View
+                                                                <ExternalLink className="h-3 w-3" />
+                                                            </a>
+                                                        </div>
+                                                    ) : (
+                                                        <p className="text-[11px] italic text-muted-foreground">No document attached.</p>
+                                                    )}
+                                                </div>
+                                            )
+                                        })}
+
+                                        {allCredentials.length > CREDENTIALS_PER_PAGE && (
+                                            <div className="pt-2 border-t border-border/50">
+                                                <Pagination
+                                                    currentPage={credentialsPage}
+                                                    totalItems={allCredentials.length}
+                                                    itemsPerPage={CREDENTIALS_PER_PAGE}
+                                                    onPageChange={setCredentialsPage}
+                                                />
+                                            </div>
+                                        )}
+                                    </div>
+                                )
+                            })()}
+                        </div>
+
+                        {/* Experience & Education */}
+                        <div className="border border-border/50 bg-card/60 backdrop-blur-sm shadow-sm rounded-xl p-6">
+                            <h3 className="font-semibold mb-4 flex items-center gap-2">
+                                <Briefcase className="h-4 w-4 text-indigo-600 dark:text-indigo-400 shrink-0" />
+                                Experience & Training
+                            </h3>
+
+                            {(() => {
+                                const exp = data.experience
+                                const educationList = Array.isArray(data.education) ? data.education : []
+                                const isExpArray = Array.isArray(exp)
+                                const expObj = !isExpArray && exp && typeof exp === "object" ? exp : null
+                                const hasExpObjValues = Boolean(
+                                    expObj && (
+                                        String(expObj.yearsOfExperience || "").trim() ||
+                                        String(expObj.cpdHours || "").trim() ||
+                                        String(expObj.recentWorkshops || "").trim()
+                                    )
+                                )
+                                const hasAny = hasExpObjValues || (isExpArray && exp.length > 0) || educationList.length > 0
+
+                                if (!hasAny) {
+                                    return (
+                                        <div className="py-5 text-center bg-gray-50/30 dark:bg-white/[0.02] rounded-xl border border-dashed border-gray-200 dark:border-white/10">
+                                            <p className="text-xs font-medium text-[#A3AED0]">No experience or training entries recorded.</p>
+                                        </div>
+                                    )
+                                }
+
+                                return (
+                                    <div className="space-y-3">
+                                        {hasExpObjValues && expObj && (
+                                            <div className="space-y-3">
+                                                <div className="flex justify-between text-sm">
+                                                    <span className="text-muted-foreground">Years of Experience</span>
+                                                    <span className="font-medium">{String(expObj.yearsOfExperience || "").trim() || "—"}</span>
+                                                </div>
+                                                <div className="flex justify-between text-sm">
+                                                    <span className="text-muted-foreground">CPD / Training Hours</span>
+                                                    <span className="font-medium">{String(expObj.cpdHours || "").trim() || "—"}</span>
+                                                </div>
+                                                {String(expObj.recentWorkshops || "").trim() && (
+                                                    <div className="pt-2 border-t border-border/50">
+                                                        <p className="text-xs uppercase tracking-wider text-muted-foreground font-semibold mb-1">Recent Workshops</p>
+                                                        <p className="text-xs text-foreground whitespace-pre-wrap leading-relaxed">
+                                                            {String(expObj.recentWorkshops)}
+                                                        </p>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        )}
+
+                                        {isExpArray && exp.length > 0 && (
+                                            <div className="space-y-2">
+                                                {exp.map((entry, idx) => (
+                                                    <div key={idx} className="rounded-xl border border-border/60 bg-background/60 p-3">
+                                                        <p className="text-sm font-bold">{String(entry.title || entry.role || "Experience Entry")}</p>
+                                                        {Boolean(entry.organization || entry.company) && (
+                                                            <p className="text-xs text-muted-foreground mt-0.5">
+                                                                {String(entry.organization || entry.company)}
+                                                            </p>
+                                                        )}
+                                                        {Boolean(entry.description) && (
+                                                            <p className="text-xs text-muted-foreground mt-1 whitespace-pre-wrap">
+                                                                {String(entry.description)}
+                                                            </p>
+                                                        )}
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        )}
+
+                                        {educationList.length > 0 && (
+                                            <div className="pt-2 border-t border-border/50 space-y-2">
+                                                <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+                                                    <GraduationCap className="h-3.5 w-3.5" /> Education
+                                                </p>
+                                                {educationList.map((edu, idx) => (
+                                                    <div key={idx} className="rounded-xl border border-border/60 bg-background/60 p-3">
+                                                        <p className="text-xs font-semibold">{String(edu.degree || edu.title || "Education")}</p>
+                                                        {Boolean(edu.institution || edu.school) && (
+                                                            <p className="text-[11px] text-muted-foreground">{String(edu.institution || edu.school)}</p>
+                                                        )}
+                                                        {Boolean(edu.year || edu.endDate) && (
+                                                            <p className="text-[11px] text-muted-foreground mt-0.5">{String(edu.year || edu.endDate)}</p>
+                                                        )}
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        )}
+                                    </div>
+                                )
+                            })()}
                         </div>
                     </div>
 

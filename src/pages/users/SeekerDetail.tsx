@@ -252,14 +252,24 @@ export function SeekerDetail() {
                     <p className="text-muted-foreground text-sm">ID: {id}</p>
                 </div>
                 <div className="flex items-center gap-2">
-                    <Button
-                        variant="outline"
-                        type="button"
-                        onClick={() => data?.email && (window.location.href = `mailto:${data.email}`)}
-                        disabled={!data?.email}
-                    >
-                        Message
-                    </Button>
+                    <div className="relative group inline-flex">
+                        <Button
+                            variant="outline"
+                            type="button"
+                            onClick={() => showToast("Messaging feature will be available soon.", "info")}
+                            title="Messaging feature will be available soon."
+                            className="opacity-75"
+                        >
+                            <Mail className="h-4 w-4 mr-1.5" />
+                            Message
+                        </Button>
+                        <div
+                            role="tooltip"
+                            className="pointer-events-none absolute top-full left-1/2 -translate-x-1/2 mt-2 z-50 whitespace-nowrap rounded-lg bg-slate-900 px-2.5 py-1.5 text-xs font-medium text-white shadow-lg opacity-0 transition-opacity duration-150 group-hover:opacity-100 group-focus-within:opacity-100 dark:bg-slate-800 dark:border dark:border-white/10"
+                        >
+                            Messaging feature will be available soon.
+                        </div>
+                    </div>
                     <Button
                         variant="outline"
                         type="button"

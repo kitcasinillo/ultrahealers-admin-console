@@ -11,13 +11,17 @@ export type DisputeStatus =
   'open' | 'in_review' | 'resolved_refunded' |
   'resolved_partial_refund' | 'resolved_credit' | 'denied';
 
+export type DisputeAccountStatus = 'active' | 'suspended' | 'deleted';
+
 export interface Dispute {
   id: string;
   bookingId: string;
   seekerId: string;
   seekerName: string;
+  seekerAccountStatus?: DisputeAccountStatus;
   healerId: string;
   healerName: string;
+  healerAccountStatus?: DisputeAccountStatus;
   type: DisputeType;
   severity: DisputeSeverity;
   status: DisputeStatus;
@@ -28,6 +32,20 @@ export interface Dispute {
   isOverdue: boolean;        // computed or returned by API
   description?: string;
 }
+
+export const formatDisputePartyLabel = (
+  name?: string | null,
+  accountStatus?: DisputeAccountStatus
+): string => {
+  const cleanName = typeof name === 'string' ? name.trim() : '';
+  if (accountStatus === 'deleted') {
+    return cleanName ? `${cleanName} (Deleted Account)` : 'Deleted Account';
+  }
+  if (accountStatus === 'suspended') {
+    return cleanName ? `${cleanName} (Suspended)` : 'Suspended Account';
+  }
+  return cleanName || 'Unknown User';
+};
 
 export interface Evidence {
   id: string;
@@ -131,6 +149,8 @@ export const getDisputes = async (filters: GetDisputesFilters): Promise<GetDispu
       const severity = (item.severity as DisputeSeverity) || (type === 'safety' ? 'safety' : 'normal');
       const seekerName = typeof item.seekerName === 'string' ? item.seekerName : '';
       const healerName = typeof item.healerName === 'string' ? item.healerName : '';
+      const seekerAccountStatus = (item.seekerAccountStatus as DisputeAccountStatus) || 'active';
+      const healerAccountStatus = (item.healerAccountStatus as DisputeAccountStatus) || 'active';
       const isOverdue = (status === 'open' || status === 'in_review') && new Date(responseDueAt).getTime() < Date.now();
 
       return {
@@ -138,8 +158,10 @@ export const getDisputes = async (filters: GetDisputesFilters): Promise<GetDispu
         bookingId: String(item.bookingId || ''),
         seekerId: String(item.seekerId || ''),
         seekerName,
+        seekerAccountStatus,
         healerId: String(item.healerId || ''),
         healerName,
+        healerAccountStatus,
         type,
         severity,
         status,
@@ -225,6 +247,10 @@ export const sendDisputeEmail = async (id: string): Promise<void> => {
   await api.post(`/api/disputes/${id}/notify-email`);
 };
 
+export const deleteDispute = async (id: string): Promise<void> => {
+  await api.delete(`/api/disputes/${id}`);
+};
+
 const typeLabels: Record<string, string> = {
   no_show: "No Show",
   quality: "Quality",
@@ -270,8 +296,8 @@ export const exportDisputes = async (filters: GetDisputesFilters): Promise<Blob>
       typeLabels[d.type] || d.type,
       d.severity === 'safety' ? 'Safety' : 'Normal',
       d.bookingId,
-      `"${d.seekerName || ''}"`,
-      `"${d.healerName || ''}"`,
+      `"${formatDisputePartyLabel(d.seekerName, d.seekerAccountStatus)}"`,
+      `"${formatDisputePartyLabel(d.healerName, d.healerAccountStatus)}"`,
       `"${formattedAmount}"`,
       statusLabels[d.status] || d.status,
       `"${formatDate(d.submittedAt)}"`,
@@ -320,9 +346,11 @@ export const getDisputeById = async (id: string): Promise<DisputeDetail> => {
     id,
     bookingId: String(d.bookingId || ''),
     seekerId: String(d.seekerId || ''),
-    seekerName: String(d.seekerName || d.seekerId || 'Unknown seeker'),
+    seekerName: typeof d.seekerName === 'string' ? d.seekerName : '',
+    seekerAccountStatus: (d.seekerAccountStatus as DisputeAccountStatus) || 'active',
     healerId: String(d.healerId || ''),
-    healerName: String(d.healerName || d.healerId || 'Unknown healer'),
+    healerName: typeof d.healerName === 'string' ? d.healerName : '',
+    healerAccountStatus: (d.healerAccountStatus as DisputeAccountStatus) || 'active',
     type,
     severity,
     status,

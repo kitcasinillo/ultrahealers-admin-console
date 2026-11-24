@@ -1,11 +1,11 @@
 import type { ColumnDef } from "@tanstack/react-table"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import type { Dispute, DisputeStatus } from "@/lib/disputes"
+import type { Dispute, DisputeAccountStatus, DisputeStatus } from "@/lib/disputes"
 import { StatusBadge } from "@/components/StatusBadge"
 import { format, isPast, isToday } from "date-fns"
 import { Link } from "react-router-dom"
-import { Copy, Eye, AlertTriangle, Search, Mail, MoreHorizontal } from "lucide-react"
+import { Copy, Eye, AlertTriangle, Search, Mail, MoreHorizontal, Trash2 } from "lucide-react"
 import { 
   DropdownMenu, 
   DropdownMenuContent, 
@@ -54,8 +54,47 @@ export interface DisputesColumnsActions {
   onMarkInReview: (id: string) => void;
   onEscalate: (id: string) => void;
   onSendEmail: (id: string) => void;
+  onDelete: (id: string) => void;
   onCopyPath?: (msg: string) => void;
 }
+
+const renderPartyCell = (
+  name: string,
+  userId: string,
+  rolePath: "seekers" | "healers",
+  accountStatus?: DisputeAccountStatus
+) => {
+  const cleanName = (name || "").trim();
+  const isDeleted = accountStatus === "deleted";
+  const isSuspended = accountStatus === "suspended";
+
+  if (isDeleted) {
+    return (
+      <div className="flex items-center flex-wrap gap-1.5 font-bold text-[#1b254b] dark:text-white">
+        {cleanName && <span>{cleanName}</span>}
+        <span className="text-red-600 dark:text-red-400 font-semibold text-xs whitespace-nowrap">
+          {cleanName ? "(Deleted Account)" : "Deleted Account"}
+        </span>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex items-center flex-wrap gap-1.5">
+      <Link
+        to={`/users/${rolePath}/${userId}`}
+        className="text-[#1b254b] dark:text-white hover:underline font-bold"
+      >
+        {cleanName || "Unknown User"}
+      </Link>
+      {isSuspended && (
+        <span className="text-amber-600 dark:text-amber-400 font-semibold text-xs whitespace-nowrap">
+          (Suspended)
+        </span>
+      )}
+    </div>
+  );
+};
 
 export const getColumns = (actions: DisputesColumnsActions): ColumnDef<Dispute>[] => [
   {
@@ -128,24 +167,24 @@ export const getColumns = (actions: DisputesColumnsActions): ColumnDef<Dispute>[
   {
     accessorKey: "seekerName",
     header: "Seeker",
-    cell: ({ row }) => {
-      return (
-        <Link to={`/users/seekers/${row.original.seekerId}`} className="text-[#1b254b] dark:text-white hover:underline font-bold">
-          {row.getValue("seekerName")}
-        </Link>
-      );
-    },
+    cell: ({ row }) =>
+      renderPartyCell(
+        row.original.seekerName,
+        row.original.seekerId,
+        "seekers",
+        row.original.seekerAccountStatus
+      ),
   },
   {
     accessorKey: "healerName",
     header: "Healer",
-    cell: ({ row }) => {
-      return (
-        <Link to={`/users/healers/${row.original.healerId}`} className="text-[#1b254b] dark:text-white hover:underline font-bold">
-          {row.getValue("healerName")}
-        </Link>
-      );
-    },
+    cell: ({ row }) =>
+      renderPartyCell(
+        row.original.healerName,
+        row.original.healerId,
+        "healers",
+        row.original.healerAccountStatus
+      ),
   },
   {
     accessorKey: "requestedAmount",
@@ -244,6 +283,13 @@ export const getColumns = (actions: DisputesColumnsActions): ColumnDef<Dispute>[
             )}
             <DropdownMenuItem onClick={() => actions.onSendEmail(id)} className="cursor-pointer">
               <Mail className="mr-2 h-4 w-4" /> Send Email Notification
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem
+              onClick={() => actions.onDelete(id)}
+              className="text-red-600 focus:bg-red-50 focus:text-red-700 cursor-pointer"
+            >
+              <Trash2 className="mr-2 h-4 w-4" /> Delete Dispute
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>

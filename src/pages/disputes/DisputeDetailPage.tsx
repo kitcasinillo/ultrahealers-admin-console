@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
 import { useToast } from "@/contexts/ToastContext";
 import { useParams, Link, useNavigate } from "react-router-dom";
-import { getDisputeById, escalateDispute, sendDisputeEmail, type DisputeDetail } from "@/lib/disputes";
-import { ArrowLeft, Loader2, CheckCircle2, ShieldAlert, Mail, ExternalLink } from "lucide-react";
+import { getDisputeById, escalateDispute, sendDisputeEmail, deleteDispute, type DisputeDetail } from "@/lib/disputes";
+import { ArrowLeft, Loader2, CheckCircle2, ShieldAlert, Mail, ExternalLink, Trash2 } from "lucide-react";
 import { ConfirmModal } from "@/components/ConfirmModal";
 import DisputeSummaryCard from "./components/DisputeSummaryCard";
 import DisputeTimeline from "./components/DisputeTimeline";
@@ -21,7 +21,9 @@ export default function DisputeDetailPage() {
   const [loading, setLoading] = useState(true);
   const [escalating, setEscalating] = useState(false);
   const [emailing, setEmailing] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [isEscalateModalOpen, setIsEscalateModalOpen] = useState(false);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
 
   useEffect(() => {
     if (!id) return;
@@ -62,6 +64,22 @@ export default function DisputeDetailPage() {
       showToast("Failed to send email.", "error");
     } finally {
       setEmailing(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!dispute) return;
+    setDeleting(true);
+    try {
+      await deleteDispute(dispute.id);
+      setIsDeleteModalOpen(false);
+      showToast("Dispute deleted successfully.");
+      navigate("/disputes");
+    } catch (err) {
+      console.error(err);
+      showToast("Failed to delete dispute.", "error");
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -136,6 +154,7 @@ export default function DisputeDetailPage() {
               party="seeker"
               name={dispute.seekerName}
               userId={dispute.seekerId}
+              accountStatus={dispute.seekerAccountStatus}
               entries={[
                 {
                   statement: dispute.seekerStatement,
@@ -150,6 +169,7 @@ export default function DisputeDetailPage() {
                 party="healer"
                 name={dispute.healerName}
                 userId={dispute.healerId}
+                accountStatus={dispute.healerAccountStatus}
                 entries={[
                   {
                     statement: dispute.healerStatement,
@@ -210,6 +230,17 @@ export default function DisputeDetailPage() {
                 </span>
                 <ExternalLink className="w-4.5 h-4.5 text-indigo-400" />
               </a>
+
+              <button
+                onClick={() => setIsDeleteModalOpen(true)}
+                disabled={deleting}
+                className="w-full flex items-center justify-between px-4.5 py-3.5 bg-white hover:bg-red-50 border-2 border-red-100 hover:border-red-300 text-red-600 rounded-xl transition-all font-bold text-[13.5px] group shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <span className="flex items-center gap-2.5">
+                  <Trash2 className="w-4.5 h-4.5 text-red-500 group-hover:scale-110 transition-transform" /> Delete Dispute
+                </span>
+                {deleting && <Loader2 className="w-4 h-4 animate-spin text-red-400" />}
+              </button>
             </div>
           </div>
         </div>
@@ -223,6 +254,17 @@ export default function DisputeDetailPage() {
         description="Are you sure you want to escalate this dispute to Safety severity? This will alert the Trust and Safety team immediately and flag all involved accounts."
         confirmText="Escalate"
         variant="destructive"
+      />
+
+      <ConfirmModal
+        isOpen={isDeleteModalOpen}
+        onClose={() => setIsDeleteModalOpen(false)}
+        onConfirm={handleDelete}
+        title="Delete Dispute"
+        description={`Are you sure you want to permanently delete dispute ${dispute.id}? This action cannot be undone.`}
+        confirmText="Delete Dispute"
+        variant="destructive"
+        isLoading={deleting}
       />
     </div>
   );

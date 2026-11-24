@@ -1,4 +1,4 @@
-import type { Evidence } from "@/lib/disputes";
+import type { DisputeAccountStatus, Evidence } from "@/lib/disputes";
 import { format } from "date-fns";
 import { Link } from "react-router-dom";
 import { FileText, Download, ChevronDown, ChevronUp } from "lucide-react";
@@ -15,11 +15,12 @@ interface StatementCardProps {
   party: 'seeker' | 'healer';
   name: string;
   userId: string;
+  accountStatus?: DisputeAccountStatus;
   entries: StatementEntry[];
 }
 
 export default function StatementCard({ 
-  party, name, userId, entries 
+  party, name, userId, accountStatus, entries 
 }: StatementCardProps) {
   const [lightboxImage, setLightboxImage] = useState<string | null>(null);
   const [isExpanded, setIsExpanded] = useState(false);
@@ -45,9 +46,27 @@ export default function StatementCard({
         <div className="mb-6 border-b border-slate-100 pb-4 flex justify-between items-end">
           <div>
             <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1.5">{roleLabel} Statement</h3>
-            <Link to={userPath} className="text-lg font-bold text-blue-600 hover:text-blue-800 hover:underline transition-colors">
-              {name}
-            </Link>
+            <div className="flex items-center flex-wrap gap-2">
+              {accountStatus === 'deleted' ? (
+                <span className="text-lg font-bold text-slate-700">
+                  {name?.trim() || 'Unknown User'}
+                </span>
+              ) : (
+                <Link to={userPath} className="text-lg font-bold text-blue-600 hover:text-blue-800 hover:underline transition-colors">
+                  {name?.trim() || 'Unknown User'}
+                </Link>
+              )}
+              {accountStatus === 'deleted' && (
+                <span className="text-xs font-semibold text-red-600 bg-red-50 border border-red-200 px-2 py-0.5 rounded-full">
+                  Deleted Account
+                </span>
+              )}
+              {accountStatus === 'suspended' && (
+                <span className="text-xs font-semibold text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full">
+                  Suspended
+                </span>
+              )}
+            </div>
           </div>
           
           {entries.length > 1 && (

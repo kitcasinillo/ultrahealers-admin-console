@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { signInWithEmailAndPassword } from "firebase/auth";
+import { signInWithEmailAndPassword, sendPasswordResetEmail } from "firebase/auth";
+import { Eye, EyeOff } from "lucide-react";
 import { auth, missingFirebaseConfigKeys } from "../lib/firebase";
 import { useNavigate, useLocation, Navigate } from "react-router-dom";
 import { useAdminAuth } from "../contexts/AdminAuthContext";
@@ -39,9 +40,12 @@ function UltraHealersLogo({ size = 48 }: { size?: number }) {
 }
 
 export function Login() {
+    const [mode, setMode] = useState<"login" | "forgot">("login");
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
+    const [showPassword, setShowPassword] = useState(false);
     const [error, setError] = useState("");
+    const [successMessage, setSuccessMessage] = useState("");
     const [isLoading, setIsLoading] = useState(false);
 
     const { user, loading } = useAdminAuth();
@@ -53,13 +57,21 @@ export function Login() {
         return <Navigate to={from} replace />;
     }
 
+    const switchMode = (nextMode: "login" | "forgot") => {
+        setMode(nextMode);
+        setShowPassword(false);
+        setError("");
+        setSuccessMessage("");
+    };
+
     const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault();
         setError("");
+        setSuccessMessage("");
         setIsLoading(true);
 
         try {
-            await signInWithEmailAndPassword(auth, email, password);
+            await signInWithEmailAndPassword(auth, email.trim(), password);
             const from = (location.state as any)?.from?.pathname || "/dashboard";
             navigate(from, { replace: true });
         } catch (err: any) {
@@ -69,6 +81,48 @@ export function Login() {
                 setError(`Firebase web config is invalid. Check admin-console .env values, especially ${missingFirebaseConfigKeys.map(([key]) => key).join(", ") || "VITE_FIREBASE_API_KEY"}. Then restart Vite.`);
             } else {
                 setError("Invalid email or password. Please try again.");
+            }
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    const handleForgotPassword = async (e: React.FormEvent) => {
+        e.preventDefault();
+        const trimmedEmail = email.trim();
+        if (!trimmedEmail) {
+            setError("Please enter your admin email address.");
+            return;
+        }
+
+        setError("");
+        setSuccessMessage("");
+        setIsLoading(true);
+
+        try {
+            await sendPasswordResetEmail(auth, trimmedEmail, {
+                url: `${window.location.origin}/login`,
+                handleCodeInApp: false,
+            });
+            setSuccessMessage(
+                `If an admin account exists for ${trimmedEmail}, a password reset link has been sent. Please check your inbox and spam folder.`
+            );
+        } catch (err: any) {
+            console.error("Password reset failed:", err);
+
+            if (err?.code === "auth/user-not-found") {
+                // Avoid exposing whether an account exists
+                setSuccessMessage(
+                    `If an admin account exists for ${trimmedEmail}, a password reset link has been sent. Please check your inbox and spam folder.`
+                );
+            } else if (err?.code === "auth/invalid-email") {
+                setError("Please enter a valid email address.");
+            } else if (err?.code === "auth/too-many-requests") {
+                setError("Too many reset requests. Please wait a few minutes and try again.");
+            } else if (err?.code === "auth/api-key-not-valid" || err?.message?.includes("api-key-not-valid")) {
+                setError(`Firebase web config is invalid. Check admin-console .env values, especially ${missingFirebaseConfigKeys.map(([key]) => key).join(", ") || "VITE_FIREBASE_API_KEY"}. Then restart Vite.`);
+            } else {
+                setError("Unable to send password reset email. Please try again.");
             }
         } finally {
             setIsLoading(false);
@@ -123,11 +177,11 @@ export function Login() {
                             UltraHealers
                         </h1>
                         <p style={{ fontSize: "14px", color: "rgba(255, 255, 255, 0.5)", margin: "0" }}>
-                            Secure Admin Control Panel
+                            {mode === "login" ? "Secure Admin Control Panel" : "Reset Your Admin Password"}
                         </p>
                     </div>
 
-                    {/* Error container */}
+                    {/* Status / Error container */}
                     <div style={{ minHeight: "44px", marginBottom: "8px" }}>
                         {error && (
                             <div style={{
@@ -143,94 +197,238 @@ export function Login() {
                                 {error}
                             </div>
                         )}
+                        {successMessage && (
+                            <div style={{
+                                padding: "12px",
+                                backgroundColor: "rgba(16, 185, 129, 0.12)",
+                                border: "1px solid rgba(16, 185, 129, 0.28)",
+                                color: "#6ee7b7",
+                                fontSize: "13px",
+                                lineHeight: "1.5",
+                                borderRadius: "12px",
+                                textAlign: "center",
+                                fontWeight: "500"
+                            }}>
+                                {successMessage}
+                            </div>
+                        )}
                     </div>
 
                     {/* Form */}
-                    <form onSubmit={handleLogin} style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
-                        <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-                            <label
-                                htmlFor="email"
-                                style={{ fontSize: "14px", fontWeight: "500", color: "rgba(255, 255, 255, 0.7)", marginLeft: "4px" }}
-                            >
-                                Email address
-                            </label>
-                            <input
-                                id="email"
-                                type="email"
-                                value={email}
-                                onChange={(e) => setEmail(e.target.value)}
-                                placeholder="name@ultrahealers.com"
-                                required
+                    {mode === "login" ? (
+                        <form onSubmit={handleLogin} style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
+                            <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                                <label
+                                    htmlFor="email"
+                                    style={{ fontSize: "14px", fontWeight: "500", color: "rgba(255, 255, 255, 0.7)", marginLeft: "4px" }}
+                                >
+                                    Email address
+                                </label>
+                                <input
+                                    id="email"
+                                    type="email"
+                                    value={email}
+                                    onChange={(e) => setEmail(e.target.value)}
+                                    placeholder="name@ultrahealers.com"
+                                    required
+                                    disabled={isLoading}
+                                    style={{
+                                        width: "100%",
+                                        height: "48px",
+                                        padding: "0 16px",
+                                        borderRadius: "12px",
+                                        border: "1px solid rgba(255, 255, 255, 0.1)",
+                                        backgroundColor: "rgba(255, 255, 255, 0.05)",
+                                        color: "#ffffff",
+                                        fontSize: "14px",
+                                        outline: "none",
+                                        boxSizing: "border-box"
+                                    }}
+                                />
+                            </div>
+
+                            <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 4px" }}>
+                                    <label
+                                        htmlFor="password"
+                                        style={{ fontSize: "14px", fontWeight: "500", color: "rgba(255, 255, 255, 0.7)" }}
+                                    >
+                                        Password
+                                    </label>
+                                    <button
+                                        type="button"
+                                        onClick={() => switchMode("forgot")}
+                                        disabled={isLoading}
+                                        style={{
+                                            background: "none",
+                                            border: "none",
+                                            padding: 0,
+                                            color: "#22d3ee",
+                                            fontSize: "13px",
+                                            fontWeight: "500",
+                                            cursor: isLoading ? "not-allowed" : "pointer"
+                                        }}
+                                    >
+                                        Forgot password?
+                                    </button>
+                                </div>
+                                <div style={{ position: "relative", width: "100%" }}>
+                                    <input
+                                        id="password"
+                                        type={showPassword ? "text" : "password"}
+                                        value={password}
+                                        onChange={(e) => setPassword(e.target.value)}
+                                        placeholder="••••••••"
+                                        required
+                                        disabled={isLoading}
+                                        style={{
+                                            width: "100%",
+                                            height: "48px",
+                                            padding: "0 44px 0 16px",
+                                            borderRadius: "12px",
+                                            border: "1px solid rgba(255, 255, 255, 0.1)",
+                                            backgroundColor: "rgba(255, 255, 255, 0.05)",
+                                            color: "#ffffff",
+                                            fontSize: "14px",
+                                            outline: "none",
+                                            boxSizing: "border-box"
+                                        }}
+                                    />
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowPassword((prev) => !prev)}
+                                        disabled={isLoading}
+                                        aria-label={showPassword ? "Hide password" : "Show password"}
+                                        title={showPassword ? "Hide password" : "Show password"}
+                                        style={{
+                                            position: "absolute",
+                                            right: "12px",
+                                            top: "50%",
+                                            transform: "translateY(-50%)",
+                                            background: "none",
+                                            border: "none",
+                                            padding: "4px",
+                                            display: "flex",
+                                            alignItems: "center",
+                                            justifyContent: "center",
+                                            color: "rgba(255, 255, 255, 0.6)",
+                                            cursor: isLoading ? "not-allowed" : "pointer"
+                                        }}
+                                    >
+                                        {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                                    </button>
+                                </div>
+                            </div>
+
+                            <button
+                                type="submit"
                                 disabled={isLoading}
                                 style={{
                                     width: "100%",
                                     height: "48px",
-                                    padding: "0 16px",
+                                    marginTop: "8px",
                                     borderRadius: "12px",
-                                    border: "1px solid rgba(255, 255, 255, 0.1)",
-                                    backgroundColor: "rgba(255, 255, 255, 0.05)",
+                                    border: "none",
                                     color: "#ffffff",
                                     fontSize: "14px",
-                                    outline: "none",
-                                    boxSizing: "border-box"
+                                    fontWeight: "700",
+                                    cursor: isLoading ? "not-allowed" : "pointer",
+                                    opacity: isLoading ? 0.6 : 1,
+                                    background: isLoading
+                                        ? "#4b5563"
+                                        : "linear-gradient(135deg, #01A3B4 0%, #7C3AED 100%)",
+                                    boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)",
+                                    transition: "all 0.3s ease"
                                 }}
-                            />
-                        </div>
-
-                        <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-                            <label
-                                htmlFor="password"
-                                style={{ fontSize: "14px", fontWeight: "500", color: "rgba(255, 255, 255, 0.7)", marginLeft: "4px" }}
                             >
-                                Password
-                            </label>
-                            <input
-                                id="password"
-                                type="password"
-                                value={password}
-                                onChange={(e) => setPassword(e.target.value)}
-                                placeholder="••••••••"
-                                required
+                                {isLoading ? "Authenticating..." : "Sign in to Dashboard"}
+                            </button>
+                        </form>
+                    ) : (
+                        <form onSubmit={handleForgotPassword} style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
+                            <p style={{
+                                fontSize: "13px",
+                                color: "rgba(255, 255, 255, 0.6)",
+                                lineHeight: "1.5",
+                                margin: 0,
+                                textAlign: "center"
+                            }}>
+                                Enter your admin email address and we&apos;ll send you a link to reset your password.
+                            </p>
+
+                            <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                                <label
+                                    htmlFor="reset-email"
+                                    style={{ fontSize: "14px", fontWeight: "500", color: "rgba(255, 255, 255, 0.7)", marginLeft: "4px" }}
+                                >
+                                    Admin email address
+                                </label>
+                                <input
+                                    id="reset-email"
+                                    type="email"
+                                    value={email}
+                                    onChange={(e) => setEmail(e.target.value)}
+                                    placeholder="name@ultrahealers.com"
+                                    required
+                                    disabled={isLoading}
+                                    style={{
+                                        width: "100%",
+                                        height: "48px",
+                                        padding: "0 16px",
+                                        borderRadius: "12px",
+                                        border: "1px solid rgba(255, 255, 255, 0.1)",
+                                        backgroundColor: "rgba(255, 255, 255, 0.05)",
+                                        color: "#ffffff",
+                                        fontSize: "14px",
+                                        outline: "none",
+                                        boxSizing: "border-box"
+                                    }}
+                                />
+                            </div>
+
+                            <button
+                                type="submit"
                                 disabled={isLoading}
                                 style={{
                                     width: "100%",
                                     height: "48px",
-                                    padding: "0 16px",
+                                    marginTop: "4px",
                                     borderRadius: "12px",
-                                    border: "1px solid rgba(255, 255, 255, 0.1)",
-                                    backgroundColor: "rgba(255, 255, 255, 0.05)",
+                                    border: "none",
                                     color: "#ffffff",
                                     fontSize: "14px",
-                                    outline: "none",
-                                    boxSizing: "border-box"
+                                    fontWeight: "700",
+                                    cursor: isLoading ? "not-allowed" : "pointer",
+                                    opacity: isLoading ? 0.6 : 1,
+                                    background: isLoading
+                                        ? "#4b5563"
+                                        : "linear-gradient(135deg, #01A3B4 0%, #7C3AED 100%)",
+                                    boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)",
+                                    transition: "all 0.3s ease"
                                 }}
-                            />
-                        </div>
+                            >
+                                {isLoading ? "Sending reset link..." : "Send Reset Link"}
+                            </button>
 
-                        <button
-                            type="submit"
-                            disabled={isLoading}
-                            style={{
-                                width: "100%",
-                                height: "48px",
-                                marginTop: "8px",
-                                borderRadius: "12px",
-                                border: "none",
-                                color: "#ffffff",
-                                fontSize: "14px",
-                                fontWeight: "700",
-                                cursor: isLoading ? "not-allowed" : "pointer",
-                                opacity: isLoading ? 0.6 : 1,
-                                background: isLoading
-                                    ? "#4b5563"
-                                    : "linear-gradient(135deg, #01A3B4 0%, #7C3AED 100%)",
-                                boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)",
-                                transition: "all 0.3s ease"
-                            }}
-                        >
-                            {isLoading ? "Authenticating..." : "Sign in to Dashboard"}
-                        </button>
-                    </form>
+                            <button
+                                type="button"
+                                onClick={() => switchMode("login")}
+                                disabled={isLoading}
+                                style={{
+                                    background: "none",
+                                    border: "none",
+                                    padding: "4px 0",
+                                    color: "rgba(255, 255, 255, 0.7)",
+                                    fontSize: "13px",
+                                    fontWeight: "500",
+                                    cursor: isLoading ? "not-allowed" : "pointer",
+                                    textAlign: "center"
+                                }}
+                            >
+                                ← Back to Sign In
+                            </button>
+                        </form>
+                    )}
                 </div>
 
                 {/* Footer */}

@@ -10,8 +10,10 @@ This module handles oversight of all customer bookings, session schedules, and d
 ## 🗂️ Core Files & Location
 - **Bookings Pages**: `src/pages/bookings/`
 - **Disputes Pages**:
-  - `src/pages/disputes/Disputes.tsx`
-  - `src/pages/disputes/DisputeDetail.tsx`
+  - `src/pages/disputes/DisputesPage.tsx`
+  - `src/pages/disputes/DisputeDetailPage.tsx`
+  - `src/pages/disputes/columns.tsx`
+  - `src/lib/disputes.ts`
 
 ---
 
@@ -30,9 +32,11 @@ This module handles oversight of all customer bookings, session schedules, and d
 ---
 
 ## 🔌 API Endpoints & Data Model
-- `GET /api/v1/admin/disputes` – List open and resolved dispute cases.
-- `GET /api/v1/admin/disputes/:id` – Detailed case file & messages.
-- `POST /api/v1/admin/disputes/:id/resolve` – Submit resolution decision (`full_refund`, `partial_refund`, `dismiss`).
+- `GET /api/disputes` – List open and resolved dispute cases.
+- `GET /api/disputes/:id` – Detailed case file & evidence.
+- `POST /api/disputes/:id/decision` – Submit resolution decision (`full_refund`, `partial_refund`, `credit`, `deny`).
+- `POST /api/disputes/:id/notify-email` – Trigger dispute email notification.
+- `DELETE /api/disputes/:id` – Permanently delete a dispute document (e.g., for removing test disputes).
 
 ---
 

@@ -2,6 +2,7 @@ import { useState } from "react";
 import { signInWithEmailAndPassword, sendPasswordResetEmail } from "firebase/auth";
 import { Eye, EyeOff } from "lucide-react";
 import { auth, missingFirebaseConfigKeys } from "../lib/firebase";
+import api from "../lib/api";
 import { useNavigate, useLocation, Navigate } from "react-router-dom";
 import { useAdminAuth } from "../contexts/AdminAuthContext";
 
@@ -90,6 +91,7 @@ export function Login() {
     const handleForgotPassword = async (e: React.FormEvent) => {
         e.preventDefault();
         const trimmedEmail = email.trim();
+        const normalizedEmail = trimmedEmail.toLowerCase();
         if (!trimmedEmail) {
             setError("Please enter your admin email address.");
             return;
@@ -99,22 +101,48 @@ export function Login() {
         setSuccessMessage("");
         setIsLoading(true);
 
+        const genericConfirmation = `If an admin account exists for ${trimmedEmail}, a password reset link has been sent. Please check your inbox and spam folder.`;
+
         try {
+            // 1. Check VITE_ADMIN_EMAILS allowlist first
+            const allowedEmails = String(import.meta.env.VITE_ADMIN_EMAILS || "")
+                .split(",")
+                .map((item) => item.trim().toLowerCase())
+                .filter(Boolean);
+
+            let isAuthorizedAdmin = allowedEmails.includes(normalizedEmail);
+
+            // 2. Otherwise verify with backend (Firebase Auth admin custom claims / settings)
+            if (!isAuthorizedAdmin) {
+                try {
+                    const { data } = await api.post<{ success: boolean; allowed: boolean }>(
+                        "/api/auth/admin/check-reset",
+                        { email: trimmedEmail }
+                    );
+                    isAuthorizedAdmin = Boolean(data?.allowed);
+                } catch (checkErr) {
+                    console.error("Failed to verify admin reset eligibility:", checkErr);
+                    setError("Unable to verify admin account right now. Please try again.");
+                    return;
+                }
+            }
+
+            // Do not send reset emails for non-admin or unknown accounts
+            if (!isAuthorizedAdmin) {
+                setSuccessMessage(genericConfirmation);
+                return;
+            }
+
             await sendPasswordResetEmail(auth, trimmedEmail, {
                 url: `${window.location.origin}/login`,
                 handleCodeInApp: false,
             });
-            setSuccessMessage(
-                `If an admin account exists for ${trimmedEmail}, a password reset link has been sent. Please check your inbox and spam folder.`
-            );
+            setSuccessMessage(genericConfirmation);
         } catch (err: any) {
             console.error("Password reset failed:", err);
 
             if (err?.code === "auth/user-not-found") {
-                // Avoid exposing whether an account exists
-                setSuccessMessage(
-                    `If an admin account exists for ${trimmedEmail}, a password reset link has been sent. Please check your inbox and spam folder.`
-                );
+                setSuccessMessage(genericConfirmation);
             } else if (err?.code === "auth/invalid-email") {
                 setError("Please enter a valid email address.");
             } else if (err?.code === "auth/too-many-requests") {

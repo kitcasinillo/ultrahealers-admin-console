@@ -1,55 +1,83 @@
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import * as DialogPrimitive from "@radix-ui/react-dialog"
 import { Button } from "@/components/ui/button"
-import { X as XIcon, Monitor as MonitorIcon, Smartphone as SmartphoneIcon, Pencil, Eye, Save } from "lucide-react"
+import { X as XIcon, Monitor as MonitorIcon, Smartphone as SmartphoneIcon, Pencil, Eye, Save, Upload, Loader2 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Input } from "@/components/ui/input"
 import { toast } from "react-hot-toast"
 import { ConfirmModal } from "@/components/ui/ConfirmModal"
+import { uploadCampaignImage, type CampaignTemplateFields } from "@/api/campaigns"
+import { buildTemplateEmailHtml, deriveTemplateFields } from "../utils/templateHtml"
 
 interface Template {
-    id: number
+    id: string
     name: string
     category: string
     previewImage?: string
+    content?: string
+    fields?: CampaignTemplateFields | null
 }
 
 interface TemplatePreviewModalProps {
     isOpen: boolean
     onClose: () => void
     template: Template | null
+    onSaveContent?: (id: string, htmlContent: string, previewImage?: string, fields?: CampaignTemplateFields) => Promise<void>
 }
 
-export function TemplatePreviewModal({ isOpen, onClose, template }: TemplatePreviewModalProps) {
+export function TemplatePreviewModal({ isOpen, onClose, template, onSaveContent }: TemplatePreviewModalProps) {
     const [viewMode, setViewMode] = useState<"desktop" | "mobile">("desktop")
     const [isEditing, setIsEditing] = useState(false)
     const [isSaving, setIsSaving] = useState(false)
+    const [uploadingBanner, setUploadingBanner] = useState(false)
+    const [bannerImage, setBannerImage] = useState(template?.previewImage || "")
     
     // Editable state for the email content
-    const [emailContent, setEmailContent] = useState({
-        title: "Hello {{first_name}},",
-        subtitle: "Explore new updates to your journey. Meditation just got more rewarding.",
-        body: "Check out our newest retreats and exclusive healing sessions today.",
-        buttonText: "Discover Now",
-    })
+    const [emailContent, setEmailContent] = useState<CampaignTemplateFields>(() => deriveTemplateFields(template))
     
     // TRACKING CHANGES
-    const [lastSavedContent, setLastSavedContent] = useState(JSON.stringify(emailContent))
+    const [lastSavedContent, setLastSavedContent] = useState(() => JSON.stringify(deriveTemplateFields(template)))
     const [showUnsavedModal, setShowUnsavedModal] = useState<{ active: boolean, type: 'close' | 'preview' }>({ 
         active: false, 
         type: 'close' 
     })
 
-    const hasChanges = lastSavedContent !== JSON.stringify(emailContent)
+    useEffect(() => {
+        const nextFields = deriveTemplateFields(template)
+        setEmailContent(nextFields)
+        setLastSavedContent(JSON.stringify(nextFields))
+        setBannerImage(template?.previewImage || "")
+        setIsEditing(false)
+    }, [template, isOpen])
+
+    const hasChanges = lastSavedContent !== JSON.stringify(emailContent) || bannerImage !== (template?.previewImage || "")
 
     if (!template) return null
 
-    const handleSave = () => {
+    const handleBannerUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0]
+        if (!file) return
+        try {
+            setUploadingBanner(true)
+            const url = await uploadCampaignImage(file, "campaign-templates")
+            setBannerImage(url)
+            toast.success("Banner image uploaded")
+        } catch (err: any) {
+            toast.error(err?.message || "Failed to upload image")
+        } finally {
+            setUploadingBanner(false)
+            e.target.value = ""
+        }
+    }
+
+    const handleSave = async () => {
         setIsSaving(true)
-        // Simulate an API call
-        setTimeout(() => {
+        try {
+            const html = buildTemplateEmailHtml(emailContent, bannerImage, template.name)
+            if (onSaveContent && template) {
+                await onSaveContent(template.id, html, bannerImage.trim(), emailContent)
+            }
             setLastSavedContent(JSON.stringify(emailContent))
-            setIsSaving(false)
             setIsEditing(false)
             toast.success("Template changes saved successfully!", {
                 style: {
@@ -63,7 +91,11 @@ export function TemplatePreviewModal({ isOpen, onClose, template }: TemplatePrev
                     secondary: '#fff',
                 },
             })
-        }, 800)
+        } catch {
+            toast.error("Failed to save template changes")
+        } finally {
+            setIsSaving(false)
+        }
     }
 
     const handleCloseAttempt = () => {
@@ -227,10 +259,12 @@ export function TemplatePreviewModal({ isOpen, onClose, template }: TemplatePrev
                                 <div className="w-px h-8 bg-gray-200 dark:bg-white/10 mx-2" />
 
                                 <Button 
+                                    type="button"
                                     variant="ghost" 
                                     size="icon" 
                                     onClick={handleCloseAttempt}
                                     className="bg-[#F4F7FE] dark:bg-white/5 text-[#A3AED0] hover:text-red-500 rounded-xl transition-all h-11 w-11 shrink-0"
+                                    aria-label="Close template preview"
                                 >
                                     <XIcon className="w-5 h-5" />
                                 </Button>
@@ -284,10 +318,59 @@ export function TemplatePreviewModal({ isOpen, onClose, template }: TemplatePrev
                                         </div>
 
                                         <div className="space-y-2">
+                                            <label className="text-sm font-bold text-[#1b254b] dark:text-white">Banner Image</label>
+                                            <label className="flex items-center justify-center gap-2 w-full rounded-xl border-2 border-dashed border-gray-200 dark:border-white/10 bg-[#F4F7FE] dark:bg-white/5 px-3 py-3 text-xs font-bold text-[#4318FF] hover:border-[#4318FF]/50 cursor-pointer transition-colors">
+                                                {uploadingBanner ? (
+                                                    <>
+                                                        <Loader2 className="h-4 w-4 animate-spin" />
+                                                        Uploading...
+                                                    </>
+                                                ) : (
+                                                    <>
+                                                        <Upload className="h-4 w-4" />
+                                                        Upload Banner Image
+                                                    </>
+                                                )}
+                                                <input
+                                                    type="file"
+                                                    accept="image/*"
+                                                    className="hidden"
+                                                    disabled={uploadingBanner}
+                                                    onChange={handleBannerUpload}
+                                                />
+                                            </label>
+                                            <Input
+                                                value={bannerImage}
+                                                onChange={(e) => setBannerImage(e.target.value)}
+                                                placeholder="Or paste banner image URL..."
+                                                className="bg-[#F4F7FE] dark:bg-white/5 border-transparent focus-visible:ring-[#4318FF] focus-visible:border-[#4318FF] rounded-xl h-11 text-xs"
+                                            />
+                                            {bannerImage && (
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setBannerImage("")}
+                                                    className="text-[11px] font-bold text-red-500 hover:underline"
+                                                >
+                                                    Remove banner image
+                                                </button>
+                                            )}
+                                        </div>
+
+                                        <div className="space-y-2">
                                             <label className="text-sm font-bold text-[#1b254b] dark:text-white">Call to Action Text</label>
                                             <Input 
                                                 value={emailContent.buttonText}
                                                 onChange={(e) => setEmailContent({...emailContent, buttonText: e.target.value})}
+                                                className="bg-[#F4F7FE] dark:bg-white/5 border-transparent focus-visible:ring-[#4318FF] focus-visible:border-[#4318FF] rounded-xl h-12"
+                                            />
+                                        </div>
+
+                                        <div className="space-y-2">
+                                            <label className="text-sm font-bold text-[#1b254b] dark:text-white">Call to Action Link</label>
+                                            <Input 
+                                                value={emailContent.buttonUrl || ""}
+                                                onChange={(e) => setEmailContent({...emailContent, buttonUrl: e.target.value})}
+                                                placeholder="https://ultrahealers.com"
                                                 className="bg-[#F4F7FE] dark:bg-white/5 border-transparent focus-visible:ring-[#4318FF] focus-visible:border-[#4318FF] rounded-xl h-12"
                                             />
                                         </div>
@@ -344,10 +427,20 @@ export function TemplatePreviewModal({ isOpen, onClose, template }: TemplatePrev
                                             </div>
 
                                             <div className="w-full aspect-[2/1] bg-[#F4F7FE] dark:bg-white/5 rounded-2xl relative overflow-hidden flex items-center justify-center border border-gray-100 dark:border-white/5 group">
-                                                 <div className="absolute inset-0 bg-[#4318FF] opacity-0 group-hover:opacity-10 transition-opacity flex items-center justify-center" />
-                                                 <p className="text-[10px] font-black text-[#A3AED0] uppercase tracking-widest bg-white dark:bg-[#111C44] px-4 py-2 rounded-lg shadow-sm z-10 transition-transform group-hover:scale-110">
-                                                    Main Banner Preview
-                                                 </p>
+                                                 {bannerImage.trim() ? (
+                                                    <img
+                                                        src={bannerImage.trim()}
+                                                        alt={template.name}
+                                                        className="w-full h-full object-cover"
+                                                    />
+                                                 ) : (
+                                                    <>
+                                                        <div className="absolute inset-0 bg-[#4318FF] opacity-0 group-hover:opacity-10 transition-opacity flex items-center justify-center" />
+                                                        <p className="text-[10px] font-black text-[#A3AED0] uppercase tracking-widest bg-white dark:bg-[#111C44] px-4 py-2 rounded-lg shadow-sm z-10 transition-transform group-hover:scale-110">
+                                                            Main Banner Preview
+                                                        </p>
+                                                    </>
+                                                 )}
                                             </div>
 
                                             <div className="space-y-6">
@@ -390,27 +483,31 @@ export function TemplatePreviewModal({ isOpen, onClose, template }: TemplatePrev
                             </div>
                         </div>
                     </div>
+
+                    {showUnsavedModal.active && (
+                        <div className="fixed inset-0 z-[120]">
+                            <ConfirmModal 
+                                isOpen={showUnsavedModal.active}
+                                onClose={() => setShowUnsavedModal({ ...showUnsavedModal, active: false })}
+                                onConfirm={() => {
+                                    setShowUnsavedModal({ ...showUnsavedModal, active: false })
+                                    setEmailContent(JSON.parse(lastSavedContent))
+                                    setBannerImage(template.previewImage || "")
+                                    setIsEditing(false)
+                                    if (showUnsavedModal.type === 'close') {
+                                        onClose()
+                                    }
+                                }}
+                                title="Unsaved Changes"
+                                description="You have unsaved modifications in this template. Are you sure you want to discard them? This action cannot be undone."
+                                confirmText="Discard Changes"
+                                variant="destructive"
+                            />
+                        </div>
+                    )}
                 </DialogPrimitive.Content>
             </DialogPrimitive.Portal>
         </DialogPrimitive.Root>
-
-        <ConfirmModal 
-            isOpen={showUnsavedModal.active}
-            onClose={() => setShowUnsavedModal({ ...showUnsavedModal, active: false })}
-            onConfirm={() => {
-                setShowUnsavedModal({ ...showUnsavedModal, active: false })
-                if (showUnsavedModal.type === 'close') {
-                    onClose()
-                } else {
-                    setEmailContent(JSON.parse(lastSavedContent)) // Revert changes
-                    setIsEditing(false)
-                }
-            }}
-            title="Unsaved Changes"
-            description="You have unsaved modifications in this template. Are you sure you want to discard them? This action cannot be undone."
-            confirmText="Discard Changes"
-            variant="destructive"
-        />
         </>
     )
 }

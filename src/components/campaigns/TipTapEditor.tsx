@@ -24,7 +24,9 @@ import {
     Smartphone,
     Braces,
     Undo,
-    Redo
+    Redo,
+    Upload,
+    Loader2
 } from 'lucide-react'
 import {
     DropdownMenu,
@@ -32,6 +34,16 @@ import {
     DropdownMenuItem,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import {
+    Dialog,
+    DialogContent,
+    DialogHeader,
+    DialogTitle,
+    DialogFooter,
+} from "@/components/ui/dialog"
+import { Input } from "@/components/ui/input"
+import toast from "react-hot-toast"
+import { uploadCampaignImage } from "@/api/campaigns"
 
 interface TipTapEditorProps {
     content: string
@@ -39,10 +51,34 @@ interface TipTapEditorProps {
     placeholder?: string
 }
 
+const EmailLink = Link.extend({
+    addAttributes() {
+        return {
+            ...this.parent?.(),
+            'data-cta-button': {
+                default: null,
+                parseHTML: (element) => element.getAttribute('data-cta-button'),
+                renderHTML: (attributes) => {
+                    if (!attributes['data-cta-button']) return {}
+                    return {
+                        'data-cta-button': 'true',
+                        class: 'inline-block bg-[#4318FF] !text-white px-7 py-3.5 rounded-xl font-black text-xs uppercase tracking-[0.15em] !no-underline shadow-lg shadow-[#4318FF]/20 my-2',
+                        style: 'display:inline-block;background-color:#4318FF;color:#ffffff;padding:12px 28px;border-radius:12px;font-weight:800;font-size:12px;letter-spacing:0.12em;text-transform:uppercase;text-decoration:none;',
+                    }
+                },
+            },
+        }
+    },
+})
+
 export const TipTapEditor = ({ content, onChange, placeholder = "Start composing your message..." }: TipTapEditorProps) => {
     const [viewMode, setViewMode] = useState<'visual' | 'html'>('visual')
     const [showMobilePreview, setShowMobilePreview] = useState(false)
     const [htmlContent, setHtmlContent] = useState(content)
+    const [isImageModalOpen, setIsImageModalOpen] = useState(false)
+    const [imageUrlInput, setImageUrlInput] = useState('')
+    const [imageAltInput, setImageAltInput] = useState('')
+    const [uploadingImage, setUploadingImage] = useState(false)
 
     const editor = useEditor({
         extensions: [
@@ -52,7 +88,7 @@ export const TipTapEditor = ({ content, onChange, placeholder = "Start composing
                 },
             }),
             Underline,
-            Link.configure({
+            EmailLink.configure({
                 openOnClick: false,
                 HTMLAttributes: {
                     class: 'text-[#4318FF] underline underline-offset-4',
@@ -60,7 +96,8 @@ export const TipTapEditor = ({ content, onChange, placeholder = "Start composing
             }),
             Image.configure({
                 HTMLAttributes: {
-                    class: 'rounded-xl max-w-full h-auto',
+                    class: 'rounded-2xl w-full max-h-[360px] object-cover my-4',
+                    style: 'max-width:100%;border-radius:16px;height:auto;',
                 },
             }),
             Placeholder.configure({
@@ -91,6 +128,34 @@ export const TipTapEditor = ({ content, onChange, placeholder = "Start composing
         if (editor) {
             editor.chain().focus().insertContent(`{{${token}}}`).run()
         }
+    }
+
+    const handleImageFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0]
+        if (!file) return
+        try {
+            setUploadingImage(true)
+            const url = await uploadCampaignImage(file, 'campaigns/images')
+            setImageUrlInput(url)
+            if (!imageAltInput) {
+                setImageAltInput(file.name.replace(/\.[^.]+$/, '').replace(/[_-]+/g, ' '))
+            }
+            toast.success('Image uploaded')
+        } catch (err: any) {
+            toast.error(err?.message || 'Failed to upload image')
+        } finally {
+            setUploadingImage(false)
+            e.target.value = ''
+        }
+    }
+
+    const handleInsertImage = () => {
+        const url = imageUrlInput.trim()
+        if (!url || !editor) return
+        editor.chain().focus().setImage({ src: url, alt: imageAltInput.trim() || undefined }).run()
+        setIsImageModalOpen(false)
+        setImageUrlInput('')
+        setImageAltInput('')
     }
 
     if (!editor) return null
@@ -200,11 +265,9 @@ export const TipTapEditor = ({ content, onChange, placeholder = "Start composing
                         <LinkIcon className="h-4 w-4" />
                     </Button>
                     <Button
-                        variant="ghost" size="icon" className="h-8 w-8 rounded-lg"
-                        onClick={() => {
-                            const url = window.prompt('Image URL')
-                            if (url) editor.chain().focus().setImage({ src: url }).run()
-                        }}
+                        type="button"
+                        variant="ghost" size="icon" title="Insert Image" className="h-8 w-8 rounded-lg"
+                        onClick={() => setIsImageModalOpen(true)}
                     >
                         <ImageIcon className="h-4 w-4" />
                     </Button>
@@ -287,6 +350,96 @@ export const TipTapEditor = ({ content, onChange, placeholder = "Start composing
                     </Button>
                 </div>
             </div>
+
+            {/* Insert Image Modal */}
+            <Dialog open={isImageModalOpen} onOpenChange={setIsImageModalOpen}>
+                <DialogContent className="sm:max-w-[460px] rounded-[24px] bg-white dark:bg-[#111C44] border-transparent dark:border-white/5 shadow-2xl">
+                    <DialogHeader>
+                        <DialogTitle className="text-xl font-bold text-[#1b254b] dark:text-white">
+                            Insert Image
+                        </DialogTitle>
+                    </DialogHeader>
+                    <div className="space-y-4 py-2">
+                        <div>
+                            <label className="text-xs font-bold text-[#A3AED0] uppercase tracking-wider block mb-2">
+                                Upload from Computer
+                            </label>
+                            <label className="flex items-center justify-center gap-2 w-full rounded-xl border-2 border-dashed border-gray-200 dark:border-white/10 bg-[#F4F7FE]/50 dark:bg-white/5 px-4 py-4 text-sm font-bold text-[#4318FF] hover:border-[#4318FF]/50 cursor-pointer transition-colors">
+                                {uploadingImage ? (
+                                    <>
+                                        <Loader2 className="h-4 w-4 animate-spin" />
+                                        Uploading image...
+                                    </>
+                                ) : (
+                                    <>
+                                        <Upload className="h-4 w-4" />
+                                        Choose Image File (PNG, JPG, WebP, max 5MB)
+                                    </>
+                                )}
+                                <input
+                                    type="file"
+                                    accept="image/*"
+                                    className="hidden"
+                                    disabled={uploadingImage}
+                                    onChange={handleImageFileUpload}
+                                />
+                            </label>
+                        </div>
+
+                        <div className="space-y-1.5">
+                            <label className="text-xs font-bold text-[#A3AED0] uppercase tracking-wider block">
+                                Or Paste Image URL
+                            </label>
+                            <Input
+                                value={imageUrlInput}
+                                onChange={(e) => setImageUrlInput(e.target.value)}
+                                placeholder="https://example.com/banner.jpg"
+                                className="rounded-xl border-gray-200 dark:border-white/10 h-11"
+                            />
+                        </div>
+
+                        <div className="space-y-1.5">
+                            <label className="text-xs font-bold text-[#A3AED0] uppercase tracking-wider block">
+                                Alt Text (Optional)
+                            </label>
+                            <Input
+                                value={imageAltInput}
+                                onChange={(e) => setImageAltInput(e.target.value)}
+                                placeholder="Describe the image for email accessibility"
+                                className="rounded-xl border-gray-200 dark:border-white/10 h-11"
+                            />
+                        </div>
+
+                        {imageUrlInput.trim() && (
+                            <div className="rounded-xl overflow-hidden border border-gray-100 dark:border-white/10 bg-[#F4F7FE] dark:bg-white/5 max-h-[180px] flex items-center justify-center">
+                                <img
+                                    src={imageUrlInput.trim()}
+                                    alt={imageAltInput || 'Preview'}
+                                    className="max-h-[180px] w-auto object-contain"
+                                />
+                            </div>
+                        )}
+                    </div>
+                    <DialogFooter className="gap-2">
+                        <Button
+                            type="button"
+                            variant="ghost"
+                            onClick={() => setIsImageModalOpen(false)}
+                            className="rounded-full font-bold text-[#A3AED0]"
+                        >
+                            Cancel
+                        </Button>
+                        <Button
+                            type="button"
+                            onClick={handleInsertImage}
+                            disabled={!imageUrlInput.trim() || uploadingImage}
+                            className="rounded-full font-bold bg-[#4318FF] hover:bg-[#3311CC] text-white px-6"
+                        >
+                            Insert Image
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </div>
     )
 }

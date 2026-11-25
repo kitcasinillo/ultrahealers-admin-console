@@ -247,8 +247,27 @@ export const sendDisputeEmail = async (id: string): Promise<void> => {
   await api.post(`/api/disputes/${id}/notify-email`);
 };
 
+export const DISPUTES_UPDATED_EVENT = 'uh:disputes-updated';
+
+export const notifyDisputesUpdated = () => {
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent(DISPUTES_UPDATED_EVENT));
+  }
+};
+
+export const hasOpenDisputes = async (): Promise<boolean> => {
+  try {
+    const response = await api.get<{ success: boolean; disputes: Array<Record<string, unknown>> }>('/api/disputes?status=open');
+    return Array.isArray(response.data?.disputes) && response.data.disputes.length > 0;
+  } catch (error) {
+    console.error('Failed to check open disputes:', error);
+    return false;
+  }
+};
+
 export const deleteDispute = async (id: string): Promise<void> => {
   await api.delete(`/api/disputes/${id}`);
+  notifyDisputesUpdated();
 };
 
 const typeLabels: Record<string, string> = {
@@ -396,6 +415,8 @@ export const renderDecision = async (id: string, payload: DecisionPayload): Prom
   }).catch(() => {
     console.warn("Backend decision endpoint failed or not present. Simulating success in mock mode.");
   });
+
+  notifyDisputesUpdated();
 
   const base = await getDisputeById(id);
   return {

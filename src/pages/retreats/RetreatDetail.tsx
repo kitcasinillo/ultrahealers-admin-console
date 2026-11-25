@@ -209,7 +209,7 @@ export default function RetreatDetail() {
                 </Button>
                 <div className="flex items-center gap-3 flex-wrap justify-end">
                     <Button variant="outline" asChild className="rounded-full border-[#E2E8F0]">
-                        <a href={`https://ultrahealers.com/retreats/${id}`} target="_blank" rel="noreferrer" className="flex items-center gap-2">
+                        <a href={`https://retreats.ultrahealers.com/retreat/${encodeURIComponent(retreat.id || id || "")}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2">
                             <ExternalLink className="h-4 w-4" />
                             View Public Listing
                         </a>

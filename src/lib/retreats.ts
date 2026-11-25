@@ -65,7 +65,7 @@ export interface RetreatMessageAllPayload {
 }
 
 export const getRetreats = async (filters: RetreatFilters) => {
-    const response = await api.get('/api/retreats', {
+    const response = await api.get('/api/admin/retreats', {
         params: {
             status: filters.status?.join(',') || undefined,
             search: filters.search || undefined,
@@ -86,7 +86,7 @@ export const getRetreats = async (filters: RetreatFilters) => {
 };
 
 export const getRetreatById = async (id: string) => {
-    const response = await api.get(`/api/retreats/${id}`);
+    const response = await api.get(`/api/admin/retreats/${id}`);
     return response.data?.retreat as Retreat;
 };
 
@@ -96,27 +96,27 @@ export const getRetreatEnrollments = async (id: string) => {
 };
 
 export const updateRetreatStatus = async (id: string, status: string) => {
-    const response = await api.patch(`/api/retreats/${id}/status`, { status });
+    const response = await api.patch(`/api/admin/retreats/${id}/status`, { status });
     return response.data;
 };
 
 export const approveRetreat = async (id: string) => {
-    const response = await api.patch(`/api/retreats/${id}/approve`);
+    const response = await api.patch(`/api/admin/retreats/${id}/approve`);
     return response.data;
 };
 
 export const updateRetreatFields = async (id: string, payload: UpdateRetreatFieldsPayload) => {
-    const response = await api.patch(`/api/retreats/${id}`, payload);
+    const response = await api.patch(`/api/admin/retreats/${id}`, payload);
     return response.data;
 };
 
 export const buildRetreatMessageAll = async (id: string, payload: RetreatMessageAllPayload) => {
-    const response = await api.post(`/api/retreats/${id}/message-all`, payload);
+    const response = await api.post(`/api/admin/retreats/${id}/message-all`, payload);
     return response.data?.data;
 };
 
 export const deleteRetreat = async (id: string) => {
-    const response = await api.delete(`/api/retreats/${id}`);
+    const response = await api.delete(`/api/admin/retreats/${id}`);
     return response.data;
 };
 

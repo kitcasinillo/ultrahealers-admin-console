@@ -10,6 +10,18 @@ export const formSchema = z.object({
             free: z.object({ amount: z.coerce.number().min(0) }),
             premium: z.object({ amount: z.coerce.number().min(0), currency: z.string().min(1) }),
         }),
+        healerSubscription: z.object({
+            enabled: z.boolean(),
+            require_card_at_signup: z.boolean(),
+            grandfather_existing_healers: z.boolean(),
+            grandfather_cutoff_iso: z.string().optional(),
+            trial_days: z.coerce.number().min(0, "Must be 0 or greater").max(365, "Max 365 days"),
+            upfront_fee_amount: z.coerce.number().min(0, "Must be 0 or greater"),
+            monthly_fee_amount: z.coerce.number().min(0.5, "Must be at least $0.50"),
+            currency: z.string().min(3, "Use 3-letter code e.g. USD").max(3, "Use 3-letter code e.g. USD"),
+            plan_name: z.string().min(1, "Plan name is required"),
+            plan_description: z.string().min(1, "Plan description is required"),
+        }),
     }),
     adminBootstrap: z.any(),
     commission: z.object({
@@ -50,6 +62,18 @@ export const defaultValues: SettingsFormValues = {
         pricing: {
             free: { amount: 0 },
             premium: { amount: 120, currency: "USD" },
+        },
+        healerSubscription: {
+            enabled: true,
+            require_card_at_signup: true,
+            grandfather_existing_healers: true,
+            grandfather_cutoff_iso: "2026-11-25T00:00:00.000Z",
+            trial_days: 7,
+            upfront_fee_amount: 99,
+            monthly_fee_amount: 9.99,
+            currency: "USD",
+            plan_name: "Healer Membership",
+            plan_description: "Start with a 7-day free trial. After your trial ends, a one-time onboarding fee and monthly membership apply. Cancel anytime during your trial at no charge.",
         },
     },
     adminBootstrap: {

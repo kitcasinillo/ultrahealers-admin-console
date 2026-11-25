@@ -10,9 +10,12 @@ export type PremiumSubscription = {
     healerName: string
     email: string
     activatedAt: string
+    trialEndAt?: string | null
+    upfrontFeeCharged?: boolean
+    monthlyFee?: number | null
     amountPaid: number
     stripeId: string
-    status: "Active" | "Revoked"
+    status: "Trialing" | "Active" | "Past Due" | "Canceled" | "Exempt" | "Revoked" | "Pending"
 }
 
 export function PremiumSubscriptionsTable() {
@@ -36,28 +39,49 @@ export function PremiumSubscriptionsTable() {
         },
         {
             accessorKey: "activatedAt",
-            header: () => <span className="text-[10px] font-black uppercase tracking-wider text-[#A3AED0]">Activated At</span>,
+            header: () => <span className="text-[10px] font-black uppercase tracking-wider text-[#A3AED0]">Started</span>,
+        },
+        {
+            accessorKey: "trialEndAt",
+            header: () => <span className="text-[10px] font-black uppercase tracking-wider text-[#A3AED0]">Trial Ends</span>,
+            cell: ({ row }) => <span className="text-xs font-medium text-[#1b254b] dark:text-white">{row.original.trialEndAt || "—"}</span>,
+        },
+        {
+            accessorKey: "upfrontFeeCharged",
+            header: () => <span className="text-[10px] font-black uppercase tracking-wider text-[#A3AED0]">Upfront Fee</span>,
+            cell: ({ row }) => (
+                <Badge className={
+                    row.original.upfrontFeeCharged
+                        ? "bg-emerald-500/10 text-emerald-600 border-none rounded-full font-bold shadow-none"
+                        : "bg-amber-500/10 text-amber-600 border-none rounded-full font-bold shadow-none"
+                }>
+                    {row.original.upfrontFeeCharged ? "Paid" : "Pending"}
+                </Badge>
+            ),
         },
         {
             accessorKey: "amountPaid",
-            header: () => <span className="text-[10px] font-black uppercase tracking-wider text-[#A3AED0]">Amount Paid</span>,
+            header: () => <span className="text-[10px] font-black uppercase tracking-wider text-[#A3AED0]">Total Paid</span>,
             cell: ({ row }) => <div className="font-bold text-[#1b254b] dark:text-white">${Number(row.getValue("amountPaid")).toFixed(2)}</div>
         },
         {
             accessorKey: "stripeId",
-            header: () => <span className="text-[10px] font-black uppercase tracking-wider text-[#A3AED0]">Stripe PI/Session ID</span>,
-            cell: ({ row }) => <div className="text-[10px] font-mono text-[#A3AED0] opacity-50">{row.getValue<string>("stripeId")}</div>
+            header: () => <span className="text-[10px] font-black uppercase tracking-wider text-[#A3AED0]">Stripe Sub ID</span>,
+            cell: ({ row }) => <div className="text-[10px] font-mono text-[#A3AED0] opacity-70">{row.getValue<string>("stripeId")}</div>
         },
         {
             accessorKey: "status",
             header: () => <span className="text-[10px] font-black uppercase tracking-wider text-[#A3AED0]">Status</span>,
             cell: ({ row }) => {
                 const status = row.getValue("status") as string
+                const badgeClass =
+                    status === 'Active' ? 'bg-emerald-500/10 hover:bg-emerald-500/10 text-emerald-500' :
+                    status === 'Trialing' ? 'bg-blue-500/10 hover:bg-blue-500/10 text-blue-600' :
+                    status === 'Past Due' ? 'bg-amber-500/10 hover:bg-amber-500/10 text-amber-600' :
+                    status === 'Exempt' ? 'bg-purple-500/10 hover:bg-purple-500/10 text-purple-600' :
+                    'bg-red-500/10 hover:bg-red-500/10 text-red-500'
                 return (
-                    <Badge className={
-                        status === 'Active' ? 'bg-emerald-500/10 hover:bg-emerald-500/10 text-emerald-500 border-none w-[84px] h-[24px] rounded-full inline-flex items-center justify-center p-0 font-bold shadow-none' : 
-                        'bg-red-500/10 hover:bg-red-500/10 text-red-500 border-none w-[84px] h-[24px] rounded-full inline-flex items-center justify-center p-0 font-bold shadow-none'
-                    }>
+                    <Badge className={`${badgeClass} border-none min-w-[84px] h-[24px] rounded-full inline-flex items-center justify-center px-2.5 font-bold shadow-none`}>
                         {status}
                     </Badge>
                 )
@@ -232,7 +256,7 @@ export function PremiumSubscriptionsTable() {
 
                         {isStatusDropdownOpen && (
                             <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-[#1b254b] rounded-2xl shadow-xl border border-[#E9EDF7] dark:border-white/5 py-2 z-50">
-                                {['all', 'Active', 'Revoked'].map((status) => (
+                                {['all', 'Trialing', 'Active', 'Past Due', 'Canceled', 'Exempt'].map((status) => (
                                     <button
                                         key={status}
                                         onClick={() => {

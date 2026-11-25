@@ -15,10 +15,11 @@ The Finance & Payments module monitors platform gross merchandise value (GMV), n
 ---
 
 ## ⚡ Features & UI Workflows
-1. **Revenue Dashboard**: Visual breakdown of total GMV, platform fee revenue (15% default), pending payouts, and refunded volumes using Recharts.
-2. **Payout Processing**: Inspect pending healer payouts, hold suspicious payouts, and release manual disbursements.
-3. **Transaction Search & Filter**: Filter transactions by date range, payment method, status (`success`, `failed`, `refunded`), and user ID.
-4. **Financial Exports**: Export transaction logs and payout summaries to CSV, Excel, and PDF.
+1. **Revenue Dashboard**: Visual breakdown of total GMV, platform fee revenue (15% default), real Healer Subscription invoice revenue (`subscription_invoices`), pending payouts, and refunded volumes using Recharts.
+2. **Healer Subscriptions Table (`PremiumSubscriptionsTable.tsx`)**: Displays real Stripe subscription statuses (`Trialing`, `Active`, `Past Due`, `Canceled`, `Exempt`), trial end dates, upfront fee status (`Paid` / `Pending`), total paid, and Stripe Subscription IDs.
+3. **Payout Processing**: Inspect pending healer payouts, hold suspicious payouts, and release manual disbursements.
+4. **Transaction Search & Filter**: Filter transactions by date range, payment method, status (`success`, `failed`, `refunded`), and user ID.
+5. **Financial Exports**: Export transaction logs and payout summaries to CSV, Excel, and PDF.
 
 ---
 

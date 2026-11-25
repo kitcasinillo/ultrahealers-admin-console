@@ -62,6 +62,19 @@ This file persists key architectural discoveries, long-term project context, and
   - Items 1 and 2 (`idx < 2`) render cards below (`top-full mt-1.5`) to prevent header clipping; items 3+ render above (`bottom-full mb-1.5`).
   - Clicking any item pins its display card open with `pinnedItemKey` state and a `Pinned` badge indicator. Removed modal dialogs in favor of this direct card pinning.
 
+### MEM-006: Healer Subscription Model (7-Day Trial, $99 Upfront + $9.99/mo, CMS-Editable, Grandfathered)
+- **Date Recorded**: 2026-11-25
+- **Source**: Healer Subscription Model Implementation
+- **Importance Level**: High
+- **Tags**: `[subscriptions, stripe, cms, healer-onboarding, finance, grandfathering]`
+- **Summary**: Implemented CMS-editable healer subscription model with 7-day free trial, $99 Day-7 upfront fee + $9.99/mo recurring billing, embedded Stripe PaymentElement card capture at signup, and existing-healer grandfathering.
+- **Full Context**:
+  - **CMS Config**: `settings/app_config -> healer_subscription` editable in `GeneralSettings.tsx` (`SettingsPage.tsx`, `schema.ts`) with automatic Stripe Product/Price sync in `backend-server/controllers/settingsController.js` and `subscriptionController.js`.
+  - **Backend API & Webhooks**: `/api/subscriptions/*` (`config`, `setup-intent`, `activate`, `status/:healerId`, `portal-session`, `cancel`); `webhookController.js` handles `invoice.created` (attaches $99 upfront InvoiceItem idempotently on Day 7), `invoice.paid` (logs to `subscription_invoices`), `invoice.payment_failed`, `customer.subscription.trial_will_end`, `customer.subscription.updated`, and `customer.subscription.deleted`.
+  - **Healer App**: Embedded Stripe `PaymentElement` in `Subscribe.jsx` / `CardSetupForm.jsx`, route-guarded in `App.jsx` via `hasActiveHealerSubscription` (respects `grandfather_existing_healers` + `grandfather_cutoff_iso` + `subscription_exempt`), trial/past-due banners in `Layout.jsx`, and Stripe Billing Portal in `Upgrade.jsx` (`/billing`).
+  - **Admin Finance**: `adminFinanceController.js` & `PremiumSubscriptionsTable.tsx` now display real invoice revenue and `Trialing` / `Active` / `Past Due` / `Canceled` / `Exempt` statuses.
+  - **Admin Stripe Settings**: `StripeSettings.tsx` (Settings → Stripe tab) backed by `/api/admin/stripe/*` (`adminStripeController.js`, `utils/secretCrypto.js`, hot-reloadable `config/stripe.js`) lets admins switch Test/Live mode & API keys (AES-256-GCM encrypted in `settings/stripe_secrets`), view connected account + live balance, and serve `stripe_publishable_key` dynamically to `healer-app`.
+
 ---
 
 ## 📥 Template for New Entries

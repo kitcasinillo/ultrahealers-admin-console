@@ -3,7 +3,7 @@ import { useForm, type Resolver, type Control, type UseFormWatch } from "react-h
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "react-hot-toast";
 import { addDoc, collection, serverTimestamp } from "firebase/firestore";
-import { Save, RefreshCcw, Mail, Link as LinkIcon, Shield, Image as ImageIcon } from "lucide-react";
+import { Save, RefreshCcw, Mail, Link as LinkIcon, Shield, Image as ImageIcon, CreditCard } from "lucide-react";
 
 import { db } from "../../lib/firebase";
 import { useAdminAuth } from "../../contexts/AdminAuthContext";
@@ -21,6 +21,7 @@ import { EmailSettings } from "./components/EmailSettings";
 import { SystemSettings } from "./components/SystemSettings";
 import { AuditLogSettings } from "./components/AuditLogSettings";
 import { MediaLibraryTab } from "./components/MediaLibraryTab";
+import { StripeSettings } from "./components/StripeSettings";
 
 /**
  * SettingsPage Component
@@ -52,6 +53,7 @@ export function SettingsPage() {
                 const data = payload.data || {};
                 const featureFlags = Array.isArray(data.featureFlags) ? data.featureFlags : defaultValues.featureFlags;
                 const pricing = data.pricing || defaultValues.general.pricing;
+                const healerSub = data.healer_subscription || defaultValues.general.healerSubscription;
 
                 const loadedSettings: SettingsFormValues = {
                     general: {
@@ -67,6 +69,18 @@ export function SettingsPage() {
                                 amount: pricing.premium?.amount ?? defaultValues.general.pricing.premium.amount,
                                 currency: pricing.premium?.currency ?? defaultValues.general.pricing.premium.currency,
                             },
+                        },
+                        healerSubscription: {
+                            enabled: healerSub.enabled ?? defaultValues.general.healerSubscription.enabled,
+                            require_card_at_signup: healerSub.require_card_at_signup ?? defaultValues.general.healerSubscription.require_card_at_signup,
+                            grandfather_existing_healers: healerSub.grandfather_existing_healers ?? defaultValues.general.healerSubscription.grandfather_existing_healers,
+                            grandfather_cutoff_iso: healerSub.grandfather_cutoff_iso ?? defaultValues.general.healerSubscription.grandfather_cutoff_iso,
+                            trial_days: healerSub.trial_days ?? defaultValues.general.healerSubscription.trial_days,
+                            upfront_fee_amount: healerSub.upfront_fee_amount ?? defaultValues.general.healerSubscription.upfront_fee_amount,
+                            monthly_fee_amount: healerSub.monthly_fee_amount ?? defaultValues.general.healerSubscription.monthly_fee_amount,
+                            currency: healerSub.currency ?? defaultValues.general.healerSubscription.currency,
+                            plan_name: healerSub.plan_name ?? defaultValues.general.healerSubscription.plan_name,
+                            plan_description: healerSub.plan_description ?? defaultValues.general.healerSubscription.plan_description,
                         },
                     },
                     commission: {
@@ -173,6 +187,7 @@ export function SettingsPage() {
                     max_images_per_listing: data.general.max_images_per_listing,
                     max_file_size_mb: data.general.max_file_size_mb,
                     pricing: data.general.pricing,
+                    healer_subscription: data.general.healerSubscription,
                     HEALER_COMMISSION_PERCENT: data.commission.HEALER_COMMISSION_PERCENT,
                     SEEKER_FEE_PERCENT: data.commission.SEEKER_FEE_PERCENT,
                     PROCESSING_FEE_PERCENT: data.commission.PROCESSING_FEE_PERCENT,
@@ -301,6 +316,10 @@ export function SettingsPage() {
                             <TabsList className="bg-transparent space-x-1">
                                 <TabsTrigger value="general" className="rounded-md px-4 py-2 data-[state=active]:bg-[#F4F7FE] data-[state=active]:dark:bg-white/5 data-[state=active]:text-[#4318FF] data-[state=active]:dark:text-white font-bold text-[#A3AED0]">General</TabsTrigger>
                                 <TabsTrigger value="commission" className="rounded-md px-4 py-2 data-[state=active]:bg-[#F4F7FE] data-[state=active]:dark:bg-white/5 data-[state=active]:text-[#4318FF] data-[state=active]:dark:text-white font-bold text-[#A3AED0]">Fees</TabsTrigger>
+                                <TabsTrigger value="stripe" className="rounded-md px-4 py-2 data-[state=active]:bg-[#F4F7FE] data-[state=active]:dark:bg-white/5 data-[state=active]:text-[#4318FF] data-[state=active]:dark:text-white font-bold text-[#A3AED0]">
+                                    <CreditCard className="w-4 h-4 mr-2" />
+                                    Stripe
+                                </TabsTrigger>
                                 <TabsTrigger value="feature_flags" className="rounded-md px-4 py-2 data-[state=active]:bg-[#F4F7FE] data-[state=active]:dark:bg-white/5 data-[state=active]:text-[#4318FF] data-[state=active]:dark:text-white font-bold text-[#A3AED0]">Flags</TabsTrigger>
                                 <TabsTrigger value="email" className="rounded-md px-4 py-2 data-[state=active]:bg-[#F4F7FE] data-[state=active]:dark:bg-white/5 data-[state=active]:text-[#4318FF] data-[state=active]:dark:text-white font-bold text-[#A3AED0]">
                                     <Mail className="w-4 h-4 mr-2" />
@@ -326,6 +345,7 @@ export function SettingsPage() {
                             <TabsList className="flex bg-white dark:bg-[#111C44] p-1 h-auto rounded-xl w-max min-w-full">
                                 <TabsTrigger value="general" className="text-xs px-4">General</TabsTrigger>
                                 <TabsTrigger value="commission" className="text-xs px-4">Fees</TabsTrigger>
+                                <TabsTrigger value="stripe" className="text-xs px-4">Stripe</TabsTrigger>
                                 <TabsTrigger value="feature_flags" className="text-xs px-4">Flags</TabsTrigger>
                                 <TabsTrigger value="email" className="text-xs px-4">Email</TabsTrigger>
                                 <TabsTrigger value="system" className="text-xs px-4">System</TabsTrigger>
@@ -335,7 +355,10 @@ export function SettingsPage() {
                         </div>
 
                         <TabsContent value="general" className="mt-0 space-y-6 outline-none">
-                            <GeneralSettings control={form.control as unknown as Control<SettingsFormValues>} />
+                            <GeneralSettings
+                                control={form.control as unknown as Control<SettingsFormValues>}
+                                watch={form.watch as unknown as UseFormWatch<SettingsFormValues>}
+                            />
                         </TabsContent>
 
                         <TabsContent value="commission" className="mt-0 space-y-6 outline-none">
@@ -343,6 +366,10 @@ export function SettingsPage() {
                                 control={form.control as unknown as Control<SettingsFormValues>} 
                                 watch={form.watch as unknown as UseFormWatch<SettingsFormValues>} 
                             />
+                        </TabsContent>
+
+                        <TabsContent value="stripe" className="mt-0 space-y-6 outline-none">
+                            <StripeSettings />
                         </TabsContent>
 
                         <TabsContent value="feature_flags" className="mt-0 space-y-6 outline-none">

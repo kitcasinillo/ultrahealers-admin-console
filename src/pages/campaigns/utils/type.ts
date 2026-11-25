@@ -10,6 +10,7 @@ export type Campaign = {
     recipients: number
     openRate: number
     clickRate: number
+    createdAt: string | null
     sentAt: string | null
     createdBy: string
     metrics?: {

@@ -63,6 +63,19 @@ export interface CampaignUserOption {
   role: string;
 }
 
+export interface AudiencePreviewRecipient {
+  id?: string | null;
+  name: string;
+  email: string;
+}
+
+export interface AudiencePreviewResponse {
+  success: boolean;
+  count: number;
+  sample?: AudiencePreviewRecipient[];
+  recipients?: AudiencePreviewRecipient[];
+}
+
 export const getCampaigns = (filters?: Record<string, string | undefined>) =>
   api.get('/api/admin/campaigns', {
     params: filters,
@@ -87,7 +100,7 @@ export const sendTestEmail = (id: string, email: string) =>
   api.post(`/api/admin/campaigns/${id}/test`, { email });
 
 export const getAudiencePreview = (filters: Record<string, unknown>) =>
-  api.post('/api/admin/campaigns/audience-preview', filters);
+  api.post<AudiencePreviewResponse>('/api/admin/campaigns/audience-preview', filters);
 
 export const searchCampaignUsers = (q?: string, role?: string) =>
   api.get<{ success: boolean; users: CampaignUserOption[]; total: number }>('/api/admin/campaigns/users/search', {

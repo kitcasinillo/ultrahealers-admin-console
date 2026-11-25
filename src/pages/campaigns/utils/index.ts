@@ -45,6 +45,7 @@ export function normalizeCampaign(campaign: any): Campaign {
         recipients: (campaign.recipientCount as number) || (campaign.recipients as number) || 0,
         openRate: (campaign.openRate as number) || (metrics?.opens && metrics?.sent ? (metrics.opens / metrics.sent) * 100 : 0),
         clickRate: (campaign.clickRate as number) || (metrics?.clicks && metrics?.sent ? (metrics.clicks / metrics.sent) * 100 : 0),
+        createdAt: campaign.createdAt ? (typeof campaign.createdAt === 'object' && 'seconds' in campaign.createdAt ? new Date((campaign.createdAt as any).seconds * 1000).toISOString() : campaign.createdAt as string) : null,
         sentAt: campaign.sentAt ? (typeof campaign.sentAt === 'object' && 'seconds' in campaign.sentAt ? new Date((campaign.sentAt as any).seconds * 1000).toISOString() : campaign.sentAt as string) : null,
         createdBy: campaign.createdBy as string || campaign.createdByEmail as string || "",
         metrics,

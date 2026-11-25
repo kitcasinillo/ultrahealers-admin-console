@@ -154,11 +154,24 @@ export function CampaignList() {
             ),
         },
         {
+            accessorKey: "createdAt",
+            header: "Created At",
+            cell: ({ row }) => (
+                <span className="text-[#A3AED0] text-xs font-medium whitespace-nowrap">
+                    {row.original.createdAt
+                        ? new Date(row.original.createdAt).toLocaleString(undefined, { dateStyle: "short", timeStyle: "short" })
+                        : "—"}
+                </span>
+            ),
+        },
+        {
             accessorKey: "sentAt",
             header: "Sent At",
             cell: ({ row }) => (
-                <span className="text-[#A3AED0] text-xs font-medium">
-                    {row.original.sentAt ? new Date(row.original.sentAt).toLocaleDateString() : "—"}
+                <span className="text-[#A3AED0] text-xs font-medium whitespace-nowrap">
+                    {row.original.sentAt
+                        ? new Date(row.original.sentAt).toLocaleString(undefined, { dateStyle: "short", timeStyle: "short" })
+                        : "—"}
                 </span>
             ),
         },

@@ -5,6 +5,47 @@ import React from "react"
 export const STATUS_OPTIONS = ["All", "draft", "scheduled", "sending", "sent", "paused", "failed"] as const
 export const AUDIENCE_OPTIONS = ["All", "Healers", "Seekers", "All Users", "Free Healers", "Premium Healers", "Custom"] as const
 
+export const DATE_RANGE_OPTIONS = [
+    "All Time",
+    "Today",
+    "This Week",
+    "This Month",
+    "This Year",
+] as const
+
+export type DateRangePreset = (typeof DATE_RANGE_OPTIONS)[number] | "Custom Range"
+
+function formatLocalYMD(date: Date): string {
+    const year = date.getFullYear()
+    const month = String(date.getMonth() + 1).padStart(2, "0")
+    const day = String(date.getDate()).padStart(2, "0")
+    return `${year}-${month}-${day}`
+}
+
+export function getDateRangeForPreset(preset: string): { startDate: string; endDate: string } {
+    const now = new Date()
+    if (preset === "Today") {
+        const today = formatLocalYMD(now)
+        return { startDate: today, endDate: today }
+    }
+    if (preset === "This Week") {
+        const start = new Date(now.getFullYear(), now.getMonth(), now.getDate() - now.getDay())
+        const end = new Date(start.getFullYear(), start.getMonth(), start.getDate() + 6)
+        return { startDate: formatLocalYMD(start), endDate: formatLocalYMD(end) }
+    }
+    if (preset === "This Month") {
+        const start = new Date(now.getFullYear(), now.getMonth(), 1)
+        const end = new Date(now.getFullYear(), now.getMonth() + 1, 0)
+        return { startDate: formatLocalYMD(start), endDate: formatLocalYMD(end) }
+    }
+    if (preset === "This Year") {
+        const start = new Date(now.getFullYear(), 0, 1)
+        const end = new Date(now.getFullYear(), 11, 31)
+        return { startDate: formatLocalYMD(start), endDate: formatLocalYMD(end) }
+    }
+    return { startDate: "", endDate: "" }
+}
+
 export const STATUS_STYLES: Record<CampaignStatus, { bg: string; text: string; darkBg: string; darkText: string }> = {
     "draft": { bg: "bg-slate-100", text: "text-slate-600", darkBg: "dark:bg-slate-900/40", darkText: "dark:text-slate-400" },
     "scheduled": { bg: "bg-amber-50", text: "text-amber-600", darkBg: "dark:bg-amber-900/20", darkText: "dark:text-amber-400" },

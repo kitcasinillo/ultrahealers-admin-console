@@ -15,11 +15,13 @@ import {
     Send,
     MousePointer2,
     RefreshCw,
+    X,
 } from "lucide-react"
 
 import type { Campaign } from "../utils/type"
-import { STATUS_OPTIONS, AUDIENCE_OPTIONS, calculateAverage } from "../utils"
-import { StatusBadge, ActionMenu, FilterChips, EmptyState, SubNav } from "../components/index"
+import { STATUS_OPTIONS, AUDIENCE_OPTIONS, DATE_RANGE_OPTIONS, calculateAverage } from "../utils"
+import { StatusBadge, ActionMenu, EmptyState, SubNav } from "../components/index"
+import { DateRangePicker } from "@/components/common"
 import { useCampaigns } from "../hooks/useCampaigns"
 
 
@@ -35,6 +37,8 @@ export function CampaignList() {
         setStatusFilter,
         audienceFilter,
         setAudienceFilter,
+        dateRange,
+        setDateRange,
         startDate,
         setStartDate,
         endDate,
@@ -84,7 +88,7 @@ export function CampaignList() {
         ]
     }, [campaigns])
 
-    const hasActiveFilters = Boolean(searchQuery || statusFilter !== "All" || audienceFilter !== "All" || startDate || endDate || createdByFilter)
+    const hasActiveFilters = Boolean(searchQuery || statusFilter !== "All" || audienceFilter !== "All" || dateRange !== "All Time" || startDate || endDate || createdByFilter)
 
     // Table Columns
     const columns: ColumnDef<Campaign>[] = useMemo(() => [
@@ -292,22 +296,15 @@ export function CampaignList() {
                             ))}
                         </select>
 
-                        <div className="flex items-center gap-2 bg-[#F4F7FE] dark:bg-white/5 px-4 py-1.5 rounded-xl border-none">
-                            <span className="text-[10px] font-bold text-[#A3AED0] uppercase">From</span>
-                            <input 
-                                type="date" 
-                                className="bg-transparent text-[#1b254b] dark:text-white text-xs font-bold outline-none"
-                                value={startDate}
-                                onChange={(e) => setStartDate(e.target.value)}
-                            />
-                            <span className="text-[10px] font-bold text-[#A3AED0] uppercase px-1">To</span>
-                            <input 
-                                type="date" 
-                                className="bg-transparent text-[#1b254b] dark:text-white text-xs font-bold outline-none"
-                                value={endDate}
-                                onChange={(e) => setEndDate(e.target.value)}
-                            />
-                        </div>
+                        <DateRangePicker
+                            dateRange={dateRange}
+                            setDateRange={setDateRange}
+                            customStartDate={startDate}
+                            setCustomStartDate={setStartDate}
+                            customEndDate={endDate}
+                            setCustomEndDate={setEndDate}
+                            options={[...DATE_RANGE_OPTIONS]}
+                        />
 
                         <div className="relative">
                             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-[#A3AED0]" />
@@ -320,29 +317,28 @@ export function CampaignList() {
                         </div>
                     </div>
 
-                    {/* Filter Chips & Count */}
+                    {/* Clear & Count */}
                     <div className="flex flex-wrap items-center gap-2">
-                        <FilterChips
-                            searchQuery={searchQuery}
-                            statusFilter={statusFilter}
-                            audienceFilter={audienceFilter}
-                            startDate={startDate}
-                            endDate={endDate}
-                            createdByFilter={createdByFilter}
-                            onClearSearch={() => setSearchQuery("")}
-                            onClearStatus={() => setStatusFilter("All")}
-                            onClearAudience={() => setAudienceFilter("All")}
-                            onClearDate={() => { setStartDate(""); setEndDate(""); }}
-                            onClearCreatedBy={() => setCreatedByFilter("")}
-                            onClearAll={() => { 
-                                setSearchQuery(""); 
-                                setStatusFilter("All"); 
-                                setAudienceFilter("All");
-                                setStartDate("");
-                                setEndDate("");
-                                setCreatedByFilter("");
-                            }}
-                        />
+                        {hasActiveFilters && (
+                            <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => {
+                                    setSearchQuery("")
+                                    setStatusFilter("All")
+                                    setAudienceFilter("All")
+                                    setDateRange("All Time")
+                                    setStartDate("")
+                                    setEndDate("")
+                                    setCreatedByFilter("")
+                                }}
+                                className="text-xs font-bold text-[#A3AED0] hover:text-red-500"
+                            >
+                                <X className="h-3.5 w-3.5 mr-1" />
+                                Clear
+                            </Button>
+                        )}
                         <span className="text-sm font-medium text-[#A3AED0] ml-2">
                             {campaigns.length === totalCount
                                 ? `${campaigns.length} ${campaigns.length === 1 ? "campaign" : "campaigns"}`

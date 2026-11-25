@@ -32,6 +32,10 @@ This module handles oversight of all customer bookings, session schedules, and d
 ---
 
 ## 🔌 API Endpoints & Data Model
+- `GET /api/admin/bookings` – List session and retreat bookings with filters.
+- `GET /api/admin/bookings/:id` – Detailed booking view with transcript & retreat record.
+- `PATCH /api/admin/bookings/:id/status` – Override booking status flags.
+- `DELETE /api/admin/bookings/:id` – Permanently delete a booking document (e.g., for removing test bookings).
 - `GET /api/disputes` – List open and resolved dispute cases.
 - `GET /api/disputes/:id` – Detailed case file & evidence.
 - `POST /api/disputes/:id/decision` – Submit resolution decision (`full_refund`, `partial_refund`, `credit`, `deny`).

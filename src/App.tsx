@@ -13,6 +13,7 @@ import RetreatDetail from "./pages/retreats/RetreatDetail";
 import DisputesPage from "./pages/disputes/DisputesPage";
 import DisputeDetailPage from './pages/disputes/DisputeDetailPage';
 import { RedFlagsPage } from "./pages/moderation/RedFlagsPage";
+import { FeedbackPage } from "./pages/feedback/FeedbackPage";
 // import ModalitiesPage from './pages/modalities';
 // import PayoutsPage from './pages/payouts/index';
 import { AdminAuthProvider } from "./contexts/AdminAuthContext";
@@ -80,6 +81,9 @@ function App() {
 
             {/* Moderation / Red Flags */}
             <Route path="moderation/red-flags" element={<RedFlagsPage />} />
+
+            {/* User Feedback & Feature Requests */}
+            <Route path="feedback" element={<FeedbackPage />} />
 
             <Route path="finance/*" element={<Payments />} />
             

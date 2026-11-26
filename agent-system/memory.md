@@ -73,6 +73,18 @@ This file persists key architectural discoveries, long-term project context, and
   - Client chats (`seeker-app` and `healer-app`) show a real-time amber warning banner as users type, preserve existing client-to-RTDB writes, and trigger async `/api/moderation/red-flags/scan` on text sends.
   - Admin Console adds `/moderation/red-flags` (`RedFlagsPage.tsx` + `RedFlagDetailModal.tsx` with RTDB chat transcript viewer), sidebar amber indicator dot (`hasOpenRedFlags`), CSV export, and `"Moderation"` module audit logging in `admin_audit_logs`.
 
+### MEM-007: User Feedback & Feature Request Capture System
+- **Date Recorded**: 2026-11-26
+- **Source**: Feature Implementation
+- **Importance Level**: High
+- **Tags**: `[feedback, feature-requests, email-prompts, admin-console, audit-log]`
+- **Summary**: Implemented in-app and email-prompt feedback capture across `backend-server`, `seeker-app`, `healer-app`, `retreats-app`, and `ultrahealers-admin-console`.
+- **Full Context**:
+  - Backend API (`/api/feedback` in `controllers/feedbackController.js` + `routes/feedbackRoutes.js`) stores submissions in Firestore `user_feedback` and logs email prompts in `feedback_prompt_logs` with a 30-day per-user cooldown.
+  - Enforces authentication (`userId` required) for `seeker-app` and `healer-app`; allows guest submissions with optional Name/Email for `retreats-app`.
+  - Email prompts (`POST /api/feedback/send-prompt` and booking confirmation email footer CTAs in `utils/emailTemplates.js`) follow `LESSON-002` (strict `EMAIL_USER` sender alignment, `replyTo`, no subject emojis) and deep-link to `?feedback=1&source=...`.
+  - Admin Console adds `/feedback` (`FeedbackPage.tsx`, `FeedbackDetailModal.tsx`, `SendFeedbackPromptModal.tsx`), sidebar cyan indicator dot (`hasNewFeedback`), CSV export, and `"Feedback"` module audit logging in `admin_audit_logs`.
+
 ---
 
 ## 📥 Template for New Entries

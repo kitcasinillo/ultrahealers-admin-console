@@ -1,16 +1,17 @@
 import { useEffect, useState } from "react";
 import { NavLink } from "react-router-dom";
-import { Users, LayoutDashboard, List, Activity, Settings, UserCircle, MessageSquareWarning, CreditCard, Mail, Calendar, BarChart3, Search, Bell, Home, Clock, X, ShieldAlert } from "lucide-react";
+import { Users, LayoutDashboard, List, Activity, Settings, UserCircle, MessageSquareWarning, CreditCard, Mail, Calendar, BarChart3, Search, Bell, Home, Clock, X, ShieldAlert, Lightbulb } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { DISPUTES_UPDATED_EVENT, hasOpenDisputes } from "@/lib/disputes";
 import { RED_FLAGS_UPDATED_EVENT, hasOpenRedFlags } from "@/lib/redFlags";
+import { FEEDBACK_UPDATED_EVENT, hasNewFeedback } from "@/lib/feedback";
 
 interface SidebarProps {
     isMobileOpen?: boolean;
     onClose?: () => void;
 }
 
-function SidebarContent({ onClose, hasOpenDisputes: showOpenDisputeBadge, hasOpenRedFlags: showOpenRedFlagsBadge }: { onClose?: () => void; hasOpenDisputes?: boolean; hasOpenRedFlags?: boolean }) {
+function SidebarContent({ onClose, hasOpenDisputes: showOpenDisputeBadge, hasOpenRedFlags: showOpenRedFlagsBadge, hasNewFeedback: showNewFeedbackBadge }: { onClose?: () => void; hasOpenDisputes?: boolean; hasOpenRedFlags?: boolean; hasNewFeedback?: boolean }) {
     const handleNavClick = () => {
         if (onClose) {
             onClose();
@@ -183,6 +184,29 @@ function SidebarContent({ onClose, hasOpenDisputes: showOpenDisputeBadge, hasOpe
                                             aria-label="Open red flags"
                                             title="Open red flags"
                                             className="ml-auto h-2.5 w-2.5 rounded-full bg-amber-500 ring-2 ring-amber-500/20 shrink-0"
+                                        />
+                                    )}
+                                    {isActive && <div className="absolute right-0 top-1/2 -translate-y-1/2 w-1.5 h-9 bg-[#4318FF] dark:bg-[#01A3B4] rounded-l-full" />}
+                                </>
+                            )}
+                        </NavLink>
+                        <NavLink
+                            to="/feedback"
+                            onClick={handleNavClick}
+                            className={({ isActive }) =>
+                                cn("flex items-center gap-4 px-8 py-3.5 text-[15px] font-semibold transition-all group relative",
+                                    isActive ? "text-[#4318FF] dark:text-white" : "text-[#A3AED0] hover:text-[#4318FF] dark:hover:text-white")
+                            }
+                        >
+                            {({ isActive }) => (
+                                <>
+                                    <Lightbulb className={cn("h-5 w-5 transition-colors", isActive ? "text-[#4318FF] dark:text-white" : "text-[#A3AED0] group-hover:text-[#4318FF] dark:group-hover:text-white")} />
+                                    <span>Feature Requests</span>
+                                    {showNewFeedbackBadge && (
+                                        <span
+                                            aria-label="New feature requests"
+                                            title="New feature requests"
+                                            className="ml-auto h-2.5 w-2.5 rounded-full bg-[#01A3B4] ring-2 ring-[#01A3B4]/20 shrink-0"
                                         />
                                     )}
                                     {isActive && <div className="absolute right-0 top-1/2 -translate-y-1/2 w-1.5 h-9 bg-[#4318FF] dark:bg-[#01A3B4] rounded-l-full" />}
@@ -471,6 +495,7 @@ function SidebarContent({ onClose, hasOpenDisputes: showOpenDisputeBadge, hasOpe
 export function Sidebar({ isMobileOpen = false, onClose }: SidebarProps) {
     const [openDisputesExist, setOpenDisputesExist] = useState(false);
     const [openRedFlagsExist, setOpenRedFlagsExist] = useState(false);
+    const [newFeedbackExist, setNewFeedbackExist] = useState(false);
 
     useEffect(() => {
         let mounted = true;
@@ -485,24 +510,35 @@ export function Sidebar({ isMobileOpen = false, onClose }: SidebarProps) {
             if (mounted) setOpenRedFlagsExist(hasOpen);
         };
 
+        const checkNewFeedback = async () => {
+            const hasNew = await hasNewFeedback();
+            if (mounted) setNewFeedbackExist(hasNew);
+        };
+
         checkOpenDisputes();
         checkOpenRedFlags();
+        checkNewFeedback();
         const intervalId = window.setInterval(() => {
             checkOpenDisputes();
             checkOpenRedFlags();
+            checkNewFeedback();
         }, 60_000);
         window.addEventListener(DISPUTES_UPDATED_EVENT, checkOpenDisputes);
         window.addEventListener(RED_FLAGS_UPDATED_EVENT, checkOpenRedFlags);
+        window.addEventListener(FEEDBACK_UPDATED_EVENT, checkNewFeedback);
         window.addEventListener("focus", checkOpenDisputes);
         window.addEventListener("focus", checkOpenRedFlags);
+        window.addEventListener("focus", checkNewFeedback);
 
         return () => {
             mounted = false;
             window.clearInterval(intervalId);
             window.removeEventListener(DISPUTES_UPDATED_EVENT, checkOpenDisputes);
             window.removeEventListener(RED_FLAGS_UPDATED_EVENT, checkOpenRedFlags);
+            window.removeEventListener(FEEDBACK_UPDATED_EVENT, checkNewFeedback);
             window.removeEventListener("focus", checkOpenDisputes);
             window.removeEventListener("focus", checkOpenRedFlags);
+            window.removeEventListener("focus", checkNewFeedback);
         };
     }, []);
 
@@ -510,7 +546,7 @@ export function Sidebar({ isMobileOpen = false, onClose }: SidebarProps) {
         <>
             {/* Desktop persistent sidebar */}
             <aside className="w-[290px] bg-white dark:bg-[#111C44] flex-col h-full hidden md:flex z-20 shrink-0 border-r border-gray-100 dark:border-white/5">
-                <SidebarContent hasOpenDisputes={openDisputesExist} hasOpenRedFlags={openRedFlagsExist} />
+                <SidebarContent hasOpenDisputes={openDisputesExist} hasOpenRedFlags={openRedFlagsExist} hasNewFeedback={newFeedbackExist} />
             </aside>
 
             {/* Mobile slide-over drawer overlay */}
@@ -531,7 +567,7 @@ export function Sidebar({ isMobileOpen = false, onClose }: SidebarProps) {
                         >
                             <X className="h-5 w-5" />
                         </button>
-                        <SidebarContent onClose={onClose} hasOpenDisputes={openDisputesExist} hasOpenRedFlags={openRedFlagsExist} />
+                        <SidebarContent onClose={onClose} hasOpenDisputes={openDisputesExist} hasOpenRedFlags={openRedFlagsExist} hasNewFeedback={newFeedbackExist} />
                     </aside>
                 </div>
             )}

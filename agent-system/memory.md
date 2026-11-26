@@ -85,6 +85,17 @@ This file persists key architectural discoveries, long-term project context, and
   - Email prompts (`POST /api/feedback/send-prompt` and booking confirmation email footer CTAs in `utils/emailTemplates.js`) follow `LESSON-002` (strict `EMAIL_USER` sender alignment, `replyTo`, no subject emojis) and deep-link to `?feedback=1&source=...`.
   - Admin Console adds `/feedback` (`FeedbackPage.tsx`, `FeedbackDetailModal.tsx`, `SendFeedbackPromptModal.tsx`), sidebar cyan indicator dot (`hasNewFeedback`), CSV export, and `"Feedback"` module audit logging in `admin_audit_logs`.
 
+### MEM-008: Complimentary Booking Perks & Freebies (Sessions + Retreats)
+- **Date Recorded**: 2026-11-26
+- **Source**: Feature Implementation
+- **Importance Level**: Medium
+- **Tags**: `[listings, retreats, booking-perks, healer-app, seeker-app, retreats-app]`
+- **Summary**: Added optional `bookingPerks: string[]` field to session listings (`listings`) and retreats (`retreat_listings`) for complimentary equipment, freebies, and souvenirs.
+- **Full Context**:
+  - `healer-app` adds reusable `BookingPerksEditor.jsx` (preset chips + custom input) wired into `CreateListing`, `EditListing`, `CreateRetreat`, and `EditRetreat`.
+  - `backend-server` exposes `bookingPerks` in `retreatController.js`, `adminListingsController.js`, and `adminRetreatsController.js`.
+  - Displayed on `seeker-app` (`ListingDetail.jsx`, `RetreatDetail.jsx`), `retreats-app` (`RetreatCard.tsx`, `RetreatDetail.tsx`), and `ultrahealers-admin-console` (`ListingDetail.tsx`, `RetreatDetail.tsx`).
+
 ---
 
 ## 📥 Template for New Entries

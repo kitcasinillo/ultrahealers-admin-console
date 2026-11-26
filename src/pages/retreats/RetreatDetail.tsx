@@ -275,6 +275,19 @@ export default function RetreatDetail() {
                                 </p>
                             </div>
 
+                            {Array.isArray(retreat.bookingPerks) && retreat.bookingPerks.length > 0 && (
+                                <div className="mt-6">
+                                    <h3 className="text-lg font-bold text-[#1b254b] dark:text-white mb-3">Complimentary Perks &amp; Freebies</h3>
+                                    <div className="flex flex-wrap gap-2">
+                                        {retreat.bookingPerks.map((perk: string, idx: number) => (
+                                            <Badge key={`${perk}-${idx}`} variant="secondary" className="bg-cyan-50 text-cyan-800 border border-cyan-200 dark:bg-cyan-500/15 dark:text-cyan-200 dark:border-cyan-500/30 px-3 py-1">
+                                                {perk}
+                                            </Badge>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+
                             <div className="mt-8">
                                 <h3 className="text-lg font-bold text-[#1b254b] dark:text-white mb-4">Gallery</h3>
                                 {retreat.imageUrl ? (

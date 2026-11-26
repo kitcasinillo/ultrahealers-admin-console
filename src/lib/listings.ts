@@ -27,6 +27,7 @@ export type AdminListingDetail = AdminListing & {
   description: string;
   durationMinutes: number;
   requiredInformation: string[];
+  bookingPerks?: string[];
   images: string[];
   revisionHistory: Array<Record<string, unknown>>;
   performance: {

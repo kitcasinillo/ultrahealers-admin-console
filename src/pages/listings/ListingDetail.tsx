@@ -172,6 +172,19 @@ export function ListingDetail() {
                                 {String(data.description || "No description found in the backend listing record.")}
                             </p>
 
+                            {Array.isArray(data.bookingPerks) && data.bookingPerks.length > 0 && (
+                                <div className="mb-6">
+                                    <h4 className="font-medium text-sm text-muted-foreground mb-2">Complimentary Perks &amp; Freebies</h4>
+                                    <div className="flex flex-wrap gap-2">
+                                        {data.bookingPerks.map((perk, index) => (
+                                            <Badge key={`${perk}-${index}`} variant="secondary" className="bg-cyan-50 text-cyan-800 border border-cyan-200 dark:bg-cyan-500/15 dark:text-cyan-200 dark:border-cyan-500/30">
+                                                {perk}
+                                            </Badge>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+
                             <h4 className="font-medium text-sm text-muted-foreground mb-2 mt-4">Required Information from Seeker</h4>
                             {Array.isArray(data.requiredInformation) && data.requiredInformation.length > 0 ? (
                                 <ul className="list-disc list-inside text-sm text-muted-foreground space-y-1">

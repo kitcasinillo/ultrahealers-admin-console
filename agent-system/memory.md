@@ -62,6 +62,17 @@ This file persists key architectural discoveries, long-term project context, and
   - Items 1 and 2 (`idx < 2`) render cards below (`top-full mt-1.5`) to prevent header clipping; items 3+ render above (`bottom-full mb-1.5`).
   - Clicking any item pins its display card open with `pinnedItemKey` state and a `Pinned` badge indicator. Removed modal dialogs in favor of this direct card pinning.
 
+### MEM-006: Red Flag Bot & Chat Content Filter (Warn + Flag Mode)
+- **Date Recorded**: 2026-11-26
+- **Source**: Feature Implementation
+- **Importance Level**: High
+- **Tags**: `[moderation, red-flags, chat, trust-and-safety, audit-log]`
+- **Summary**: Implemented Airbnb-style Warn + Flag chat content filtering across `backend-server`, `seeker-app`, `healer-app`, and `ultrahealers-admin-console`.
+- **Full Context**:
+  - Backend detector (`backend-server/utils/redFlagDetector.js`) and moderation API (`/api/moderation/red-flags`) store violations in Firestore `red_flag_alerts` regardless of booking payment status.
+  - Client chats (`seeker-app` and `healer-app`) show a real-time amber warning banner as users type, preserve existing client-to-RTDB writes, and trigger async `/api/moderation/red-flags/scan` on text sends.
+  - Admin Console adds `/moderation/red-flags` (`RedFlagsPage.tsx` + `RedFlagDetailModal.tsx` with RTDB chat transcript viewer), sidebar amber indicator dot (`hasOpenRedFlags`), CSV export, and `"Moderation"` module audit logging in `admin_audit_logs`.
+
 ---
 
 ## 📥 Template for New Entries

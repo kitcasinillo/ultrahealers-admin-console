@@ -1,15 +1,16 @@
 import { useEffect, useState } from "react";
 import { NavLink } from "react-router-dom";
-import { Users, LayoutDashboard, List, Activity, Settings, UserCircle, MessageSquareWarning, CreditCard, Mail, Calendar, BarChart3, Search, Bell, Home, Clock, X } from "lucide-react";
+import { Users, LayoutDashboard, List, Activity, Settings, UserCircle, MessageSquareWarning, CreditCard, Mail, Calendar, BarChart3, Search, Bell, Home, Clock, X, ShieldAlert } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { DISPUTES_UPDATED_EVENT, hasOpenDisputes } from "@/lib/disputes";
+import { RED_FLAGS_UPDATED_EVENT, hasOpenRedFlags } from "@/lib/redFlags";
 
 interface SidebarProps {
     isMobileOpen?: boolean;
     onClose?: () => void;
 }
 
-function SidebarContent({ onClose, hasOpenDisputes: showOpenDisputeBadge }: { onClose?: () => void; hasOpenDisputes?: boolean }) {
+function SidebarContent({ onClose, hasOpenDisputes: showOpenDisputeBadge, hasOpenRedFlags: showOpenRedFlagsBadge }: { onClose?: () => void; hasOpenDisputes?: boolean; hasOpenRedFlags?: boolean }) {
     const handleNavClick = () => {
         if (onClose) {
             onClose();
@@ -159,6 +160,29 @@ function SidebarContent({ onClose, hasOpenDisputes: showOpenDisputeBadge }: { on
                                             aria-label="Open disputes"
                                             title="Open disputes"
                                             className="ml-auto h-2.5 w-2.5 rounded-full bg-red-500 ring-2 ring-red-500/20 shrink-0"
+                                        />
+                                    )}
+                                    {isActive && <div className="absolute right-0 top-1/2 -translate-y-1/2 w-1.5 h-9 bg-[#4318FF] dark:bg-[#01A3B4] rounded-l-full" />}
+                                </>
+                            )}
+                        </NavLink>
+                        <NavLink
+                            to="/moderation/red-flags"
+                            onClick={handleNavClick}
+                            className={({ isActive }) =>
+                                cn("flex items-center gap-4 px-8 py-3.5 text-[15px] font-semibold transition-all group relative",
+                                    isActive ? "text-[#4318FF] dark:text-white" : "text-[#A3AED0] hover:text-[#4318FF] dark:hover:text-white")
+                            }
+                        >
+                            {({ isActive }) => (
+                                <>
+                                    <ShieldAlert className={cn("h-5 w-5 transition-colors", isActive ? "text-[#4318FF] dark:text-white" : "text-[#A3AED0] group-hover:text-[#4318FF] dark:group-hover:text-white")} />
+                                    <span>Red Flags</span>
+                                    {showOpenRedFlagsBadge && (
+                                        <span
+                                            aria-label="Open red flags"
+                                            title="Open red flags"
+                                            className="ml-auto h-2.5 w-2.5 rounded-full bg-amber-500 ring-2 ring-amber-500/20 shrink-0"
                                         />
                                     )}
                                     {isActive && <div className="absolute right-0 top-1/2 -translate-y-1/2 w-1.5 h-9 bg-[#4318FF] dark:bg-[#01A3B4] rounded-l-full" />}
@@ -446,6 +470,7 @@ function SidebarContent({ onClose, hasOpenDisputes: showOpenDisputeBadge }: { on
 
 export function Sidebar({ isMobileOpen = false, onClose }: SidebarProps) {
     const [openDisputesExist, setOpenDisputesExist] = useState(false);
+    const [openRedFlagsExist, setOpenRedFlagsExist] = useState(false);
 
     useEffect(() => {
         let mounted = true;
@@ -455,16 +480,29 @@ export function Sidebar({ isMobileOpen = false, onClose }: SidebarProps) {
             if (mounted) setOpenDisputesExist(hasOpen);
         };
 
+        const checkOpenRedFlags = async () => {
+            const hasOpen = await hasOpenRedFlags();
+            if (mounted) setOpenRedFlagsExist(hasOpen);
+        };
+
         checkOpenDisputes();
-        const intervalId = window.setInterval(checkOpenDisputes, 60_000);
+        checkOpenRedFlags();
+        const intervalId = window.setInterval(() => {
+            checkOpenDisputes();
+            checkOpenRedFlags();
+        }, 60_000);
         window.addEventListener(DISPUTES_UPDATED_EVENT, checkOpenDisputes);
+        window.addEventListener(RED_FLAGS_UPDATED_EVENT, checkOpenRedFlags);
         window.addEventListener("focus", checkOpenDisputes);
+        window.addEventListener("focus", checkOpenRedFlags);
 
         return () => {
             mounted = false;
             window.clearInterval(intervalId);
             window.removeEventListener(DISPUTES_UPDATED_EVENT, checkOpenDisputes);
+            window.removeEventListener(RED_FLAGS_UPDATED_EVENT, checkOpenRedFlags);
             window.removeEventListener("focus", checkOpenDisputes);
+            window.removeEventListener("focus", checkOpenRedFlags);
         };
     }, []);
 
@@ -472,7 +510,7 @@ export function Sidebar({ isMobileOpen = false, onClose }: SidebarProps) {
         <>
             {/* Desktop persistent sidebar */}
             <aside className="w-[290px] bg-white dark:bg-[#111C44] flex-col h-full hidden md:flex z-20 shrink-0 border-r border-gray-100 dark:border-white/5">
-                <SidebarContent hasOpenDisputes={openDisputesExist} />
+                <SidebarContent hasOpenDisputes={openDisputesExist} hasOpenRedFlags={openRedFlagsExist} />
             </aside>
 
             {/* Mobile slide-over drawer overlay */}
@@ -493,7 +531,7 @@ export function Sidebar({ isMobileOpen = false, onClose }: SidebarProps) {
                         >
                             <X className="h-5 w-5" />
                         </button>
-                        <SidebarContent onClose={onClose} hasOpenDisputes={openDisputesExist} />
+                        <SidebarContent onClose={onClose} hasOpenDisputes={openDisputesExist} hasOpenRedFlags={openRedFlagsExist} />
                     </aside>
                 </div>
             )}

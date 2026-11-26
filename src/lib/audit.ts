@@ -5,7 +5,7 @@ export interface AuditLogEntry {
   adminId: string;
   adminEmail: string;
   action: string;
-  module: "Healers" | "Seekers" | "Users" | "Listings" | "Disputes" | "Bookings" | "Payments" | "Settings" | "Media";
+  module: "Healers" | "Seekers" | "Users" | "Listings" | "Disputes" | "Bookings" | "Payments" | "Settings" | "Media" | "Moderation";
   targetId?: string;
   targetName?: string;
   changes?: any;

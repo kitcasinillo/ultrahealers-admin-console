@@ -62,6 +62,40 @@ This file persists key architectural discoveries, long-term project context, and
   - Items 1 and 2 (`idx < 2`) render cards below (`top-full mt-1.5`) to prevent header clipping; items 3+ render above (`bottom-full mb-1.5`).
   - Clicking any item pins its display card open with `pinnedItemKey` state and a `Pinned` badge indicator. Removed modal dialogs in favor of this direct card pinning.
 
+### MEM-006: Red Flag Bot & Chat Content Filter (Warn + Flag Mode)
+- **Date Recorded**: 2026-11-26
+- **Source**: Feature Implementation
+- **Importance Level**: High
+- **Tags**: `[moderation, red-flags, chat, trust-and-safety, audit-log]`
+- **Summary**: Implemented Airbnb-style Warn + Flag chat content filtering across `backend-server`, `seeker-app`, `healer-app`, and `ultrahealers-admin-console`.
+- **Full Context**:
+  - Backend detector (`backend-server/utils/redFlagDetector.js`) and moderation API (`/api/moderation/red-flags`) store violations in Firestore `red_flag_alerts` regardless of booking payment status.
+  - Client chats (`seeker-app` and `healer-app`) show a real-time amber warning banner as users type, preserve existing client-to-RTDB writes, and trigger async `/api/moderation/red-flags/scan` on text sends.
+  - Admin Console adds `/moderation/red-flags` (`RedFlagsPage.tsx` + `RedFlagDetailModal.tsx` with RTDB chat transcript viewer), sidebar amber indicator dot (`hasOpenRedFlags`), CSV export, and `"Moderation"` module audit logging in `admin_audit_logs`.
+
+### MEM-007: User Feedback & Feature Request Capture System
+- **Date Recorded**: 2026-11-26
+- **Source**: Feature Implementation
+- **Importance Level**: High
+- **Tags**: `[feedback, feature-requests, email-prompts, admin-console, audit-log]`
+- **Summary**: Implemented in-app and email-prompt feedback capture across `backend-server`, `seeker-app`, `healer-app`, `retreats-app`, and `ultrahealers-admin-console`.
+- **Full Context**:
+  - Backend API (`/api/feedback` in `controllers/feedbackController.js` + `routes/feedbackRoutes.js`) stores submissions in Firestore `user_feedback` and logs email prompts in `feedback_prompt_logs` with a 30-day per-user cooldown.
+  - Enforces authentication (`userId` required) for `seeker-app` and `healer-app`; allows guest submissions with optional Name/Email for `retreats-app`.
+  - Email prompts (`POST /api/feedback/send-prompt` and booking confirmation email footer CTAs in `utils/emailTemplates.js`) follow `LESSON-002` (strict `EMAIL_USER` sender alignment, `replyTo`, no subject emojis) and deep-link to `?feedback=1&source=...`.
+  - Admin Console adds `/feedback` (`FeedbackPage.tsx`, `FeedbackDetailModal.tsx`, `SendFeedbackPromptModal.tsx`), sidebar cyan indicator dot (`hasNewFeedback`), CSV export, and `"Feedback"` module audit logging in `admin_audit_logs`.
+
+### MEM-008: Complimentary Booking Perks & Freebies (Sessions + Retreats)
+- **Date Recorded**: 2026-11-26
+- **Source**: Feature Implementation
+- **Importance Level**: Medium
+- **Tags**: `[listings, retreats, booking-perks, healer-app, seeker-app, retreats-app]`
+- **Summary**: Added optional `bookingPerks: string[]` field to session listings (`listings`) and retreats (`retreat_listings`) for complimentary equipment, freebies, and souvenirs.
+- **Full Context**:
+  - `healer-app` adds reusable `BookingPerksEditor.jsx` (preset chips + custom input) wired into `CreateListing`, `EditListing`, `CreateRetreat`, and `EditRetreat`.
+  - `backend-server` exposes `bookingPerks` in `retreatController.js`, `adminListingsController.js`, and `adminRetreatsController.js`.
+  - Displayed on `seeker-app` (`ListingDetail.jsx`, `RetreatDetail.jsx`), `retreats-app` (`RetreatCard.tsx`, `RetreatDetail.tsx`), and `ultrahealers-admin-console` (`ListingDetail.tsx`, `RetreatDetail.tsx`).
+
 ---
 
 ## 📥 Template for New Entries

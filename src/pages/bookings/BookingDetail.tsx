@@ -1,10 +1,20 @@
 import { useEffect, useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
-import { ArrowLeft } from 'lucide-react';
+import { Link, useNavigate, useParams } from 'react-router-dom';
+import { ArrowLeft, Trash2 } from 'lucide-react';
 import { Button } from '../../components/ui/button';
 import { Badge } from '../../components/ui/badge';
+import { ConfirmModal } from '../../components/ConfirmModal';
 import { useToast } from '../../contexts/ToastContext';
-import { fetchBookingDetail, type AdminBookingDetail, updateBookingStatus } from '../../lib/bookings';
+import {
+  BOOKING_STATUS_OPTIONS,
+  deleteBooking,
+  fetchBookingDetail,
+  formatBookingStatus,
+  formatBookingType,
+  formatPaymentStatus,
+  type AdminBookingDetail,
+  updateBookingStatus,
+} from '../../lib/bookings';
 
 const formatCurrency = (amount: number, currency = 'USD') => new Intl.NumberFormat('en-US', {
   style: 'currency',
@@ -19,9 +29,12 @@ const formatDate = (value: string | null) => {
 
 export function BookingDetail() {
   const { id = '', type = 'sessions' } = useParams();
+  const navigate = useNavigate();
   const [data, setData] = useState<AdminBookingDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { showToast } = useToast();
 
@@ -54,12 +67,27 @@ export function BookingDetail() {
       setSaving(true);
       await updateBookingStatus(id, status);
       setData((prev) => prev ? { ...prev, status } : prev);
-      showToast(`Booking status updated to ${status}.`, 'success');
+      showToast(`Booking status updated to ${formatBookingStatus(status)}.`, 'success');
     } catch (err: any) {
       console.error('Failed to update booking status:', err);
       showToast(err?.response?.data?.error || err?.message || 'Failed to update booking status', 'error');
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!id) return;
+    try {
+      setIsDeleting(true);
+      await deleteBooking(id);
+      showToast('Booking permanently deleted.', 'success');
+      navigate(data?.bookingType === 'retreat' || type === 'retreats' ? '/bookings/retreats' : '/bookings/sessions');
+    } catch (err: any) {
+      console.error('Failed to delete booking:', err);
+      showToast(err?.response?.data?.error || err?.message || 'Failed to delete booking', 'error');
+      setIsDeleting(false);
+      setIsDeleteModalOpen(false);
     }
   };
 
@@ -74,8 +102,8 @@ export function BookingDetail() {
         <div className="flex-1">
           <div className="flex items-center gap-3">
             <h2 className="text-2xl font-bold tracking-tight">{data?.listingTitle || 'Booking Detail'}</h2>
-            {data && <Badge variant={data.status === 'completed' ? 'outline' : data.status === 'confirmed' ? 'default' : 'secondary'}>{data.status}</Badge>}
-            {data && <Badge variant="secondary">{data.bookingType}</Badge>}
+            {data && <Badge variant={data.status === 'completed' ? 'outline' : data.status === 'confirmed' ? 'default' : 'secondary'}>{formatBookingStatus(data.status)}</Badge>}
+            {data && <Badge variant="secondary">{formatBookingType(data.bookingType)}</Badge>}
           </div>
           <p className="text-muted-foreground text-sm">Booking ID: {id}</p>
         </div>
@@ -95,7 +123,7 @@ export function BookingDetail() {
                 <div><span className="text-muted-foreground block mb-1">Healer</span><span className="font-medium">{data.healerName}</span></div>
                 <div><span className="text-muted-foreground block mb-1">Seeker</span><span className="font-medium">{data.seekerName}</span></div>
                 <div><span className="text-muted-foreground block mb-1">Amount</span><span className="font-medium">{formatCurrency(data.amount, data.currency)}</span></div>
-                <div><span className="text-muted-foreground block mb-1">Payment Status</span><span className="font-medium">{data.paymentStatus}</span></div>
+                <div><span className="text-muted-foreground block mb-1">Payment Status</span><span className="font-medium">{formatPaymentStatus(data.paymentStatus)}</span></div>
                 <div><span className="text-muted-foreground block mb-1">Session Date</span><span className="font-medium">{formatDate(data.sessionDate)}</span></div>
                 <div><span className="text-muted-foreground block mb-1">Session Time</span><span className="font-medium">{data.sessionTime || '—'}</span></div>
                 <div><span className="text-muted-foreground block mb-1">Format</span><span className="font-medium">{data.format || '—'}</span></div>
@@ -127,18 +155,39 @@ export function BookingDetail() {
               <h3 className="font-semibold mb-4 text-lg">Admin Controls</h3>
               <div className="space-y-4">
                 <div>
-                  <label className="text-sm font-medium mb-1 block">Override Status</label>
-                  <select value={data.status} onChange={(e) => handleStatusChange(e.target.value)} className="w-full border rounded-md p-2 bg-background text-sm" disabled={saving}>
-                    <option value="created">created</option>
-                    <option value="pending_confirmation">pending_confirmation</option>
-                    <option value="confirmed">confirmed</option>
-                    <option value="completed">completed</option>
+                  <label className="text-sm font-medium mb-1.5 block">Override Status</label>
+                  <select
+                    value={data.status}
+                    onChange={(e) => handleStatusChange(e.target.value)}
+                    className="h-10 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm font-semibold text-[#1b254b] outline-none transition focus:border-[#4318FF] focus:ring-2 focus:ring-[#4318FF]/15 dark:border-white/10 dark:bg-white/5 dark:text-white"
+                    disabled={saving}
+                  >
+                    {BOOKING_STATUS_OPTIONS.map((option) => (
+                      <option key={option.value} value={option.value} className="dark:bg-[#111C44]">
+                        {option.label}
+                      </option>
+                    ))}
                   </select>
                   <p className="text-xs text-muted-foreground mt-1">Updates the backend booking status flags.</p>
                 </div>
                 <div className="pt-4 border-t text-sm text-muted-foreground space-y-2">
                   <p>Healer Email: <span className="font-medium text-foreground break-all">{data.healerEmail || '—'}</span></p>
                   <p>Seeker Email: <span className="font-medium text-foreground break-all">{data.seekerEmail || '—'}</span></p>
+                </div>
+                <div className="pt-4 border-t">
+                  <Button
+                    type="button"
+                    variant="destructive"
+                    className="w-full gap-2"
+                    onClick={() => setIsDeleteModalOpen(true)}
+                    disabled={saving || isDeleting}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                    Delete Booking
+                  </Button>
+                  <p className="text-xs text-muted-foreground mt-2">
+                    Permanently removes this booking from Firestore, Finance, and Financial Reports.
+                  </p>
                 </div>
               </div>
             </div>
@@ -152,6 +201,21 @@ export function BookingDetail() {
           </div>
         </div>
       )}
+
+      <ConfirmModal
+        isOpen={isDeleteModalOpen}
+        onClose={() => !isDeleting && setIsDeleteModalOpen(false)}
+        onConfirm={handleConfirmDelete}
+        title="Delete Booking Permanently?"
+        description={
+          data
+            ? `Warning: You are about to permanently delete booking "${data.listingTitle}" (${data.seekerName} with ${data.healerName}, ${formatCurrency(data.amount, data.currency)}). This cannot be undone, will remove it from Finance and Financial Reports, and will NOT issue a Stripe refund.`
+            : `Warning: You are about to permanently delete booking ${id}. This action cannot be undone.`
+        }
+        confirmText="Delete Booking"
+        variant="destructive"
+        isLoading={isDeleting}
+      />
     </div>
   );
 }

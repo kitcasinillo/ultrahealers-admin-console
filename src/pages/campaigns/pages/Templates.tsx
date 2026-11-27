@@ -1,56 +1,57 @@
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Plus, Mail, Pencil, Copy, Trash2, Eye } from "lucide-react"
 import toast from "react-hot-toast"
 import { SubNav, TemplateModal, TemplatePreviewModal } from "../components"
 import { ConfirmModal } from "@/components/ui/ConfirmModal"
+import {
+    createTemplate,
+    deleteTemplate,
+    getTemplates,
+    updateTemplate,
+    type CampaignTemplate,
+} from "@/api/campaigns"
 
-type Template = {
-    id: number
-    name: string
-    category: string
-    previewImage?: string
-    lastEdited?: string
+type Template = CampaignTemplate
+
+const formatRelativeDate = (iso?: string | null) => {
+    if (!iso) return "Just now"
+    const parsed = new Date(iso)
+    if (Number.isNaN(parsed.getTime())) return iso
+    return parsed.toLocaleDateString()
 }
 
-const initialTemplates: Template[] = [
-    { 
-        id: 1, 
-        name: 'Welcome Email (Healer)', 
-        category: 'Onboarding',
-        previewImage: 'https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?auto=format&fit=crop&w=400&q=80',
-        lastEdited: '2 days ago'
-    },
-    { 
-        id: 2, 
-        name: 'Subscription Renewal', 
-        category: 'Transactional',
-        previewImage: 'https://images.unsplash.com/photo-1553729459-efe14ef6055d?auto=format&fit=crop&w=400&q=80',
-        lastEdited: '5 days ago'
-    },
-    { 
-        id: 3, 
-        name: 'New Retreat Launch', 
-        category: 'Marketing',
-        previewImage: 'https://images.unsplash.com/photo-1506126613408-eca07ce68773?auto=format&fit=crop&w=400&q=80',
-        lastEdited: '1 week ago'
-    },
-    { 
-        id: 4, 
-        name: 'Booking Confirmation', 
-        category: 'Transactional',
-        previewImage: 'https://images.unsplash.com/photo-1586769852044-692d6e3703a0?auto=format&fit=crop&w=400&q=80',
-        lastEdited: '2 weeks ago'
-    },
-]
-
 export function Templates() {
-    const [templates, setTemplates] = useState<Template[]>(initialTemplates)
+    const [templates, setTemplates] = useState<Template[]>([])
+    const [loading, setLoading] = useState(true)
     const [isModalOpen, setIsModalOpen] = useState(false)
     const [isPreviewModalOpen, setIsPreviewModalOpen] = useState(false)
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false)
     const [selectedTemplate, setSelectedTemplate] = useState<Template | null>(null)
     const [modalMode, setModalMode] = useState<'create' | 'edit'>('create')
+
+    useEffect(() => {
+        let mounted = true
+        setLoading(true)
+        getTemplates()
+            .then((res) => {
+                if (!mounted) return
+                const items = (res.data.templates || []).map((t) => ({
+                    ...t,
+                    lastEdited: formatRelativeDate(t.updatedAt || t.createdAt),
+                }))
+                setTemplates(items)
+            })
+            .catch(() => {
+                if (mounted) toast.error("Failed to load templates")
+            })
+            .finally(() => {
+                if (mounted) setLoading(false)
+            })
+        return () => {
+            mounted = false
+        }
+    }, [])
 
     const handleCreateClick = () => {
         setModalMode('create')
@@ -74,46 +75,80 @@ export function Templates() {
         setIsPreviewModalOpen(true)
     }
 
-    const handleSaveTemplate = (data: Partial<Template>) => {
-        if (modalMode === 'create') {
-            const newTemplate: Template = {
-                id: Date.now(),
-                name: data.name || "Untitled Template",
-                category: data.category || "Other",
-                lastEdited: 'Just now'
+    const handleSaveTemplate = async (data: Partial<Template>) => {
+        try {
+            if (modalMode === 'create') {
+                const res = await createTemplate({
+                    name: data.name || "Untitled Template",
+                    category: data.category || "Other",
+                    previewImage: data.previewImage || "",
+                })
+                const created = { ...res.data.template, lastEdited: 'Just now' }
+                setTemplates((prev) => [created, ...prev])
+                toast.success("Template created successfully")
+            } else if (selectedTemplate) {
+                const res = await updateTemplate(selectedTemplate.id, {
+                    name: data.name || selectedTemplate.name,
+                    category: data.category || selectedTemplate.category,
+                    previewImage: data.previewImage !== undefined ? data.previewImage : selectedTemplate.previewImage,
+                })
+                const updated = { ...res.data.template, lastEdited: 'Just now' }
+                setTemplates((prev) => prev.map((t) => (t.id === selectedTemplate.id ? updated : t)))
+                toast.success("Template updated")
             }
-            setTemplates([newTemplate, ...templates])
-            toast.success("Template created successfully")
-        } else if (selectedTemplate) {
-            setTemplates(templates.map(t => 
-                t.id === selectedTemplate.id 
-                    ? { ...t, name: data.name || t.name, category: data.category || t.category, lastEdited: 'Just now' } 
-                    : t
-            ))
-            toast.success("Template updated")
+        } catch {
+            toast.error("Failed to save template")
+        } finally {
+            setIsModalOpen(false)
+            setSelectedTemplate(null)
         }
-        setIsModalOpen(false)
-        setSelectedTemplate(null)
     }
 
-    const handleConfirmDelete = () => {
-        if (selectedTemplate) {
-            setTemplates(templates.filter(t => t.id !== selectedTemplate.id))
+    const handleSaveTemplateContent = async (
+        id: string,
+        htmlContent: string,
+        previewImage?: string,
+        fields?: Template["fields"]
+    ) => {
+        const res = await updateTemplate(id, {
+            content: htmlContent,
+            ...(previewImage !== undefined && { previewImage }),
+            ...(fields !== undefined && { fields }),
+        })
+        const updated = { ...res.data.template, lastEdited: 'Just now' }
+        setTemplates((prev) => prev.map((t) => (t.id === id ? updated : t)))
+        setSelectedTemplate((prev) => (prev && prev.id === id ? updated : prev))
+    }
+
+    const handleConfirmDelete = async () => {
+        if (!selectedTemplate) return
+        try {
+            await deleteTemplate(selectedTemplate.id)
+            setTemplates((prev) => prev.filter((t) => t.id !== selectedTemplate.id))
             toast.success("Template deleted")
+        } catch {
+            toast.error("Failed to delete template")
+        } finally {
             setIsDeleteModalOpen(false)
             setSelectedTemplate(null)
         }
     }
 
-    const handleDuplicate = (template: Template) => {
-        const duplicatedTemplate = {
-            ...template,
-            id: Date.now(),
-            name: `${template.name} (Copy)`,
-            lastEdited: 'Just now'
+    const handleDuplicate = async (template: Template) => {
+        try {
+            const res = await createTemplate({
+                name: `${template.name} (Copy)`,
+                category: template.category,
+                description: template.description,
+                previewImage: template.previewImage,
+                content: template.content,
+            })
+            const duplicated = { ...res.data.template, lastEdited: 'Just now' }
+            setTemplates((prev) => [duplicated, ...prev])
+            toast.success("Template duplicated")
+        } catch {
+            toast.error("Failed to duplicate template")
         }
-        setTemplates([duplicatedTemplate, ...templates])
-        toast.success("Template duplicated")
     }
 
     return (
@@ -135,8 +170,11 @@ export function Templates() {
                 </Button>
             </div>
 
-            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                {templates.map((template) => (
+            {loading ? (
+                <div className="py-16 text-center text-sm text-[#A3AED0]">Loading templates...</div>
+            ) : (
+                <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                    {templates.map((template) => (
                     <div key={template.id} className="group bg-white dark:bg-[#111C44] rounded-[32px] overflow-hidden shadow-[0_10px_30px_0_rgba(11,20,55,0.06)] dark:shadow-none border border-transparent dark:border-white/5 transition-all hover:shadow-2xl flex flex-col hover:-translate-y-1">
                         <div className="aspect-[3/4] bg-[#F4F7FE] dark:bg-white/5 border-b border-gray-100 dark:border-white/5 flex items-center justify-center relative overflow-hidden">
                             {template.previewImage ? (
@@ -220,8 +258,9 @@ export function Templates() {
                             </div>
                         </div>
                     </div>
-                ))}
-            </div>
+                    ))}
+                </div>
+            )}
 
             <TemplateModal 
                 isOpen={isModalOpen}
@@ -235,6 +274,7 @@ export function Templates() {
                 isOpen={isPreviewModalOpen}
                 onClose={() => setIsPreviewModalOpen(false)}
                 template={selectedTemplate}
+                onSaveContent={handleSaveTemplateContent}
             />
 
             <ConfirmModal 

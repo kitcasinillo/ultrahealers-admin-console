@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useToast } from '@/contexts/ToastContext';
-import { getDisputes, updateDisputeStatus, escalateDispute, sendDisputeEmail, exportDisputes } from '@/lib/disputes';
+import { getDisputes, updateDisputeStatus, escalateDispute, sendDisputeEmail, deleteDispute, exportDisputes } from '@/lib/disputes';
 import type { Dispute } from '@/lib/disputes';
 import { DisputesFilters, type DisputesFiltersState } from './DisputesFilters';
 import { getColumns, type DisputesColumnsActions } from './columns';
@@ -31,12 +31,16 @@ export default function DisputesPage() {
     isOpen: boolean;
     title: string;
     description: string;
+    confirmText?: string;
+    variant?: "default" | "destructive";
     onConfirm: () => Promise<void>;
     isLoading: boolean;
   }>({
     isOpen: false,
     title: '',
     description: '',
+    confirmText: 'Confirm Action',
+    variant: 'destructive',
     onConfirm: async () => {},
     isLoading: false
   });
@@ -127,6 +131,8 @@ export default function DisputesPage() {
         isOpen: true,
         title: 'Send Notification',
         description: 'This will send an email notification to the involved parties. Continue?',
+        confirmText: 'Send Email',
+        variant: 'default',
         isLoading: false,
         onConfirm: async () => {
           setConfirmModal(p => ({ ...p, isLoading: true }));
@@ -135,6 +141,28 @@ export default function DisputesPage() {
             showToast('Email notification sent successfully');
           } catch (e) {
             showToast('Failed to send email', 'error');
+          } finally {
+            setConfirmModal(p => ({ ...p, isOpen: false, isLoading: false }));
+          }
+        }
+      });
+    },
+    onDelete: (id) => {
+      setConfirmModal({
+        isOpen: true,
+        title: 'Delete Dispute',
+        description: `Are you sure you want to permanently delete dispute ${id}? This action cannot be undone.`,
+        confirmText: 'Delete Dispute',
+        variant: 'destructive',
+        isLoading: false,
+        onConfirm: async () => {
+          setConfirmModal(p => ({ ...p, isLoading: true }));
+          try {
+            await deleteDispute(id);
+            showToast('Dispute deleted successfully');
+            await fetchDisputes();
+          } catch (e) {
+            showToast('Failed to delete dispute', 'error');
           } finally {
             setConfirmModal(p => ({ ...p, isOpen: false, isLoading: false }));
           }
@@ -231,7 +259,8 @@ export default function DisputesPage() {
         title={confirmModal.title}
         description={confirmModal.description}
         isLoading={confirmModal.isLoading}
-        confirmText="Confirm Action"
+        confirmText={confirmModal.confirmText || "Confirm Action"}
+        variant={confirmModal.variant || "destructive"}
       />
     </div>
   );

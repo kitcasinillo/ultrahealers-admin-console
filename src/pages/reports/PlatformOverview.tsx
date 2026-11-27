@@ -27,8 +27,8 @@ import { exportPlatformOverviewPdf, exportPlatformOverviewExcel } from '../../li
 import { getPlatformOverview, type PlatformOverviewData } from '../../api/reports';
 
 export function PlatformOverview() {
-  const [granularity, setGranularity] = useState('Weekly');
-  const [dateRange, setDateRange] = useState('Monthly');
+  const [granularity, setGranularity] = useState('Daily');
+  const [dateRange, setDateRange] = useState('This Month');
   const [customStartDate, setCustomStartDate] = useState('');
   const [customEndDate, setCustomEndDate] = useState('');
 
@@ -37,23 +37,15 @@ export function PlatformOverview() {
   const [error, setError] = useState<string | null>(null);
   const reportCache = useRef<Record<string, PlatformOverviewData>>({});
 
-  // Sync granularity with the dropdown selection (Monthly -> Weekly -> Daily mapping)
+  // Sync granularity with the selected time range
   useEffect(() => {
-    if (dateRange === 'Daily') setGranularity('Daily');
-    if (dateRange === 'Weekly') setGranularity('Weekly');
-    if (dateRange === 'Monthly') setGranularity('Monthly');
+    if (dateRange === 'This Month') setGranularity('Daily');
+    else if (dateRange === 'This Year' || dateRange === 'All Time') setGranularity('Monthly');
   }, [dateRange]);
 
   useEffect(() => {
     const fetchData = async () => {
-      // Map dropdown labels to backend range keywords
-      const rangeMap: Record<string, string> = {
-        "Daily": "Today",
-        "Weekly": "This Week",
-        "Monthly": "This Month"
-      };
-
-      const apiRange = rangeMap[dateRange] || dateRange;
+      const apiRange = dateRange;
       const cacheKey = `${apiRange}-${granularity}-${customStartDate}-${customEndDate}`;
 
       if (reportCache.current[cacheKey]) {
@@ -154,6 +146,7 @@ export function PlatformOverview() {
             setCustomStartDate={setCustomStartDate}
             customEndDate={customEndDate}
             setCustomEndDate={setCustomEndDate}
+            options={['This Month', 'This Year', 'All Time']}
           />
           <ExportDropdown
             onExportExcel={handleExportExcel}

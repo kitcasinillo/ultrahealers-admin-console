@@ -20,6 +20,7 @@ interface FilterChipsProps {
     searchQuery: string
     statusFilter: string
     audienceFilter: string
+    dateRange?: string
     startDate: string
     endDate: string
     createdByFilter: string
@@ -32,11 +33,17 @@ interface FilterChipsProps {
 }
 
 export function FilterChips({ 
-    searchQuery, statusFilter, audienceFilter, startDate, endDate, createdByFilter,
+    searchQuery, statusFilter, audienceFilter, dateRange = "All Time", startDate, endDate, createdByFilter,
     onClearSearch, onClearStatus, onClearAudience, onClearDate, onClearCreatedBy, onClearAll 
 }: FilterChipsProps) {
-    const hasFilters = searchQuery || statusFilter !== "All" || audienceFilter !== "All" || startDate || endDate || createdByFilter
+    const hasDateFilter = dateRange !== "All Time" && (dateRange !== "Custom Range" || Boolean(startDate || endDate))
+    const hasFilters = searchQuery || statusFilter !== "All" || audienceFilter !== "All" || hasDateFilter || createdByFilter
     if (!hasFilters) return null
+
+    const dateChipLabel =
+        dateRange === "Custom Range"
+            ? `${startDate || '...'} to ${endDate || '...'}`
+            : dateRange
 
     return (
         <div className="flex flex-wrap items-center gap-2">
@@ -44,7 +51,7 @@ export function FilterChips({
             {searchQuery && <FilterChip label={`"${searchQuery}"`} onRemove={onClearSearch} />}
             {statusFilter !== "All" && <FilterChip label={statusFilter} onRemove={onClearStatus} />}
             {audienceFilter !== "All" && <FilterChip label={audienceFilter} onRemove={onClearAudience} />}
-            {(startDate || endDate) && <FilterChip label={`${startDate || '...'} to ${endDate || '...'}`} onRemove={onClearDate} />}
+            {hasDateFilter && <FilterChip label={dateChipLabel} onRemove={onClearDate} />}
             {createdByFilter && <FilterChip label={`By: ${createdByFilter}`} onRemove={onClearCreatedBy} />}
             <button onClick={onClearAll} className="text-xs font-bold text-[#A3AED0] hover:text-red-500 px-2">
                 Clear all

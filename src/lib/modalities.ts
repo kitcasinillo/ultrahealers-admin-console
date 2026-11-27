@@ -82,7 +82,7 @@ export const fetchModalities = async (): Promise<Modality[]> => {
       id: String(item.id || item.slug || index),
       slug: typeof item.slug === "string" ? item.slug : undefined,
       name,
-      icon: pickIcon(item.slug, item.label || item.name),
+      icon: String(item.icon || pickIcon(item.slug, item.label || item.name)),
       listingsCount: count,
       active: item.active !== false,
       order: Number.isFinite(Number(item.order)) ? Number(item.order) : index,

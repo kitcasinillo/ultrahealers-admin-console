@@ -1,90 +1,134 @@
-// API definitions for Email Campaigns (Using fetch + Mock Data)
+import api from '@/lib/api';
 
-// Points to the public/data/ folder for mock data
-const API_URL = '/data' // Invite's dev server, / points to public/
+const readFileAsDataUrl = (file: File): Promise<string> =>
+  new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result || ''));
+    reader.onerror = () => reject(new Error('Failed to read image file'));
+    reader.readAsDataURL(file);
+  });
+
+export const uploadCampaignImage = async (file: File, folder = 'campaigns'): Promise<string> => {
+  if (!file.type.startsWith('image/')) {
+    throw new Error('Please select a valid image file (PNG, JPG, GIF, WebP).');
+  }
+  const MAX_SIZE_BYTES = 5 * 1024 * 1024; // 5MB
+  if (file.size > MAX_SIZE_BYTES) {
+    throw new Error('Image must be 5MB or smaller.');
+  }
+
+  const dataUrl = await readFileAsDataUrl(file);
+  const res = await api.post<{ success: boolean; url: string }>('/api/admin/campaigns/upload-image', {
+    dataUrl,
+    fileName: file.name,
+    folder,
+  });
+  return res.data.url;
+};
+
+export interface CampaignTemplateFields {
+  title: string;
+  subtitle: string;
+  body: string;
+  buttonText: string;
+  buttonUrl?: string;
+}
+
+export interface CampaignTemplate {
+  id: string;
+  name: string;
+  category: string;
+  description?: string;
+  previewImage?: string;
+  content?: string;
+  fields?: CampaignTemplateFields | null;
+  createdAt?: string | null;
+  updatedAt?: string | null;
+  lastEdited?: string;
+}
+
+export interface UnsubscribedUser {
+  id: string;
+  name: string;
+  email: string;
+  date: string;
+  sourceCampaign: string;
+  campaignId?: string | null;
+}
+
+export interface CampaignUserOption {
+  id: string;
+  name: string;
+  email: string;
+  role: string;
+}
+
+export interface AudiencePreviewRecipient {
+  id?: string | null;
+  name: string;
+  email: string;
+}
+
+export interface AudiencePreviewResponse {
+  success: boolean;
+  count: number;
+  sample?: AudiencePreviewRecipient[];
+  recipients?: AudiencePreviewRecipient[];
+}
 
 export const getCampaigns = (filters?: Record<string, string | undefined>) =>
-  fetch(`${API_URL}/campaigns.json`).then(async res => {
-    if (!res.ok) throw new Error("Failed to load mock data")
-    const data = await res.json()
-    
-    // Client-side filtering for mock data
-    let campaigns = (data.campaigns || data || []) as any[]
-    
-    if (filters) {
-      if (filters.search) {
-        const query = filters.search.toLowerCase()
-        campaigns = campaigns.filter(c => 
-          (c.name || c.title || "").toLowerCase().includes(query) ||
-          (c.subject || "").toLowerCase().includes(query)
-        )
-      }
-      
-      if (filters.status && filters.status !== "All") {
-        campaigns = campaigns.filter(c => 
-          (c.status || "").toLowerCase() === filters.status?.toLowerCase()
-        )
-      }
-      
-      if (filters.audience && filters.audience !== "All") {
-        campaigns = campaigns.filter(c => 
-          (c.audience || "").toLowerCase() === filters.audience?.toLowerCase()
-        )
-      }
-
-      if (filters.createdBy) {
-        const query = filters.createdBy.toLowerCase()
-        campaigns = campaigns.filter(c => 
-          (c.createdBy || "").toLowerCase().includes(query)
-        )
-      }
-
-      if (filters.startDate) {
-        const start = new Date(filters.startDate).getTime()
-        campaigns = campaigns.filter(c => {
-          if (!c.sentAt) return false
-          const sent = new Date(c.sentAt).getTime()
-          return sent >= start
-        })
-      }
-
-      if (filters.endDate) {
-        const end = new Date(filters.endDate).getTime()
-        campaigns = campaigns.filter(c => {
-          if (!c.sentAt) return false
-          const sent = new Date(c.sentAt).getTime()
-          return sent <= end
-        })
-      }
-    }
-
-    // Axios compatibility wrapping in 'data'
-    return { data: { campaigns, total: campaigns.length, success: true } }
-  })
+  api.get('/api/admin/campaigns', {
+    params: filters,
+  });
 
 export const getCampaign = (id: string) =>
-  fetch(`${API_URL}/campaigns.json`).then(async res => {
-    if (!res.ok) throw new Error("Failed to load mock data")
-    const data = await res.json()
-    const campaigns = data.campaigns || []
-    const campaign = campaigns.find((c: any) => c.id === id)
-    return { data: { campaign, success: true } } // Axios compatibility: wrapping in 'data'
-  })
+  api.get(`/api/admin/campaigns/${id}`);
 
 export const createCampaign = (data: Record<string, unknown>) =>
-  Promise.resolve({ data: { success: true, campaignId: "mock-id", campaign: { id: "mock-id", ...data } } })
+  api.post('/api/admin/campaigns', data);
 
-export const updateCampaign = (_id: string, data: Record<string, unknown>) =>
-  Promise.resolve({ data: { success: true, message: "Mock Update", _id, data } })
+export const updateCampaign = (id: string, data: Record<string, unknown>) =>
+  api.put(`/api/admin/campaigns/${id}`, data);
 
-export const deleteCampaign = (_id: string) =>
-  Promise.resolve({ data: { success: true, _id } })
+export const deleteCampaign = (id: string) =>
+  api.delete(`/api/admin/campaigns/${id}`);
 
-export const sendCampaign = (_id: string) =>
-  Promise.resolve({ data: { success: true, _id } })
+export const sendCampaign = (id: string) =>
+  api.post(`/api/admin/campaigns/${id}/send`);
 
-export const sendTestEmail = (_id: string, _email: string) =>
-  Promise.resolve({ data: { success: true, _id, _email } })
+export const sendTestEmail = (id: string, email: string) =>
+  api.post(`/api/admin/campaigns/${id}/test`, { email });
 
-export const getAudiencePreview = (_filters: Record<string, unknown>) =>
-  Promise.resolve({ data: { count: 1250, _filters } })
+export const getAudiencePreview = (filters: Record<string, unknown>) =>
+  api.post<AudiencePreviewResponse>('/api/admin/campaigns/audience-preview', filters);
+
+export const searchCampaignUsers = (q?: string, role?: string) =>
+  api.get<{ success: boolean; users: CampaignUserOption[]; total: number }>('/api/admin/campaigns/users/search', {
+    params: {
+      q: q || undefined,
+      role: role && role !== 'all' ? role : undefined,
+    },
+  });
+
+// Templates API
+export const getTemplates = () =>
+  api.get<{ success: boolean; templates: CampaignTemplate[] }>('/api/admin/campaigns/templates');
+
+export const createTemplate = (data: Partial<CampaignTemplate>) =>
+  api.post<{ success: boolean; template: CampaignTemplate }>('/api/admin/campaigns/templates', data);
+
+export const updateTemplate = (id: string, data: Partial<CampaignTemplate>) =>
+  api.put<{ success: boolean; template: CampaignTemplate }>(`/api/admin/campaigns/templates/${id}`, data);
+
+export const deleteTemplate = (id: string) =>
+  api.delete<{ success: boolean; id: string; deleted: boolean }>(`/api/admin/campaigns/templates/${id}`);
+
+// Unsubscribes API
+export const getUnsubscribes = () =>
+  api.get<{ success: boolean; unsubscribes: UnsubscribedUser[] }>('/api/admin/campaigns/unsubscribes');
+
+export const resubscribeUser = (id: string) =>
+  api.delete<{ success: boolean; id: string; resubscribed: boolean }>(`/api/admin/campaigns/unsubscribes/${id}`);
+
+export const processUnsubscribeToken = (token: string) =>
+  api.post<{ success: boolean; email: string }>('/api/campaigns/unsubscribe', { token });

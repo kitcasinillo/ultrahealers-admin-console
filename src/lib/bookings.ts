@@ -29,7 +29,49 @@ export type BookingFilters = {
   status?: string;
   type?: '' | 'session' | 'retreat';
   paymentStatus?: string;
+  startDate?: string;
+  endDate?: string;
 };
+
+export const BOOKING_STATUS_OPTIONS = [
+  { value: 'created', label: 'Created', dotClass: 'bg-slate-400' },
+  { value: 'pending_confirmation', label: 'Pending Confirmation', dotClass: 'bg-amber-500' },
+  { value: 'confirmed', label: 'Confirmed', dotClass: 'bg-[#4318FF]' },
+  { value: 'completed', label: 'Completed', dotClass: 'bg-emerald-500' },
+] as const;
+
+export const PAYMENT_STATUS_OPTIONS = [
+  { value: 'succeeded', label: 'Succeeded', dotClass: 'bg-emerald-500' },
+  { value: 'pending', label: 'Pending', dotClass: 'bg-amber-500' },
+  { value: 'failed', label: 'Failed', dotClass: 'bg-red-500' },
+] as const;
+
+const toTitleCase = (value: string) =>
+  value
+    .split(/[_\-\s]+/)
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1).toLowerCase())
+    .join(' ');
+
+export function formatBookingStatus(status?: string | null): string {
+  if (!status) return 'Unknown';
+  const match = BOOKING_STATUS_OPTIONS.find((opt) => opt.value === status);
+  if (match) return match.label;
+  if (status.toLowerCase() === 'cancelled' || status.toLowerCase() === 'canceled') return 'Cancelled';
+  return toTitleCase(status);
+}
+
+export function formatPaymentStatus(paymentStatus?: string | null): string {
+  if (!paymentStatus) return 'Unknown';
+  const match = PAYMENT_STATUS_OPTIONS.find((opt) => opt.value === paymentStatus);
+  if (match) return match.label;
+  return toTitleCase(paymentStatus);
+}
+
+export function formatBookingType(bookingType?: string | null): string {
+  if (!bookingType) return 'Session';
+  return bookingType.toLowerCase() === 'retreat' ? 'Retreat' : 'Session';
+}
 
 export type AdminBookingDetail = AdminBooking & {
   transcript: Array<Record<string, unknown>>;
@@ -44,6 +86,8 @@ export async function fetchBookings(filters: BookingFilters = {}) {
       status: filters.status || undefined,
       type: filters.type || undefined,
       paymentStatus: filters.paymentStatus || undefined,
+      startDate: filters.startDate || undefined,
+      endDate: filters.endDate || undefined,
     },
   });
   return data.results || [];
@@ -58,5 +102,10 @@ export async function updateBookingStatus(id: string, status: string) {
   const { data } = await api.patch<{ success: boolean; data: { id: string; status: string; updatedAt: string } }>(`/api/admin/bookings/${id}/status`, {
     status,
   });
+  return data.data;
+}
+
+export async function deleteBooking(id: string) {
+  const { data } = await api.delete<{ success: boolean; data: { id: string; deleted: boolean } }>(`/api/admin/bookings/${id}`);
   return data.data;
 }

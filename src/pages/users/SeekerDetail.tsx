@@ -1,10 +1,25 @@
 import { useEffect, useState } from "react"
-import { useParams, Link } from "react-router-dom"
-import { ArrowLeft, Calendar, Mail, MapPin, MoreVertical, User } from "lucide-react"
+import { useParams, Link, useNavigate } from "react-router-dom"
+import { AlertTriangle, ArrowLeft, Calendar, Mail, MapPin, MoreVertical, RotateCcw, ShieldCheck, ShieldOff, Trash2, User } from "lucide-react"
 import { Button } from "../../components/ui/button"
 import { Badge } from "../../components/ui/badge"
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from "../../components/ui/dialog"
 import { useToast } from "../../contexts/ToastContext"
-import { fetchSeekerDetail, type AdminSeekerDetail, updateSeekerSuspension } from "../../lib/users"
+import {
+    fetchSeekerDetail,
+    permanentDeleteSeeker,
+    type AdminSeekerDetail,
+    updateSeekerSoftDelete,
+    updateSeekerSuspension,
+    updateSeekerVerification,
+} from "../../lib/users"
 import { logAdminAction } from "../../lib/audit"
 import { useAdminAuth } from "../../contexts/AdminAuthContext"
 
@@ -22,10 +37,19 @@ const formatDate = (value: string | null) => {
 export function SeekerDetail() {
     const { user: admin } = useAdminAuth()
     const { id } = useParams()
+    const navigate = useNavigate()
     const [data, setData] = useState<AdminSeekerDetail | null>(null)
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState<string | null>(null)
     const [saving, setSaving] = useState(false)
+    const [suspendModalOpen, setSuspendModalOpen] = useState(false)
+    const [suspendReason, setSuspendReason] = useState("")
+    const [deleteModalOpen, setDeleteModalOpen] = useState(false)
+    const [deleteReason, setDeleteReason] = useState("")
+    const [verifyModalOpen, setVerifyModalOpen] = useState(false)
+    const [verifyReason, setVerifyReason] = useState("")
+    const [permanentDeleteModalOpen, setPermanentDeleteModalOpen] = useState(false)
+    const [permanentConfirmText, setPermanentConfirmText] = useState("")
     const { showToast } = useToast()
 
     useEffect(() => {
@@ -52,12 +76,12 @@ export function SeekerDetail() {
         return () => { mounted = false }
     }, [id])
 
-    const handleSuspendToggle = async () => {
+    const handleSuspendConfirm = async () => {
         if (!id || !data) return
 
         const currentStatus = data.status
         const shouldSuspend = currentStatus !== "Suspended"
-        const reason = shouldSuspend ? window.prompt("Optional suspension reason:", "") || undefined : undefined
+        const reason = shouldSuspend ? suspendReason.trim() || undefined : undefined
 
         try {
             setSaving(true)
@@ -65,6 +89,8 @@ export function SeekerDetail() {
 
             setData((prev) => prev ? { ...prev, status: result.status as AdminSeekerDetail["status"] } : prev)
             showToast(shouldSuspend ? "Seeker suspended." : "Seeker reactivated.", "success")
+            setSuspendModalOpen(false)
+            setSuspendReason("")
 
             // Log the action to the audit trail
             const auditAction = shouldSuspend ? "SUSPEND_SEEKER" : "REACTIVATE_SEEKER"
@@ -94,6 +120,125 @@ export function SeekerDetail() {
         }
     }
 
+    const handleSoftDeleteConfirm = async () => {
+        if (!id || !data) return
+
+        const currentStatus = data.status
+        const shouldDelete = currentStatus !== "Deleted"
+        const reason = shouldDelete ? deleteReason.trim() || undefined : undefined
+
+        try {
+            setSaving(true)
+            const result = await updateSeekerSoftDelete(id, shouldDelete, reason)
+
+            setData((prev) => prev ? { ...prev, status: result.status as AdminSeekerDetail["status"] } : prev)
+            showToast(shouldDelete ? "Seeker account soft-deleted." : "Seeker account restored.", "success")
+            setDeleteModalOpen(false)
+            setDeleteReason("")
+
+            if (admin) {
+                const auditAction = shouldDelete ? "SOFT_DELETE_SEEKER" : "RESTORE_SEEKER"
+                logAdminAction({
+                    adminId: admin.uid,
+                    adminEmail: admin.email || "unknown",
+                    action: auditAction,
+                    module: "Seekers",
+                    targetId: id,
+                    targetName: data.name || "Unknown Seeker",
+                    reason,
+                    changes: {
+                        previousStatus: currentStatus,
+                        newStatus: result.status
+                    }
+                }).catch((logErr) => console.error("Seeker audit log failed:", logErr))
+            }
+        } catch (err: any) {
+            console.error("Failed to update seeker soft delete:", err)
+            showToast(err?.response?.data?.error || err?.message || "Failed to update seeker deletion status", "error")
+        } finally {
+            setSaving(false)
+        }
+    }
+
+    const handleVerificationConfirm = async () => {
+        if (!id || !data) return
+
+        const currentVerified = Boolean(data.verified)
+        const nextVerified = !currentVerified
+        const reason = verifyReason.trim() || undefined
+
+        try {
+            setSaving(true)
+            const result = await updateSeekerVerification(id, nextVerified, reason)
+
+            setData((prev) => prev ? { ...prev, verified: result.verified } : prev)
+            showToast(nextVerified ? "Seeker account verified." : "Seeker account marked as unverified.", "success")
+            setVerifyModalOpen(false)
+            setVerifyReason("")
+
+            if (admin) {
+                logAdminAction({
+                    adminId: admin.uid,
+                    adminEmail: admin.email || "unknown",
+                    action: nextVerified ? "VERIFY_SEEKER" : "UNVERIFY_SEEKER",
+                    module: "Seekers",
+                    targetId: id,
+                    targetName: data.name || "Unknown Seeker",
+                    reason,
+                    changes: {
+                        previousVerified: currentVerified,
+                        newVerified: result.verified,
+                    },
+                }).catch((logErr) => console.error("Seeker audit log failed:", logErr))
+            }
+        } catch (err: any) {
+            console.error("Failed to update seeker verification:", err)
+            showToast(err?.response?.data?.error || err?.message || "Failed to update verification status", "error")
+        } finally {
+            setSaving(false)
+        }
+    }
+
+    const handlePermanentDeleteConfirm = async () => {
+        if (!id || !data || permanentConfirmText.trim() !== "DELETE") return
+
+        try {
+            setSaving(true)
+            const result = await permanentDeleteSeeker(id)
+
+            if (admin) {
+                logAdminAction({
+                    adminId: admin.uid,
+                    adminEmail: admin.email || "unknown",
+                    action: "PERMANENT_DELETE_SEEKER",
+                    module: "Seekers",
+                    targetId: id,
+                    targetName: data.name || "Unknown Seeker",
+                    metadata: {
+                        deletedListings: result.deletedListings,
+                        deletedRetreats: result.deletedRetreats,
+                        authDeleted: result.authDeleted,
+                    },
+                }).catch((logErr) => console.error("Seeker audit log failed:", logErr))
+            }
+
+            setPermanentDeleteModalOpen(false)
+            setPermanentConfirmText("")
+            showToast(
+                result.accountDeleted === false
+                    ? "Seeker role permanently removed. Remaining healer role and listings were preserved."
+                    : "Seeker account permanently deleted.",
+                "success"
+            )
+            navigate("/users/seekers")
+        } catch (err: any) {
+            console.error("Failed to permanently delete seeker:", err)
+            showToast(err?.response?.data?.error || err?.message || "Failed to permanently delete seeker", "error")
+        } finally {
+            setSaving(false)
+        }
+    }
+
     return (
         <div className="space-y-6">
             <div className="flex items-center gap-4">
@@ -107,22 +252,91 @@ export function SeekerDetail() {
                     <p className="text-muted-foreground text-sm">ID: {id}</p>
                 </div>
                 <div className="flex items-center gap-2">
+                    <div className="relative group inline-flex">
+                        <Button
+                            variant="outline"
+                            type="button"
+                            onClick={() => showToast("Messaging feature will be available soon.", "info")}
+                            title="Messaging feature will be available soon."
+                            className="opacity-75"
+                        >
+                            <Mail className="h-4 w-4 mr-1.5" />
+                            Message
+                        </Button>
+                        <div
+                            role="tooltip"
+                            className="pointer-events-none absolute top-full left-1/2 -translate-x-1/2 mt-2 z-50 whitespace-nowrap rounded-lg bg-slate-900 px-2.5 py-1.5 text-xs font-medium text-white shadow-lg opacity-0 transition-opacity duration-150 group-hover:opacity-100 group-focus-within:opacity-100 dark:bg-slate-800 dark:border dark:border-white/10"
+                        >
+                            Messaging feature will be available soon.
+                        </div>
+                    </div>
                     <Button
                         variant="outline"
                         type="button"
-                        onClick={() => data?.email && (window.location.href = `mailto:${data.email}`)}
-                        disabled={!data?.email}
+                        onClick={() => {
+                            setVerifyReason("")
+                            setVerifyModalOpen(true)
+                        }}
+                        disabled={loading || saving || !data || data?.status === "Deleted"}
                     >
-                        Message
+                        {data?.verified ? (
+                            <>
+                                <ShieldOff className="h-4 w-4 mr-1.5" />
+                                Unverify
+                            </>
+                        ) : (
+                            <>
+                                <ShieldCheck className="h-4 w-4 mr-1.5" />
+                                Verify
+                            </>
+                        )}
                     </Button>
                     <Button
                         variant={data?.status === "Suspended" ? "outline" : "destructive"}
                         type="button"
-                        onClick={handleSuspendToggle}
-                        disabled={loading || saving || !data}
+                        onClick={() => {
+                            setSuspendReason("")
+                            setSuspendModalOpen(true)
+                        }}
+                        disabled={loading || saving || !data || data?.status === "Deleted"}
                     >
                         {saving ? "Saving..." : data?.status === "Suspended" ? "Reactivate" : "Suspend"}
                     </Button>
+                    <Button
+                        variant={data?.status === "Deleted" ? "outline" : "destructive"}
+                        type="button"
+                        onClick={() => {
+                            setDeleteReason("")
+                            setDeleteModalOpen(true)
+                        }}
+                        disabled={loading || saving || !data}
+                    >
+                        {data?.status === "Deleted" ? (
+                            <>
+                                <RotateCcw className="h-4 w-4 mr-1.5" />
+                                Restore
+                            </>
+                        ) : (
+                            <>
+                                <Trash2 className="h-4 w-4 mr-1.5" />
+                                Delete
+                            </>
+                        )}
+                    </Button>
+                    {data?.status === "Deleted" && (
+                        <Button
+                            variant="destructive"
+                            type="button"
+                            onClick={() => {
+                                setPermanentConfirmText("")
+                                setPermanentDeleteModalOpen(true)
+                            }}
+                            disabled={loading || saving}
+                        >
+                            <Trash2 className="h-4 w-4 mr-1.5" />
+                            Delete Permanent
+                        </Button>
+                    )}
                     <Button variant="ghost" size="icon" disabled>
                         <MoreVertical className="h-4 w-4" />
                     </Button>
@@ -150,9 +364,18 @@ export function SeekerDetail() {
                                     ? "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-900/20 dark:text-emerald-400 dark:border-emerald-800" 
                                     : data.status === "Suspended"
                                     ? "bg-red-50 text-red-700 border-red-200 dark:bg-red-900/20 dark:text-red-400 dark:border-red-800"
+                                    : data.status === "Deleted"
+                                    ? "bg-zinc-100 text-zinc-700 border-zinc-300 dark:bg-zinc-800 dark:text-zinc-300 dark:border-zinc-700"
                                     : "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-900/20 dark:text-amber-400 dark:border-amber-800"
                                 }`}>
                                     {data.status}
+                                </Badge>
+                                <Badge className={`font-bold uppercase text-[10px] px-2 py-0.5 rounded-full border ${
+                                    data.verified
+                                        ? "bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-900/20 dark:text-blue-400 dark:border-blue-800"
+                                        : "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-900/20 dark:text-amber-400 dark:border-amber-800"
+                                }`}>
+                                    {data.verified ? "Verified" : "Unverified"}
                                 </Badge>
                             </div>
 
@@ -221,6 +444,215 @@ export function SeekerDetail() {
                     </div>
                 </div>
             )}
+
+            <Dialog open={suspendModalOpen} onOpenChange={(open) => !saving && setSuspendModalOpen(open)}>
+                <DialogContent className="sm:max-w-[440px] rounded-[24px]">
+                    <DialogHeader>
+                        <DialogTitle className="text-xl font-bold">
+                            {data?.status === "Suspended" ? "Reactivate Seeker Account" : "Suspend Seeker Account"}
+                        </DialogTitle>
+                        <DialogDescription className="text-[#A3AED0]">
+                            {data?.status === "Suspended"
+                                ? `Are you sure you want to reactivate ${data?.name}'s account? They will be able to sign in again.`
+                                : `Suspending ${data?.name}'s account will block them from signing in and display an account suspended notice until reactivated.`}
+                        </DialogDescription>
+                    </DialogHeader>
+                    {data?.status !== "Suspended" && (
+                        <div className="space-y-2 py-2">
+                            <label htmlFor="seeker-suspend-reason" className="text-sm font-medium">
+                                Reason (optional)
+                            </label>
+                            <textarea
+                                id="seeker-suspend-reason"
+                                value={suspendReason}
+                                onChange={(e) => setSuspendReason(e.target.value)}
+                                placeholder="Enter a reason for suspending this account..."
+                                rows={3}
+                                disabled={saving}
+                                className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm outline-none transition focus:border-[#4318FF] dark:border-white/10 dark:bg-white/5 dark:text-white"
+                            />
+                        </div>
+                    )}
+                    <DialogFooter className="gap-2 sm:gap-0">
+                        <Button
+                            variant="ghost"
+                            onClick={() => setSuspendModalOpen(false)}
+                            disabled={saving}
+                            className="rounded-xl font-bold"
+                        >
+                            Cancel
+                        </Button>
+                        <Button
+                            variant={data?.status === "Suspended" ? "default" : "destructive"}
+                            onClick={handleSuspendConfirm}
+                            disabled={saving}
+                            className="rounded-xl font-bold"
+                        >
+                            {saving
+                                ? "Processing..."
+                                : data?.status === "Suspended"
+                                ? "Reactivate Account"
+                                : "Suspend Account"}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            <Dialog open={deleteModalOpen} onOpenChange={(open) => !saving && setDeleteModalOpen(open)}>
+                <DialogContent className="sm:max-w-[440px] rounded-[24px]">
+                    <DialogHeader>
+                        <DialogTitle className="text-xl font-bold">
+                            {data?.status === "Deleted" ? "Restore Seeker Account" : "Soft Delete Seeker Account"}
+                        </DialogTitle>
+                        <DialogDescription className="text-[#A3AED0]">
+                            {data?.status === "Deleted"
+                                ? `Are you sure you want to restore ${data?.name}'s account? They will be able to sign in again.`
+                                : `Soft-deleting ${data?.name}'s account will block them from signing in and display an account deleted notice, while preserving their historical records.`}
+                        </DialogDescription>
+                    </DialogHeader>
+                    {data?.status !== "Deleted" && (
+                        <div className="space-y-2 py-2">
+                            <label htmlFor="seeker-delete-reason" className="text-sm font-medium">
+                                Reason (optional)
+                            </label>
+                            <textarea
+                                id="seeker-delete-reason"
+                                value={deleteReason}
+                                onChange={(e) => setDeleteReason(e.target.value)}
+                                placeholder="Enter a reason for deleting this account..."
+                                rows={3}
+                                disabled={saving}
+                                className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm outline-none transition focus:border-[#4318FF] dark:border-white/10 dark:bg-white/5 dark:text-white"
+                            />
+                        </div>
+                    )}
+                    <DialogFooter className="gap-2 sm:gap-0">
+                        <Button
+                            variant="ghost"
+                            onClick={() => setDeleteModalOpen(false)}
+                            disabled={saving}
+                            className="rounded-xl font-bold"
+                        >
+                            Cancel
+                        </Button>
+                        <Button
+                            variant={data?.status === "Deleted" ? "default" : "destructive"}
+                            onClick={handleSoftDeleteConfirm}
+                            disabled={saving}
+                            className="rounded-xl font-bold"
+                        >
+                            {saving
+                                ? "Processing..."
+                                : data?.status === "Deleted"
+                                ? "Restore Account"
+                                : "Delete Account"}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            <Dialog open={permanentDeleteModalOpen} onOpenChange={(open) => !saving && setPermanentDeleteModalOpen(open)}>
+                <DialogContent className="sm:max-w-[460px] rounded-[24px]">
+                    <DialogHeader>
+                        <DialogTitle className="text-xl font-bold text-red-600 dark:text-red-400 flex items-center gap-2">
+                            <AlertTriangle className="h-5 w-5" />
+                            Permanently Delete Account
+                        </DialogTitle>
+                        <DialogDescription className="text-[#A3AED0]">
+                            This action cannot be undone. All data for <strong className="text-foreground">{data?.name}</strong> will be deleted permanently.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-4 py-2">
+                        <div className="rounded-xl border border-red-200 bg-red-50 p-3.5 text-sm text-red-800 dark:border-red-900/50 dark:bg-red-950/40 dark:text-red-200">
+                            <p className="font-semibold mb-1">Warning: Permanent Data Loss</p>
+                            <ul className="list-disc pl-5 space-y-1 text-xs">
+                                <li>The user account, profile, and login credentials will be permanently removed.</li>
+                                <li>Any associated listings and retreats will also be permanently deleted.</li>
+                                <li>This account cannot be restored once permanently deleted.</li>
+                            </ul>
+                        </div>
+                        <div className="space-y-2">
+                            <label htmlFor="seeker-permanent-confirm" className="text-sm font-medium block">
+                                Type <span className="font-mono font-bold text-red-600 dark:text-red-400">DELETE</span> to confirm permanent deletion:
+                            </label>
+                            <input
+                                id="seeker-permanent-confirm"
+                                type="text"
+                                value={permanentConfirmText}
+                                onChange={(e) => setPermanentConfirmText(e.target.value)}
+                                placeholder="DELETE"
+                                disabled={saving}
+                                className="h-10 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm outline-none transition focus:border-red-500 dark:border-white/10 dark:bg-white/5 dark:text-white"
+                            />
+                        </div>
+                    </div>
+                    <DialogFooter className="gap-2 sm:gap-0">
+                        <Button
+                            variant="ghost"
+                            onClick={() => setPermanentDeleteModalOpen(false)}
+                            disabled={saving}
+                            className="rounded-xl font-bold"
+                        >
+                            Cancel
+                        </Button>
+                        <Button
+                            variant="destructive"
+                            onClick={handlePermanentDeleteConfirm}
+                            disabled={saving || permanentConfirmText.trim() !== "DELETE"}
+                            className="rounded-xl font-bold"
+                        >
+                            {saving ? "Deleting..." : "Delete Permanently"}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            <Dialog open={verifyModalOpen} onOpenChange={(open) => !saving && setVerifyModalOpen(open)}>
+                <DialogContent className="sm:max-w-[440px] rounded-[24px]">
+                    <DialogHeader>
+                        <DialogTitle className="text-xl font-bold">
+                            {data?.verified ? "Unverify Seeker Account" : "Verify Seeker Account"}
+                        </DialogTitle>
+                        <DialogDescription className="text-[#A3AED0]">
+                            {data?.verified
+                                ? `Mark ${data?.name || "this seeker"} as unverified? Their verification status will be revoked.`
+                                : `Manually verify ${data?.name || "this seeker"}? Their account will be marked as verified.`}
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-2 py-2">
+                        <label htmlFor="seeker-verify-reason" className="text-sm font-medium block">
+                            Reason (optional)
+                        </label>
+                        <input
+                            id="seeker-verify-reason"
+                            type="text"
+                            value={verifyReason}
+                            onChange={(e) => setVerifyReason(e.target.value)}
+                            placeholder={data?.verified ? "e.g. Account under review" : "e.g. Manual verification confirmed"}
+                            disabled={saving}
+                            className="h-10 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm outline-none transition focus:border-blue-500 dark:border-white/10 dark:bg-white/5 dark:text-white"
+                        />
+                    </div>
+                    <DialogFooter className="gap-2 sm:gap-0">
+                        <Button
+                            variant="ghost"
+                            onClick={() => setVerifyModalOpen(false)}
+                            disabled={saving}
+                            className="rounded-xl font-bold"
+                        >
+                            Cancel
+                        </Button>
+                        <Button
+                            variant={data?.verified ? "destructive" : "default"}
+                            onClick={handleVerificationConfirm}
+                            disabled={saving}
+                            className="rounded-xl font-bold"
+                        >
+                            {saving ? "Saving..." : data?.verified ? "Unverify Account" : "Verify Account"}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </div>
     )
 }

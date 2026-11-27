@@ -48,7 +48,6 @@ export function Listings() {
     const [error, setError] = useState<string | null>(null)
     const [search, setSearch] = useState(searchParams.get("search") || "")
     const [statusFilter, setStatusFilter] = useState<"" | "Active" | "Pending" | "Rejected" | "Hidden">("")
-    const [sourceFilter, setSourceFilter] = useState<"" | "session" | "retreat">("")
     const { showToast } = useToast()
 
     useEffect(() => {
@@ -69,7 +68,7 @@ export function Listings() {
                     const results = await fetchListings({
                         q: search,
                         status: statusFilter,
-                        source: sourceFilter,
+                        source: "session",
                     })
                     if (!mounted) return
                     setData(results)
@@ -89,7 +88,7 @@ export function Listings() {
             mounted = false
             clearTimeout(timeout)
         }
-    }, [search, statusFilter, sourceFilter])
+    }, [search, statusFilter])
 
     const columns = useMemo<ColumnDef<AdminListing>[]>(() => [
         {
@@ -180,7 +179,6 @@ export function Listings() {
         setSearch("")
         setSearchParams({})
         setStatusFilter("")
-        setSourceFilter("")
     }
 
     return (
@@ -189,7 +187,7 @@ export function Listings() {
                 <div>
                     <h2 className="text-3xl font-extrabold tracking-tight text-[#1b254b] dark:text-white">Listings Management</h2>
                     <p className="text-[#A3AED0] text-sm mt-1 font-medium">
-                        View, review, and manage healer sessions and retreats from the live backend.
+                        View, review, and manage healer session listings from the live backend.
                     </p>
                 </div>
                 <div className="flex items-center gap-2">
@@ -210,7 +208,7 @@ export function Listings() {
             </div>
 
             <div className="bg-white dark:bg-[#111C44] rounded-[24px] p-4 shadow-[0_10px_30px_0_rgba(11,20,55,0.06)] dark:shadow-none border border-transparent dark:border-white/5">
-                <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_180px_180px_auto]">
+                <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_180px_auto]">
                     <div className="relative">
                         <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#A3AED0]" />
                         <input
@@ -233,17 +231,7 @@ export function Listings() {
                         <option value="Hidden">Hidden</option>
                     </select>
 
-                    <select
-                        value={sourceFilter}
-                        onChange={(e) => setSourceFilter(e.target.value as typeof sourceFilter)}
-                        className="h-11 rounded-xl border border-slate-200 bg-white px-3 text-sm outline-none transition focus:border-[#4318FF] dark:border-white/10 dark:bg-white/5 dark:text-white"
-                    >
-                        <option value="">All types</option>
-                        <option value="session">Sessions</option>
-                        <option value="retreat">Retreats</option>
-                    </select>
-
-                    <Button type="button" variant="ghost" onClick={clearFilters} disabled={!search && !statusFilter && !sourceFilter}>
+                    <Button type="button" variant="ghost" onClick={clearFilters} disabled={!search && !statusFilter}>
                         <X className="h-4 w-4" />
                         Clear
                     </Button>

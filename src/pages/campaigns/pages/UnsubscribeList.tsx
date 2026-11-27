@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { DataTable } from "@/components/DataTable"
 import { type ColumnDef } from "@tanstack/react-table"
 import { Button } from "@/components/ui/button"
@@ -6,53 +6,49 @@ import { Download, MailOpen } from "lucide-react"
 import toast from "react-hot-toast"
 import { SubNav } from "../components/SubNav"
 import { ConfirmModal } from "@/components/ui/ConfirmModal"
+import { getUnsubscribes, resubscribeUser, type UnsubscribedUser } from "@/api/campaigns"
 
-export type UnsubscribedUser = {
-    id: string
-    name: string
-    email: string
-    date: string
-    sourceCampaign: string
-}
-
-const mockUnsubscribes: UnsubscribedUser[] = [
-    {
-        id: "1",
-        name: "Sarah Jenkins",
-        email: "sarah.j@example.com",
-        date: "2026-03-24T14:30:00Z",
-        sourceCampaign: "Welcome Email (Seeker)",
-    },
-    {
-        id: "2",
-        name: "Michael Chen",
-        email: "chen.m@example.com",
-        date: "2026-03-23T09:15:00Z",
-        sourceCampaign: "Re-engagement - Healer",
-    },
-    {
-        id: "3",
-        name: "Elena Rodriguez",
-        email: "elena.rod@example.com",
-        date: "2026-03-22T16:45:00Z",
-        sourceCampaign: "New Retreat Launch",
-    },
-]
+export type { UnsubscribedUser }
 
 export function UnsubscribeList() {
-    const [data, setData] = useState<UnsubscribedUser[]>(mockUnsubscribes)
+    const [data, setData] = useState<UnsubscribedUser[]>([])
+    const [loading, setLoading] = useState(true)
     const [isResubscribeModalOpen, setIsResubscribeModalOpen] = useState(false)
     const [selectedUser, setSelectedUser] = useState<UnsubscribedUser | null>(null)
+
+    useEffect(() => {
+        let mounted = true
+        setLoading(true)
+        getUnsubscribes()
+            .then((res) => {
+                if (!mounted) return
+                setData(res.data.unsubscribes || [])
+            })
+            .catch(() => {
+                if (mounted) toast.error("Failed to load unsubscribed users")
+            })
+            .finally(() => {
+                if (mounted) setLoading(false)
+            })
+        return () => {
+            mounted = false
+        }
+    }, [])
 
     const handleResubscribeClick = (user: UnsubscribedUser) => {
         setSelectedUser(user)
         setIsResubscribeModalOpen(true)
     }
 
-    const handleResubscribeConfirm = () => {
-        if (selectedUser) {
+    const handleResubscribeConfirm = async () => {
+        if (!selectedUser) return
+        try {
+            await resubscribeUser(selectedUser.id)
             setData((prev) => prev.filter((u) => u.id !== selectedUser.id))
             toast.success(`${selectedUser.email} has been re-subscribed`)
+        } catch {
+            toast.error("Failed to re-subscribe user")
+        } finally {
             setIsResubscribeModalOpen(false)
             setSelectedUser(null)
         }
@@ -143,7 +139,11 @@ export function UnsubscribeList() {
             </div>
 
             <div className="bg-white dark:bg-[#111C44] rounded-[24px] shadow-[0_10px_30px_0_rgba(11,20,55,0.06)] dark:shadow-none border border-transparent dark:border-white/5 p-6">
-                <DataTable columns={columns} data={data} />
+                {loading ? (
+                    <div className="py-16 text-center text-sm text-[#A3AED0]">Loading unsubscribed users...</div>
+                ) : (
+                    <DataTable columns={columns} data={data} />
+                )}
             </div>
 
             <ConfirmModal 

@@ -13,6 +13,22 @@ type HistoryItem = {
 };
 
 const DEFAULT_PAYLOAD = '{\n  "bookingId": "bk_12345",\n  "amount": 10000,\n  "currency": "usd"\n}';
+const HISTORY_STORAGE_KEY = "uh_admin_event_dispatch_history";
+
+const loadPersistedHistory = (): HistoryItem[] => {
+  try {
+    const raw = localStorage.getItem(HISTORY_STORAGE_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw) as Array<Omit<HistoryItem, "timestamp"> & { timestamp: string }>;
+    if (!Array.isArray(parsed)) return [];
+    return parsed.slice(0, 50).map((item) => ({
+      ...item,
+      timestamp: new Date(item.timestamp),
+    }));
+  } catch {
+    return [];
+  }
+};
 
 export function EventDispatcher() {
   const [eventType, setEventType] = useState("booking.created");
@@ -21,7 +37,15 @@ export function EventDispatcher() {
   const [showHistoryModal, setShowHistoryModal] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [lastResponse, setLastResponse] = useState<{ status: string; message: string } | null>(null);
-  const [historyData, setHistoryData] = useState<HistoryItem[]>([]);
+  const [historyData, setHistoryData] = useState<HistoryItem[]>(() => loadPersistedHistory());
+
+  const persistHistory = (next: HistoryItem[]) => {
+    try {
+      localStorage.setItem(HISTORY_STORAGE_KEY, JSON.stringify(next.slice(0, 50)));
+    } catch {
+      // Ignore storage quota / privacy mode errors
+    }
+  };
 
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState<"all" | "success" | "error">("all");
@@ -64,7 +88,11 @@ export function EventDispatcher() {
         payload: parsedPayload
       };
 
-      setHistoryData((prev) => [historyItem, ...prev].slice(0, 50));
+      setHistoryData((prev) => {
+        const next = [historyItem, ...prev].slice(0, 50);
+        persistHistory(next);
+        return next;
+      });
       setLastResponse({
         status: success ? `HTTP ${response.result?.status ?? 200}` : "Failed",
         message: success ? `Event "${effectiveEventType}" dispatched successfully.` : response.error || response.result?.reason || "Failed to dispatch event."
@@ -85,7 +113,11 @@ export function EventDispatcher() {
         timestamp: new Date(),
         payload: parsedPayload
       };
-      setHistoryData((prev) => [failedItem, ...prev].slice(0, 50));
+      setHistoryData((prev) => {
+        const next = [failedItem, ...prev].slice(0, 50);
+        persistHistory(next);
+        return next;
+      });
       setLastResponse({ status: "Failed", message: "Request failed before the backend could confirm delivery." });
       toast.error("Failed to dispatch event.");
     } finally {

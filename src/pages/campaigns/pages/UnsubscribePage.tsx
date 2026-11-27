@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react"
 import { useSearchParams } from "react-router-dom"
 import { CheckCircle, XCircle } from "lucide-react"
+import { processUnsubscribeToken } from "@/api/campaigns"
 
 export function UnsubscribePage() {
     const [searchParams] = useSearchParams()
@@ -8,22 +9,23 @@ export function UnsubscribePage() {
     const [status, setStatus] = useState<"loading" | "success" | "error">("loading")
 
     useEffect(() => {
-        // Mocking the unsubscribe process
         if (!token) {
             setStatus("error")
             return
         }
-        
-        const timeout = setTimeout(() => {
-            // Mock random success or failure if needed, defaulting to success for valid token
-            if (token === "invalid") {
-                setStatus("error")
-            } else {
-                setStatus("success")
-            }
-        }, 800)
 
-        return () => clearTimeout(timeout)
+        let mounted = true
+        processUnsubscribeToken(token)
+            .then(() => {
+                if (mounted) setStatus("success")
+            })
+            .catch(() => {
+                if (mounted) setStatus("error")
+            })
+
+        return () => {
+            mounted = false
+        }
     }, [token])
 
     return (

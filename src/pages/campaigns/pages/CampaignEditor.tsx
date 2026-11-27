@@ -11,18 +11,19 @@ import {
     Users,
     Calendar,
     CheckCircle2,
-    Upload,
-    FileText,
     X,
     RefreshCw,
     Info,
     Layout,
     TestTube,
     ChevronRight,
-    Loader2
+    ChevronDown,
+    Loader2,
+    Search,
+    UserCheck
 } from 'lucide-react'
-import Papa from 'papaparse'
 import toast from 'react-hot-toast'
+import api from "@/lib/api"
 import {
     getCampaign,
     createCampaign,
@@ -30,7 +31,13 @@ import {
     sendCampaign,
     sendTestEmail,
     getAudiencePreview,
+    getTemplates,
+    searchCampaignUsers,
+    type CampaignTemplate,
+    type CampaignUserOption,
+    type AudiencePreviewRecipient,
 } from "@/api/campaigns"
+import { buildTemplateEmailHtml, deriveTemplateFields } from "../utils/templateHtml"
 
 export function CampaignEditor() {
     const navigate = useNavigate()
@@ -48,9 +55,16 @@ export function CampaignEditor() {
     const [selectedModalities, setSelectedModalities] = useState<string[]>([])
     const [selectedRegions, setSelectedRegions] = useState<string[]>([])
     const [excludeUnsubscribed, setExcludeUnsubscribed] = useState(true)
-    const [csvFile, setCsvFile] = useState<{ name: string, count: number, emails?: string[] } | null>(null)
+    const [selectedUsers, setSelectedUsers] = useState<CampaignUserOption[]>([])
+    const [userSearchQuery, setUserSearchQuery] = useState('')
+    const [userRoleFilter, setUserRoleFilter] = useState<'all' | 'healer' | 'seeker'>('all')
+    const [userSearchResults, setUserSearchResults] = useState<CampaignUserOption[]>([])
+    const [loadingUsers, setLoadingUsers] = useState(false)
     const [isRefreshingReach, setIsRefreshingReach] = useState(false)
     const [estimatedReach, setEstimatedReach] = useState(0)
+    const [previewRecipients, setPreviewRecipients] = useState<AudiencePreviewRecipient[]>([])
+    const [isAudienceExpanded, setIsAudienceExpanded] = useState(false)
+    const [recipientSearchQuery, setRecipientSearchQuery] = useState('')
     const [previewLoading, setPreviewLoading] = useState(false)
 
     // State: Compose --
@@ -61,7 +75,8 @@ export function CampaignEditor() {
     const [fromEmail, setFromEmail] = useState('hello@ultrahealers.com')
     const [emailBody, setEmailBody] = useState('<p>Hello {{first_name}},</p><p>We have some exciting news to share...</p>')
     const [isTemplateModalOpen, setIsTemplateModalOpen] = useState(false)
-    const [selectedTemplateId, setSelectedTemplateId] = useState<number | null>(null)
+    const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(null)
+    const [templates, setTemplates] = useState<CampaignTemplate[]>([])
 
     // State: Schedule --
     const [sendOption, setSendOption] = useState<'immediate' | 'later'>('immediate')
@@ -85,6 +100,25 @@ export function CampaignEditor() {
                     setFromEmail(data.fromEmail || 'hello@ultrahealers.com')
                     setEmailBody(data.content || data.body || data.emailBody || '<p>Hello {{first_name}},</p>')
                     setSelectedSegments(data.segments || data.selectedSegments || [])
+                    setSelectedModalities(data.audienceFilter?.modalities || [])
+                    setSelectedRegions(data.audienceFilter?.regions || [])
+                    if (data.audienceFilter?.excludeUnsubscribed !== undefined) {
+                        setExcludeUnsubscribed(Boolean(data.audienceFilter.excludeUnsubscribed))
+                    }
+                    if (Array.isArray(data.customRecipients) && data.customRecipients.length > 0) {
+                        const restoredUsers: CampaignUserOption[] = data.customRecipients.map((item: any, idx: number) => {
+                            if (typeof item === 'string') {
+                                return { id: `restored_${idx}`, name: item.split('@')[0], email: item, role: 'User' }
+                            }
+                            return {
+                                id: item.id || `restored_${idx}`,
+                                name: item.name || item.email?.split('@')[0] || 'User',
+                                email: item.email || '',
+                                role: item.role || 'User',
+                            }
+                        }).filter((u: CampaignUserOption) => Boolean(u.email))
+                        setSelectedUsers(restoredUsers)
+                    }
                     setSendOption(data.scheduledAt ? 'later' : 'immediate')
                     if (data.scheduledAt) {
                         const dateObj = new Date(data.scheduledAt)
@@ -97,14 +131,71 @@ export function CampaignEditor() {
         }
     }, [id])
 
-    const modalitiesList = [
-        'Yoga', 'Meditation', 'Reiki', 'Sound Healing', 'Acupuncture', 
-        'Massage Therapy', 'Breathwork', 'Counseling', 'Naturopathy', 'Hypnotherapy'
-    ]
+    const [modalitiesList, setModalitiesList] = useState<string[]>([])
+    const [loadingModalities, setLoadingModalities] = useState(true)
+
+    useEffect(() => {
+        let mounted = true
+        setLoadingModalities(true)
+        api.get<{ success: boolean; modalities: Array<Record<string, any>> }>('/api/modalities')
+            .then((res) => {
+                if (!mounted) return
+                const items = (res.data.modalities || [])
+                    .filter((item) => item.active !== false)
+                    .sort((a, b) => {
+                        const orderA = Number.isFinite(Number(a.order)) ? Number(a.order) : 999
+                        const orderB = Number.isFinite(Number(b.order)) ? Number(b.order) : 999
+                        if (orderA !== orderB) return orderA - orderB
+                        return String(a.label || a.name || '').localeCompare(String(b.label || b.name || ''))
+                    })
+                    .map((item) => String(item.label || item.name || item.slug || '').trim())
+                    .filter(Boolean)
+                setModalitiesList(items)
+            })
+            .catch(() => {
+                if (mounted) setModalitiesList([])
+            })
+            .finally(() => {
+                if (mounted) setLoadingModalities(false)
+            })
+        return () => {
+            mounted = false
+        }
+    }, [])
 
     const regionsList = [
         'North America', 'Europe', 'Asia-Pacific', 'Latin America', 'Middle East', 'Africa'
     ]
+
+    // Search specific users for targeted sending
+    useEffect(() => {
+        let mounted = true
+        const timer = setTimeout(() => {
+            setLoadingUsers(true)
+            searchCampaignUsers(userSearchQuery, userRoleFilter)
+                .then((res) => {
+                    if (mounted) setUserSearchResults(res.data.users || [])
+                })
+                .catch(() => {
+                    if (mounted) setUserSearchResults([])
+                })
+                .finally(() => {
+                    if (mounted) setLoadingUsers(false)
+                })
+        }, 250)
+        return () => {
+            mounted = false
+            clearTimeout(timer)
+        }
+    }, [userSearchQuery, userRoleFilter])
+
+    const toggleSelectedUser = (user: CampaignUserOption) => {
+        setSelectedUsers((prev) => {
+            const exists = prev.some((u) => u.email.toLowerCase() === user.email.toLowerCase())
+            if (exists) return prev.filter((u) => u.email.toLowerCase() !== user.email.toLowerCase())
+            return [...prev, user]
+        })
+    }
 
     // Reach Estimation
     const updateReach = useCallback(async (isRefresh = false) => {
@@ -114,20 +205,28 @@ export function CampaignEditor() {
         try {
             const payload = buildAudiencePayload()
             const res = await getAudiencePreview(payload)
-            setEstimatedReach(res.data.count)
+            setEstimatedReach(res.data.count || 0)
+            setPreviewRecipients(res.data.recipients || res.data.sample || [])
         } catch (error) {
             console.error("Failed to fetch reach estimate:", error)
             setEstimatedReach(0)
+            setPreviewRecipients([])
         } finally {
             setPreviewLoading(false)
             setIsRefreshingReach(false)
         }
-    }, [selectedSegments, selectedModalities, selectedRegions, excludeUnsubscribed, csvFile])
+    }, [selectedSegments, selectedModalities, selectedRegions, excludeUnsubscribed, selectedUsers])
 
     // Reach Estimation
     useEffect(() => {
-        if (selectedSegments.length === 0 && selectedModalities.length === 0 && selectedRegions.length === 0 && !csvFile) {
+        if (
+            selectedSegments.length === 0 &&
+            selectedModalities.length === 0 &&
+            selectedRegions.length === 0 &&
+            selectedUsers.length === 0
+        ) {
             setEstimatedReach(0)
+            setPreviewRecipients([])
             return
         }
 
@@ -135,7 +234,7 @@ export function CampaignEditor() {
             updateReach()
         }, 600)
         return () => clearTimeout(timer)
-    }, [selectedSegments, selectedModalities, selectedRegions, excludeUnsubscribed, csvFile, updateReach])
+    }, [selectedSegments, selectedModalities, selectedRegions, excludeUnsubscribed, selectedUsers, updateReach])
 
     const buildAudiencePayload = () => {
         const segmentMap: Record<string, Record<string, unknown>> = {
@@ -158,8 +257,10 @@ export function CampaignEditor() {
             }
         }
 
-        if (csvFile?.emails) {
-            merged.customRecipients = csvFile.emails
+        const selectedRecipients = selectedUsers.map((u) => ({ id: u.id, name: u.name, email: u.email, role: u.role }))
+
+        if (selectedRecipients.length > 0) {
+            merged.customRecipients = selectedRecipients
         }
 
         if (selectedModalities.length > 0) {
@@ -176,6 +277,7 @@ export function CampaignEditor() {
     }
 
     const buildCampaignPayload = () => {
+        const selectedRecipients = selectedUsers.map((u) => ({ id: u.id, name: u.name, email: u.email, role: u.role }))
         const payload: any = {
             title: campaignName,
             subject,
@@ -184,7 +286,7 @@ export function CampaignEditor() {
             fromEmail,
             content: emailBody,
             segments: selectedSegments,
-            customRecipients: csvFile?.emails || [],
+            customRecipients: selectedRecipients,
             audienceFilter: buildAudiencePayload()
         }
 
@@ -280,25 +382,12 @@ export function CampaignEditor() {
         }
     }
 
-    // CSV Upload
-    const handleCsvUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0]
-        if (file) {
-            Papa.parse<Record<string, string>>(file, {
-                header: true,
-                complete: (results) => {
-                    const emails = results.data
-                        .map((row) => row.email || row.Email || '')
-                        .filter(Boolean) as string[]
-                    setCsvFile({
-                        name: file.name,
-                        count: results.data.length,
-                        emails,
-                    })
-                }
-            })
-        }
-    }
+    // Load saved templates from backend
+    useEffect(() => {
+        getTemplates()
+            .then((res) => setTemplates(res.data.templates || []))
+            .catch(() => {})
+    }, [])
 
     const segments = [
         { id: 'all-healers', label: 'All Healers' },
@@ -310,15 +399,6 @@ export function CampaignEditor() {
         { id: 'new-healers', label: 'Healers who joined in last 7 days' },
         { id: 'inactive-seekers', label: 'Seekers with no bookings in last 30 days' },
         { id: 'disputed-seekers', label: 'Seekers with pending disputes' },
-    ]
-
-    const templates = [
-        { id: 1, name: 'Welcome — Healer', category: 'Onboarding', description: 'Introduce new healers to the platform and help them set up their profile.', image: 'https://images.unsplash.com/photo-1576091160550-217359f4ecf8?auto=format&fit=crop&w=300&q=80' },
-        { id: 2, name: 'Welcome — Seeker', category: 'Onboarding', description: 'Welcome new seekers and guide them on how to find the right healer.', image: 'https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?auto=format&fit=crop&w=300&q=80' },
-        { id: 3, name: 'Premium Upgrade', category: 'Marketing', description: 'Promote the benefits of premium membership with a special discount.', image: 'https://images.unsplash.com/photo-1553729459-efe14ef6055d?auto=format&fit=crop&w=300&q=80' },
-        { id: 4, name: 'Re-engagement', category: 'Retention', description: 'Reach out to inactive users with personalized wellness tips.', image: 'https://images.unsplash.com/photo-1506126613408-eca07ce68773?auto=format&fit=crop&w=300&q=80' },
-        { id: 5, name: 'Monthly Newsletter', category: 'Content', description: 'A clean, multi-section layout for sharing news and updates.', image: 'https://images.unsplash.com/photo-1586769852044-692d6e3703a0?auto=format&fit=crop&w=300&q=80' },
-        { id: 6, name: 'Urgent Maintenance', category: 'System', description: 'Clear and professional layout for important system notifications.', image: 'https://images.unsplash.com/photo-1551288560-19973648e19c?auto=format&fit=crop&w=300&q=80' },
     ]
 
     return (
@@ -406,22 +486,28 @@ export function CampaignEditor() {
                                         <div className="space-y-3">
                                             <p className="text-sm font-bold text-[#1b254b] dark:text-white ml-1">Filter by Modality</p>
                                             <div className="p-4 rounded-2xl border border-gray-100 dark:border-white/5 bg-[#F4F7FE]/30 dark:bg-white/3 space-y-2 max-h-[200px] overflow-y-auto custom-scrollbar">
-                                                {modalitiesList.map(modality => (
-                                                    <label key={modality} className="flex items-center gap-3 cursor-pointer group">
-                                                        <input 
-                                                            type="checkbox" 
-                                                            className="w-4 h-4 rounded border-gray-300 text-[#4318FF]"
-                                                            checked={selectedModalities.includes(modality)}
-                                                            onChange={(e) => {
-                                                                if (e.target.checked) setSelectedModalities([...selectedModalities, modality])
-                                                                else setSelectedModalities(selectedModalities.filter(m => m !== modality))
-                                                            }}
-                                                        />
-                                                        <span className="text-sm font-medium text-[#A3AED0] group-hover:text-[#1b254b] dark:group-hover:text-white transition-colors">
-                                                            {modality}
-                                                        </span>
-                                                    </label>
-                                                ))}
+                                                {loadingModalities ? (
+                                                    <p className="text-xs text-[#A3AED0] font-medium py-2">Loading modalities...</p>
+                                                ) : modalitiesList.length === 0 ? (
+                                                    <p className="text-xs text-[#A3AED0] font-medium py-2">No active modalities found.</p>
+                                                ) : (
+                                                    modalitiesList.map(modality => (
+                                                        <label key={modality} className="flex items-center gap-3 cursor-pointer group">
+                                                            <input 
+                                                                type="checkbox" 
+                                                                className="w-4 h-4 rounded border-gray-300 text-[#4318FF]"
+                                                                checked={selectedModalities.includes(modality)}
+                                                                onChange={(e) => {
+                                                                    if (e.target.checked) setSelectedModalities([...selectedModalities, modality])
+                                                                    else setSelectedModalities(selectedModalities.filter(m => m !== modality))
+                                                                }}
+                                                            />
+                                                            <span className="text-sm font-medium text-[#A3AED0] group-hover:text-[#1b254b] dark:group-hover:text-white transition-colors">
+                                                                {modality}
+                                                            </span>
+                                                        </label>
+                                                    ))
+                                                )}
                                             </div>
                                         </div>
 
@@ -448,33 +534,141 @@ export function CampaignEditor() {
                                         </div>
                                     </div>
 
-                                    <div className={`p-4 rounded-2xl border border-dashed transition-all ${csvFile ? 'border-[#4318FF] bg-[#4318FF]/5 dark:bg-[#01A3B4]/5' : 'border-gray-200 dark:border-white/10 bg-[#F4F7FE]/30 dark:bg-white/3'
-                                        }`}>
-                                        <div className="flex items-center justify-between">
+                                    {/* Select Specific Users */}
+                                    <div className="p-4 rounded-2xl border border-gray-100 dark:border-white/5 bg-[#F4F7FE]/30 dark:bg-white/3 space-y-4">
+                                        <div className="flex items-center justify-between gap-2">
                                             <div className="flex items-center gap-3">
                                                 <div className="h-10 w-10 rounded-xl bg-white dark:bg-[#111C44] flex items-center justify-center text-[#4318FF]">
-                                                    <Upload className="h-5 w-5" />
+                                                    <UserCheck className="h-5 w-5" />
                                                 </div>
                                                 <div>
-                                                    <p className="font-bold text-[#1b254b] dark:text-white">Custom Segment (CSV)</p>
-                                                    <p className="text-xs text-[#A3AED0] font-medium">Upload a list of specific email addresses</p>
+                                                    <p className="font-bold text-[#1b254b] dark:text-white">Select Specific Users</p>
+                                                    <p className="text-xs text-[#A3AED0] font-medium">
+                                                        Pick individual healers or seekers to target directly (leave broad segments unchecked to send only to these users)
+                                                    </p>
                                                 </div>
                                             </div>
-                                            <Button variant="outline" size="sm" className="rounded-xl font-bold relative overflow-hidden">
-                                                {csvFile ? 'Change File' : 'Upload CSV'}
-                                                <input type="file" accept=".csv" className="absolute inset-0 opacity-0 cursor-pointer" onChange={handleCsvUpload} />
-                                            </Button>
-                                        </div>
-                                        {csvFile && (
-                                            <div className="mt-4 flex items-center justify-between p-3 bg-white dark:bg-[#111C44] rounded-xl border border-[#4318FF]/20">
-                                                <div className="flex items-center gap-2">
-                                                    <FileText className="h-4 w-4 text-[#4318FF]" />
-                                                    <span className="text-sm font-bold text-[#1b254b] dark:text-white">{csvFile.name}</span>
-                                                    <Badge className="bg-emerald-50 text-emerald-600 border-emerald-100 rounded-full text-[10px]">{csvFile.count} rows</Badge>
+                                            {selectedUsers.length > 0 && (
+                                                <div className="flex items-center gap-2 shrink-0">
+                                                    <Badge className="bg-[#4318FF]/10 text-[#4318FF] border-none rounded-full text-xs font-bold">
+                                                        {selectedUsers.length} selected
+                                                    </Badge>
+                                                    <Button
+                                                        type="button"
+                                                        variant="ghost"
+                                                        size="sm"
+                                                        className="h-7 px-2 text-xs text-[#A3AED0] hover:text-red-500"
+                                                        onClick={() => setSelectedUsers([])}
+                                                    >
+                                                        Clear
+                                                    </Button>
                                                 </div>
-                                                <X className="h-4 w-4 text-[#A3AED0] cursor-pointer hover:text-red-500" onClick={() => setCsvFile(null)} />
+                                            )}
+                                        </div>
+
+                                        {/* Selected User Chips */}
+                                        {selectedUsers.length > 0 && (
+                                            <div className="flex flex-wrap gap-2">
+                                                {selectedUsers.map((user) => (
+                                                    <span
+                                                        key={user.email}
+                                                        className="inline-flex items-center gap-1.5 rounded-full bg-white dark:bg-[#111C44] border border-[#4318FF]/25 px-3 py-1 text-xs font-semibold text-[#1b254b] dark:text-white shadow-xs"
+                                                    >
+                                                        <span>{user.name}</span>
+                                                        <span className="text-[#A3AED0] font-normal">({user.email})</span>
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => toggleSelectedUser(user)}
+                                                            className="ml-0.5 text-[#A3AED0] hover:text-red-500 transition-colors"
+                                                            aria-label={`Remove ${user.name}`}
+                                                        >
+                                                            <X className="h-3.5 w-3.5" />
+                                                        </button>
+                                                    </span>
+                                                ))}
                                             </div>
                                         )}
+
+                                        {/* Search + Role Filter */}
+                                        <div className="flex flex-col sm:flex-row gap-2">
+                                            <div className="relative flex-1">
+                                                <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#A3AED0]" />
+                                                <Input
+                                                    value={userSearchQuery}
+                                                    onChange={(e) => setUserSearchQuery(e.target.value)}
+                                                    placeholder="Search users by name or email..."
+                                                    className="pl-9 h-10 rounded-xl bg-white dark:bg-[#111C44] border-gray-200 dark:border-white/10 text-sm"
+                                                />
+                                            </div>
+                                            <div className="flex items-center gap-1 bg-white dark:bg-[#111C44] p-1 rounded-xl border border-gray-200 dark:border-white/10">
+                                                {(['all', 'healer', 'seeker'] as const).map((r) => (
+                                                    <button
+                                                        key={r}
+                                                        type="button"
+                                                        onClick={() => setUserRoleFilter(r)}
+                                                        className={`px-3 py-1.5 rounded-lg text-xs font-bold capitalize transition-colors ${
+                                                            userRoleFilter === r
+                                                                ? 'bg-[#4318FF] text-white'
+                                                                : 'text-[#A3AED0] hover:text-[#1b254b] dark:hover:text-white'
+                                                        }`}
+                                                    >
+                                                        {r === 'all' ? 'All' : `${r}s`}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        </div>
+
+                                        {/* Scrollable User Picker List */}
+                                        <div className="max-h-[210px] overflow-y-auto custom-scrollbar rounded-xl bg-white dark:bg-[#111C44] border border-gray-100 dark:border-white/5 divide-y divide-gray-100 dark:divide-white/5">
+                                            {loadingUsers ? (
+                                                <div className="p-4 text-center text-xs text-[#A3AED0] font-medium">
+                                                    Searching users...
+                                                </div>
+                                            ) : userSearchResults.length === 0 ? (
+                                                <div className="p-4 text-center text-xs text-[#A3AED0] font-medium">
+                                                    No matching users found.
+                                                </div>
+                                            ) : (
+                                                userSearchResults.map((user) => {
+                                                    const isSelected = selectedUsers.some(
+                                                        (u) => u.email.toLowerCase() === user.email.toLowerCase()
+                                                    )
+                                                    return (
+                                                        <label
+                                                            key={user.id}
+                                                            className={`flex items-center justify-between gap-3 px-3.5 py-2.5 cursor-pointer transition-colors ${
+                                                                isSelected
+                                                                    ? 'bg-[#4318FF]/5 dark:bg-[#4318FF]/15'
+                                                                    : 'hover:bg-[#F4F7FE]/60 dark:hover:bg-white/5'
+                                                            }`}
+                                                        >
+                                                            <div className="flex items-center gap-3 min-w-0">
+                                                                <input
+                                                                    type="checkbox"
+                                                                    className="w-4 h-4 rounded border-gray-300 text-[#4318FF] shrink-0"
+                                                                    checked={isSelected}
+                                                                    onChange={() => toggleSelectedUser(user)}
+                                                                />
+                                                                <div className="min-w-0">
+                                                                    <p className="text-sm font-semibold text-[#1b254b] dark:text-white truncate">
+                                                                        {user.name}
+                                                                    </p>
+                                                                    <p className="text-xs text-[#A3AED0] truncate">
+                                                                        {user.email}
+                                                                    </p>
+                                                                </div>
+                                                            </div>
+                                                            <Badge
+                                                                variant="secondary"
+                                                                className="rounded-full text-[10px] font-bold shrink-0"
+                                                            >
+                                                                {user.role}
+                                                            </Badge>
+                                                        </label>
+                                                    )
+                                                })
+                                            )}
+                                        </div>
                                     </div>
                                 </div>
 
@@ -669,15 +863,94 @@ export function CampaignEditor() {
                                             {fromName} &lt;{fromEmail}&gt; <br />
                                         </span>
                                     </div>
-                                    <div className="flex flex-col md:flex-row md:items-center justify-between py-4 border-b border-gray-100 dark:border-white/5 gap-2">
-                                        <span className="text-sm font-bold text-[#A3AED0]">Audience</span>
-                                        <div className="flex flex-wrap gap-1 justify-end max-w-sm">
-                                            {selectedSegments.map(s => <Badge key={s} variant="secondary" className="rounded-full text-[10px]">{s}</Badge>)}
-                                            {selectedModalities.map(m => <Badge key={m} className="bg-purple-50 text-purple-600 rounded-full text-[10px]">{m}</Badge>)}
-                                            {selectedRegions.map(r => <Badge key={r} className="bg-amber-50 text-amber-600 rounded-full text-[10px]">{r}</Badge>)}
-                                            {csvFile && <Badge className="bg-emerald-50 text-emerald-600 rounded-full text-[10px]">CSV: {csvFile.name}</Badge>}
-                                            {!selectedSegments.length && !selectedModalities.length && !selectedRegions.length && !csvFile && <span className="text-red-500 text-sm font-bold">No audience selected!</span>}
-                                        </div>
+                                    <div className="py-4 border-b border-gray-100 dark:border-white/5">
+                                        <button
+                                            type="button"
+                                            onClick={() => setIsAudienceExpanded((prev) => !prev)}
+                                            aria-expanded={isAudienceExpanded}
+                                            className="w-full flex flex-col md:flex-row md:items-center justify-between gap-2 text-left group cursor-pointer"
+                                        >
+                                            <div className="flex items-center gap-2">
+                                                <span className="text-sm font-bold text-[#A3AED0] group-hover:text-[#1b254b] dark:group-hover:text-white transition-colors">
+                                                    Audience
+                                                </span>
+                                                <span className="inline-flex items-center gap-1 text-xs font-semibold text-[#4318FF] dark:text-[#01A3B4]">
+                                                    <span>{isAudienceExpanded ? 'Hide recipients' : 'Review recipients'}</span>
+                                                    <ChevronDown
+                                                        className={`h-4 w-4 transition-transform duration-200 ${isAudienceExpanded ? 'rotate-180' : ''}`}
+                                                    />
+                                                </span>
+                                            </div>
+                                            <div className="flex flex-wrap gap-1 justify-end max-w-sm">
+                                                {selectedSegments.map(s => <Badge key={s} variant="secondary" className="rounded-full text-[10px]">{s}</Badge>)}
+                                                {selectedModalities.map(m => <Badge key={m} className="bg-purple-50 text-purple-600 rounded-full text-[10px]">{m}</Badge>)}
+                                                {selectedRegions.map(r => <Badge key={r} className="bg-amber-50 text-amber-600 rounded-full text-[10px]">{r}</Badge>)}
+                                                {selectedUsers.length > 0 && <Badge className="bg-emerald-50 text-emerald-600 rounded-full text-[10px]">{selectedUsers.length} Selected {selectedUsers.length === 1 ? 'User' : 'Users'}</Badge>}
+                                                {!selectedSegments.length && !selectedModalities.length && !selectedRegions.length && !selectedUsers.length && <span className="text-red-500 text-sm font-bold">No audience selected!</span>}
+                                            </div>
+                                        </button>
+
+                                        {isAudienceExpanded && (() => {
+                                            const q = recipientSearchQuery.trim().toLowerCase()
+                                            const filteredRecipients = q
+                                                ? previewRecipients.filter((r) =>
+                                                    (r.name || '').toLowerCase().includes(q) ||
+                                                    (r.email || '').toLowerCase().includes(q)
+                                                )
+                                                : previewRecipients
+
+                                            return (
+                                                <div className="mt-4 rounded-2xl border border-gray-100 dark:border-white/10 bg-[#F4F7FE]/60 dark:bg-white/5 p-4 space-y-3">
+                                                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                                                        <p className="text-xs font-bold text-[#1b254b] dark:text-white">
+                                                            {previewLoading
+                                                                ? 'Loading recipients...'
+                                                                : `Showing ${filteredRecipients.length.toLocaleString()} of ${previewRecipients.length.toLocaleString()} recipient${previewRecipients.length === 1 ? '' : 's'}`}
+                                                        </p>
+                                                        {previewRecipients.length > 5 && (
+                                                            <div className="relative w-full sm:w-64">
+                                                                <Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[#A3AED0]" />
+                                                                <Input
+                                                                    value={recipientSearchQuery}
+                                                                    onChange={(e) => setRecipientSearchQuery(e.target.value)}
+                                                                    placeholder="Filter recipients..."
+                                                                    className="h-8 pl-8 rounded-xl bg-white dark:bg-[#111C44] border-gray-200 dark:border-white/10 text-xs"
+                                                                />
+                                                            </div>
+                                                        )}
+                                                    </div>
+
+                                                    {previewLoading ? (
+                                                        <div className="flex items-center justify-center py-6 text-xs text-[#A3AED0] gap-2">
+                                                            <Loader2 className="h-4 w-4 animate-spin text-[#4318FF]" />
+                                                            Loading matched recipients...
+                                                        </div>
+                                                    ) : filteredRecipients.length === 0 ? (
+                                                        <p className="text-xs text-[#A3AED0] text-center py-4 font-medium">
+                                                            {previewRecipients.length === 0
+                                                                ? 'No recipients matched the selected audience.'
+                                                                : 'No recipients match your search.'}
+                                                        </p>
+                                                    ) : (
+                                                        <div className="max-h-[260px] overflow-y-auto custom-scrollbar rounded-xl bg-white dark:bg-[#111C44] border border-gray-100 dark:border-white/5 divide-y divide-gray-100 dark:divide-white/5">
+                                                            {filteredRecipients.map((recipient, idx) => (
+                                                                <div
+                                                                    key={recipient.id || `${recipient.email}-${idx}`}
+                                                                    className="flex items-center justify-between gap-3 px-3.5 py-2.5 text-xs"
+                                                                >
+                                                                    <span className="font-semibold text-[#1b254b] dark:text-white truncate">
+                                                                        {recipient.name || recipient.email}
+                                                                    </span>
+                                                                    <span className="text-[#A3AED0] truncate">
+                                                                        {recipient.email}
+                                                                    </span>
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            )
+                                        })()}
                                     </div>
                                     <div className="flex flex-col md:flex-row md:items-center justify-between py-4 border-b border-gray-100 dark:border-white/5 gap-2">
                                         <span className="text-sm font-bold text-[#A3AED0]">Recipients</span>
@@ -847,16 +1120,19 @@ export function CampaignEditor() {
                                         }`}
                                 >
                                     <div className="aspect-[4/3] rounded-2xl overflow-hidden mb-4 bg-gray-100 dark:bg-white/5 relative">
-                                        <img src={template.image} alt={template.name} className="w-full h-full object-cover transition-transform group-hover:scale-105" />
+                                        {template.previewImage ? (
+                                            <img src={template.previewImage} alt={template.name} className="w-full h-full object-cover transition-transform group-hover:scale-105" />
+                                        ) : (
+                                            <div className="w-full h-full flex items-center justify-center text-[#A3AED0] text-xs font-bold">Template</div>
+                                        )}
                                         <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
-                                            <Button size="sm" variant="secondary" className="rounded-lg font-bold text-xs h-8">
-                                                Preview
-                                            </Button>
                                             <Button
                                                 size="sm"
                                                 className="rounded-lg bg-[#4318FF] hover:bg-[#3311CC] text-white font-bold text-xs h-8"
                                                 onClick={() => {
-                                                    setEmailBody(`<h1>${template.name}</h1><p>Body for ${template.name} goes here...</p>`)
+                                                    const fields = deriveTemplateFields(template)
+                                                    const html = buildTemplateEmailHtml(fields, template.previewImage, template.name)
+                                                    setEmailBody(html)
                                                     setSelectedTemplateId(template.id)
                                                     setIsTemplateModalOpen(false)
                                                 }}

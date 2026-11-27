@@ -9,7 +9,7 @@ import {
     getCampaign,
 } from "@/api/campaigns"
 import type { Campaign } from "../utils/type"
-import { extractCampaignData, normalizeCampaign } from "../utils"
+import { extractCampaignData, normalizeCampaign, getDateRangeForPreset } from "../utils"
 
 export function useCampaigns() {
     const [campaigns, setCampaigns] = useState<Campaign[]>([])
@@ -19,6 +19,7 @@ export function useCampaigns() {
     const [searchQuery, setSearchQuery] = useState("")
     const [statusFilter, setStatusFilter] = useState("All")
     const [audienceFilter, setAudienceFilter] = useState("All")
+    const [dateRange, setDateRange] = useState("All Time")
     const [startDate, setStartDate] = useState("")
     const [endDate, setEndDate] = useState("")
     const [createdByFilter, setCreatedByFilter] = useState("")
@@ -29,11 +30,17 @@ export function useCampaigns() {
         if (statusFilter !== "All") params.status = statusFilter
         if (audienceFilter !== "All") params.audience = audienceFilter
         if (searchQuery) params.search = searchQuery
-        if (startDate) params.startDate = startDate
-        if (endDate) params.endDate = endDate
+        if (dateRange === "Custom Range") {
+            if (startDate) params.startDate = startDate
+            if (endDate) params.endDate = endDate
+        } else if (dateRange !== "All Time") {
+            const range = getDateRangeForPreset(dateRange)
+            if (range.startDate) params.startDate = range.startDate
+            if (range.endDate) params.endDate = range.endDate
+        }
         if (createdByFilter) params.createdBy = createdByFilter
         return params
-    }, [statusFilter, audienceFilter, searchQuery, startDate, endDate, createdByFilter])
+    }, [statusFilter, audienceFilter, searchQuery, dateRange, startDate, endDate, createdByFilter])
 
     const fetchAndSetCampaigns = useCallback(async (params: Record<string, string | undefined>) => {
         try {
@@ -159,6 +166,8 @@ export function useCampaigns() {
         setStatusFilter,
         audienceFilter,
         setAudienceFilter,
+        dateRange,
+        setDateRange,
         startDate,
         setStartDate,
         endDate,
